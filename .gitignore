@@ -1,0 +1,15 @@
+tags
+*.swp
+*.swo
+/.settings
+/.buildpath
+/.project
+.DS_Store
+.idea
+/bin/
+/pkg
+/log
+/output
+/test
+/.terraform
+/terraform-provider-jdcloud
