@@ -26,10 +26,6 @@ func Provider() *schema.Provider {
 				Description: "The region where JDCLOUD operations will take place",
 			},
 		},
-		ConfigureFunc: initProvider,
+		ConfigureFunc: initConfig,
 	}
-}
-
-func initProvider(d *schema.ResourceData) (interface{}, error) {
-	return nil, nil
 }
