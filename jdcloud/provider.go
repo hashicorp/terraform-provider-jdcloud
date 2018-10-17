@@ -8,6 +8,7 @@ func Provider() *schema.Provider {
 	return &schema.Provider{
 		ResourcesMap: map[string]*schema.Resource{
 			"jdcloud_oss_bucket": resourceOssBucket(),
+			"jdcloud_instance":   resourceJdcloudInstance(),
 		},
 		Schema: map[string]*schema.Schema{
 			"access_key": &schema.Schema{
