@@ -1136,39 +1136,11 @@
 			"notests": true
 		},
 		{
-			"importpath": "github.com/jdcloud-api/jdcloud-sdk-go/core",
+			"importpath": "github.com/jdcloud-api/jdcloud-sdk-go",
 			"repository": "https://github.com/jdcloud-api/jdcloud-sdk-go",
 			"vcs": "git",
 			"revision": "9ef9d6b092d2f41d93b769f9114bebf82a45d07d",
 			"branch": "master",
-			"path": "/core",
-			"notests": true
-		},
-		{
-			"importpath": "github.com/jdcloud-api/jdcloud-sdk-go/services/oss/apis",
-			"repository": "https://github.com/jdcloud-api/jdcloud-sdk-go",
-			"vcs": "git",
-			"revision": "9ef9d6b092d2f41d93b769f9114bebf82a45d07d",
-			"branch": "master",
-			"path": "services/oss/apis",
-			"notests": true
-		},
-		{
-			"importpath": "github.com/jdcloud-api/jdcloud-sdk-go/services/oss/client",
-			"repository": "https://github.com/jdcloud-api/jdcloud-sdk-go",
-			"vcs": "git",
-			"revision": "9ef9d6b092d2f41d93b769f9114bebf82a45d07d",
-			"branch": "master",
-			"path": "/services/oss/client",
-			"notests": true
-		},
-		{
-			"importpath": "github.com/jdcloud-api/jdcloud-sdk-go/services/oss/models",
-			"repository": "https://github.com/jdcloud-api/jdcloud-sdk-go",
-			"vcs": "git",
-			"revision": "9ef9d6b092d2f41d93b769f9114bebf82a45d07d",
-			"branch": "master",
-			"path": "services/oss/models",
 			"notests": true
 		},
 		{

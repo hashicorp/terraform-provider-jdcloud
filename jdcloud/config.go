@@ -24,6 +24,24 @@ var (
 	}
 )
 
+const DefaultTimeout = 600
+const DefaultSecurityGroupsMax = 5
+
+const (
+	VM_PENDING    = "pending"
+	VM_STARTING   = "starting"
+	VM_RUNNING    = "running"
+	VM_STOPPING   = "stopping"
+	VM_STOPPED    = "stopped"
+	VM_REBOOTING  = "rebooting"
+	VM_REBUILDING = "rebuilding"
+	VM_RESIZING   = "resizing"
+	VM_DELETING   = "deleting"
+	VM_TERMINATED = "terminated"
+	VM_ERROR      = "error"
+	VM_DELETED    = "deleted" //actual,there is no such state
+)
+
 func initConfig(d *schema.ResourceData) (interface{}, error) {
 	region := d.Get("region").(string)
 	if _, ok := regionCn[region]; !ok {
