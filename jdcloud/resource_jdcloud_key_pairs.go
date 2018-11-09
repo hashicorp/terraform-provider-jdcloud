@@ -85,33 +85,3 @@ func resourceJDCloudKeyPairsDelete(d *schema.ResourceData, meta interface{}) err
 
 	return nil
 }
-
-//func waitForKeyPairs(d *schema.ResourceData, m interface{}, vmStatus string) error {
-//	currentTime := int(time.Now().Unix())
-//
-//	for {
-//		if int(time.Now().Unix())-currentTime >= DefaultTimeout {
-//			return errors.New("create  KeyPairs timeout")
-//		}
-//		vmInstanceDetail, err := QueryInstanceDetail(d, m)
-//		if err != nil {
-//			return errors.New("query KeyPairs detail fail")
-//		}
-//		if vmInstanceDetail.Result.Instance.Status != vmStatus {
-//			continue
-//		}
-//
-//		return nil
-//	}
-//}
-//
-//func QueryKeyPairsDetail(d *schema.ResourceData, m interface{}) (*apis.DescribeInstanceResponse, error) {
-//	config := m.(*JDCloudConfig)
-//	vmClient := client.NewVmClient(config.Credential)
-//	req := apis.NewDescribeInstanceRequest(config.Region, d.Id())
-//	resp, err := vmClient.DescribeInstance(req)
-//	if resp.Error.Code == 404 && resp.Error.Status == "NOT_FOUND" {
-//		resp.Result.Instance.Status = VM_DELETED
-//	}
-//	return resp, err
-//}
