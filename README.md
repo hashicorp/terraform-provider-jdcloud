@@ -1,6 +1,8 @@
 Terraform Provider for JDCloud
 ==================
 
+[![Build Status](https://travis-ci.com/jdclouddevelopers/terraform-provider-jdcloud.svg?branch=master)](https://travis-ci.com/jdclouddevelopers/terraform-provider-jdcloud)
+
 Building The Provider
 ---------------------
 
