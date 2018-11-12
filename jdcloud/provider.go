@@ -13,6 +13,7 @@ func Provider() *schema.Provider {
 			"jdcloud_key_pairs":                    resourceJDCloudKeyPairs(),
 			"jdcloud_network_security_group":       resourceJDCloudNetworkSecurityGroup(),
 			"jdcloud_network_security_group_rules": resourceJDCloudNetworkSecurityGroupRules(),
+			"jdcloud_vpc":                          resourceJDCloudVpc(),
 		},
 		Schema: map[string]*schema.Schema{
 			"access_key": &schema.Schema{
