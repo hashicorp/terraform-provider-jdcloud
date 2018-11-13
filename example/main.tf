@@ -51,3 +51,10 @@ resource "jdcloud_instance" "vm-1" {
   key_names     = "${jdcloud_key_pairs.key-1.key_name}"
   description   = "Managed by terraform"
 }
+
+resource "jdcloud_subnet" "jd-subnet-1" {
+  vpc_id      = "${jdcloud_vpc.vpc-1.id}"
+  cidr_block  = "172.16.0.0/26"
+  subnet_name = "subnet_example"
+  description = "testing"
+}
