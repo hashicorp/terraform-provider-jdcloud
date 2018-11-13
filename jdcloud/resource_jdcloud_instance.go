@@ -11,12 +11,12 @@ import (
 	"time"
 )
 
-func resourceJdcloudInstance() *schema.Resource {
+func resourceJDCloudInstance() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceJdcloudInstanceCreate,
-		Read:   resourceJdcloudInstanceRead,
-		Update: resourceJdcloudInstanceUpdate,
-		Delete: resourceJdcloudInstanceDelete,
+		Create: resourceJDCloudInstanceCreate,
+		Read:   resourceJDCloudInstanceRead,
+		Update: resourceJDCloudInstanceUpdate,
+		Delete: resourceJDCloudInstanceDelete,
 
 		Schema: map[string]*schema.Schema{
 			"az": {
@@ -149,7 +149,7 @@ func DeleteVmInstance(d *schema.ResourceData, m interface{}) (*apis.DeleteInstan
 	return resp, err
 }
 
-func resourceJdcloudInstanceCreate(d *schema.ResourceData, m interface{}) error {
+func resourceJDCloudInstanceCreate(d *schema.ResourceData, m interface{}) error {
 	config := m.(*JDCloudConfig)
 	vmClient := client.NewVmClient(config.Credential)
 
@@ -193,6 +193,8 @@ func resourceJdcloudInstanceCreate(d *schema.ResourceData, m interface{}) error 
 	resp, err := vmClient.CreateInstances(req)
 	if err != nil {
 		return err
+	} else if resp.Error.Code != 0 {
+		return fmt.Errorf("Create vm instance failed: %s", resp.Error)
 	}
 
 	d.SetId(resp.Result.InstanceIds[0])
@@ -200,7 +202,7 @@ func resourceJdcloudInstanceCreate(d *schema.ResourceData, m interface{}) error 
 	return waitForInstance(d, m, VM_RUNNING)
 }
 
-func resourceJdcloudInstanceRead(d *schema.ResourceData, m interface{}) error {
+func resourceJDCloudInstanceRead(d *schema.ResourceData, m interface{}) error {
 	vmInstanceDetail, err := QueryInstanceDetail(d, m)
 	if err != nil {
 		if vmInstanceDetail.Result.Instance.Status == VM_DELETED {
@@ -221,7 +223,7 @@ func resourceJdcloudInstanceRead(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
-func resourceJdcloudInstanceUpdate(d *schema.ResourceData, m interface{}) error {
+func resourceJDCloudInstanceUpdate(d *schema.ResourceData, m interface{}) error {
 	d.Partial(true)
 
 	config := m.(*JDCloudConfig)
@@ -286,7 +288,7 @@ func resourceJdcloudInstanceUpdate(d *schema.ResourceData, m interface{}) error 
 	return nil
 }
 
-func resourceJdcloudInstanceDelete(d *schema.ResourceData, m interface{}) error {
+func resourceJDCloudInstanceDelete(d *schema.ResourceData, m interface{}) error {
 	vmInstanceDetail, err := QueryInstanceDetail(d, m)
 	if err != nil {
 		return fmt.Errorf("query instance fail: %s", err)

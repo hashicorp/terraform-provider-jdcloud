@@ -7,15 +7,16 @@ import (
 func Provider() *schema.Provider {
 	return &schema.Provider{
 		ResourcesMap: map[string]*schema.Resource{
-			"jdcloud_oss_bucket":                   resourceOssBucket(),
-			"jdcloud_instance":                     resourceJdcloudInstance(),
 			"jdcloud_disk":                         resourceJDCloudDisk(),
+			"jdcloud_oss_bucket":                   resourceJDCloudOssBucket(),
+			"jdcloud_instance":                     resourceJDCloudInstance(),
 			"jdcloud_key_pairs":                    resourceJDCloudKeyPairs(),
 			"jdcloud_network_security_group":       resourceJDCloudNetworkSecurityGroup(),
 			"jdcloud_network_security_group_rules": resourceJDCloudNetworkSecurityGroupRules(),
 			"jdcloud_vpc":                          resourceJDCloudVpc(),
 			"jdcloud_network_interface":            resourceJDCloudNetworkInterface(),
 			"jdcloud_disk_attachment":              resourceJDCloudDiskAttachment(),
+			"jdcloud_subnet":                       resourceJDCloudSubnet(),
 		},
 		Schema: map[string]*schema.Schema{
 			"access_key": &schema.Schema{

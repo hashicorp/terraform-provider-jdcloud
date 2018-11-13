@@ -14,12 +14,12 @@ const (
 	jdcloudOssEndpoint = "s3.%s.jcloudcs.com"
 )
 
-func resourceOssBucket() *schema.Resource {
+func resourceJDCloudOssBucket() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceOssBucketCreate,
-		Read:   resourceOssBucketRead,
-		Update: resourceOssBucketUpdate,
-		Delete: resourceOssBucketDelete,
+		Create: resourceJDCloudOssBucketCreate,
+		Read:   resourceJDCloudOssBucketRead,
+		Update: resourceJDCloudOssBucketUpdate,
+		Delete: resourceJDCloudOssBucketDelete,
 
 		Schema: map[string]*schema.Schema{
 			"bucket": &schema.Schema{
@@ -48,7 +48,7 @@ func getOssClient(m interface{}) *s3.S3 {
 	return s3.New(sess)
 }
 
-func resourceOssBucketCreate(d *schema.ResourceData, m interface{}) error {
+func resourceJDCloudOssBucketCreate(d *schema.ResourceData, m interface{}) error {
 	bucket := d.Get("bucket").(string)
 	client := getOssClient(m)
 	s3Input := &s3.CreateBucketInput{
@@ -63,7 +63,7 @@ func resourceOssBucketCreate(d *schema.ResourceData, m interface{}) error {
 	return err
 }
 
-func resourceOssBucketRead(d *schema.ResourceData, m interface{}) error {
+func resourceJDCloudOssBucketRead(d *schema.ResourceData, m interface{}) error {
 	bucket := d.Get("bucket").(string)
 	client := getOssClient(m)
 	s3Input := &s3.HeadBucketInput{
@@ -80,7 +80,7 @@ func resourceOssBucketRead(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
-func resourceOssBucketUpdate(d *schema.ResourceData, m interface{}) error {
+func resourceJDCloudOssBucketUpdate(d *schema.ResourceData, m interface{}) error {
 	d.Partial(true)
 
 	if d.HasChange("acl") {
@@ -102,7 +102,7 @@ func resourceOssBucketUpdate(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
-func resourceOssBucketDelete(d *schema.ResourceData, m interface{}) error {
+func resourceJDCloudOssBucketDelete(d *schema.ResourceData, m interface{}) error {
 	bucket := d.Get("bucket").(string)
 	client := getOssClient(m)
 	s3Input := &s3.DeleteBucketInput{
