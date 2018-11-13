@@ -17,6 +17,8 @@ func Provider() *schema.Provider {
 			"jdcloud_network_interface":            resourceJDCloudNetworkInterface(),
 			"jdcloud_disk_attachment":              resourceJDCloudDiskAttachment(),
 			"jdcloud_subnet":                       resourceJDCloudSubnet(),
+			"jdcloud_route_table":                  resourceJDCloudRouteTable(),
+			"jdcloud_route_table_association":      resourceJDCloudRouteTableAssociation(),
 		},
 		Schema: map[string]*schema.Schema{
 			"access_key": &schema.Schema{

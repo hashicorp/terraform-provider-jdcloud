@@ -58,3 +58,15 @@ resource "jdcloud_subnet" "jd-subnet-1" {
   subnet_name = "subnet_example"
   description = "testing"
 }
+
+resource "jdcloud_route_table" "jd-route-table-1" {
+  vpc_id           = "${jdcloud_vpc.vpc-1.id}"
+  route_table_name = "my_route_table_haha"
+  description      = "Testing"
+}
+
+resource "jdcloud_route_table_association" "route-table-association-1"{
+  subnet_id        = "${jdcloud_subnet.jd-subnet-1.id}"
+  route_table_id   = "${jdcloud_route_table.jd-route-table-1.id}"
+}
+
