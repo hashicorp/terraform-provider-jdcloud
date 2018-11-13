@@ -11,5 +11,8 @@ tags
 /log
 /output
 /test
-/.terraform
+.terraform
 /terraform-provider-jdcloud
+terraform.tfstate
+terraform.tfstate.backup
+crash.log
