@@ -15,6 +15,7 @@ func Provider() *schema.Provider {
 			"jdcloud_network_security_group_rules": resourceJDCloudNetworkSecurityGroupRules(),
 			"jdcloud_vpc":                          resourceJDCloudVpc(),
 			"jdcloud_network_interface":            resourceJDCloudNetworkInterface(),
+			"jdcloud_disk_attachment":              resourceJDCloudDiskAttachment(),
 		},
 		Schema: map[string]*schema.Schema{
 			"access_key": &schema.Schema{

@@ -2,13 +2,11 @@ package jdcloud
 
 import (
 	"errors"
-	"fmt"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/disk/apis"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/disk/client"
 	diskModels "github.com/jdcloud-api/jdcloud-sdk-go/services/disk/models"
 	"log"
-	"strings"
 )
 
 func resourceJDCloudDisk() *schema.Resource {
@@ -28,18 +26,9 @@ func resourceJDCloudDisk() *schema.Resource {
 				Required: true,
 			},
 			"az": {
-				Type:     schema.TypeString,
-				Required: true,
-				ValidateFunc: func(v interface{}, k string) (s []string, errs []error) {
-
-					value := v.(string)
-					if len(value) < 1 {
-						errs = append(errs, fmt.Errorf("%v can not be less than 1 characters.", k))
-					}
-
-					return
-
-				},
+				Type:         schema.TypeString,
+				Required:     true,
+				ValidateFunc: validateStringNoEmpty,
 			},
 			"description": {
 				Type:     schema.TypeString,
@@ -85,25 +74,6 @@ func resourceJDCloudDisk() *schema.Resource {
 				Computed: true,
 			},
 		},
-	}
-}
-
-func validateStringInSlice(validSlice []string, ignoreCase bool) schema.SchemaValidateFunc {
-	return func(i interface{}, k string) (s []string, err []error) {
-		v, ok := i.(string)
-		if !ok {
-			err = append(err, fmt.Errorf("type of %s must be string", k))
-			return
-		}
-
-		for _, str := range validSlice {
-			if v == str || (ignoreCase && strings.ToLower(v) == strings.ToLower(str)) {
-				return
-			}
-		}
-
-		err = append(err, fmt.Errorf("expected %s to be one of %v, got %s", k, validSlice, v))
-		return
 	}
 }
 
