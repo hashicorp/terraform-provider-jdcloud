@@ -14,6 +14,8 @@ func Provider() *schema.Provider {
 			"jdcloud_network_security_group_rules": resourceJDCloudNetworkSecurityGroupRules(),
 			"jdcloud_vpc":                          resourceJDCloudVpc(),
 			"jdcloud_subnet":                       resourceJDCloudSubnet(),
+			"jdcloud_route_table":                  resourceJDCloudRouteTable(),
+			"jdcloud_route_table_association":      resourceJDCloudRouteTableAssociation(),
 		},
 		Schema: map[string]*schema.Schema{
 			"access_key": &schema.Schema{
