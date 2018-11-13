@@ -193,6 +193,8 @@ func resourceJDCloudInstanceCreate(d *schema.ResourceData, m interface{}) error 
 	resp, err := vmClient.CreateInstances(req)
 	if err != nil {
 		return err
+	} else if resp.Error.Code != 0 {
+		return fmt.Errorf("Create vm instance failed: %s", resp.Error)
 	}
 
 	d.SetId(resp.Result.InstanceIds[0])
