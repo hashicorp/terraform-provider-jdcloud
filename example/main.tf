@@ -45,7 +45,7 @@ resource "jdcloud_instance" "vm-1" {
   instance_name = "my-vm-1"
   instance_type = "c.n1.large"
   image_id      = "bba85cab-dfdc-4359-9218-7a2de429dd80"
-  subnet_id     = "subnet-jo6e38sdli"
+  subnet_id     = "${jdcloud_subnet.jd-subnet-1.id}"
   disk_category = "local"
   password      = "${var.vm_password}"
   key_names     = "${jdcloud_key_pairs.key-1.key_name}"

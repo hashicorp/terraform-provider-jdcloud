@@ -20,6 +20,14 @@ func resourceJDCloudKeyPairs() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
+			"key_finger_print": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"private_key": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -49,9 +57,10 @@ func resourceJDCloudKeyPairsCreate(d *schema.ResourceData, meta interface{}) err
 	}
 
 	d.SetId(resp.RequestID)
+	d.Set("key_finger_print", resp.Result.KeyFingerprint)
+	d.Set("private_key", resp.Result.PrivateKey)
 
 	return nil
-	//return waitForKeyPairs(d, m, VM_RUNNING)
 }
 
 func resourceJDCloudKeyPairsRead(d *schema.ResourceData, meta interface{}) error {
