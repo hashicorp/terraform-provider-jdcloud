@@ -12,6 +12,56 @@ import (
 )
 
 func resourceJDCloudInstance() *schema.Resource {
+	diskSchema := &schema.Schema{
+		Type:     schema.TypeMap,
+		Optional: true,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"disk_category": {
+					Type:     schema.TypeString,
+					Optional: true,
+				},
+				"auto_delete": {
+					Type:     schema.TypeBool,
+					Optional: true,
+				},
+				"device_name": {
+					Type:     schema.TypeString,
+					Optional: true,
+				},
+				"no_device": {
+					Type:     schema.TypeBool,
+					Optional: true,
+				},
+
+				"az": {
+					Type:     schema.TypeString,
+					Optional: true,
+				},
+				"disk_name": {
+					Type:     schema.TypeString,
+					Optional: true,
+				},
+				"description": {
+					Type:     schema.TypeString,
+					Optional: true,
+				},
+				"disk_type": {
+					Type:     schema.TypeString,
+					Optional: true,
+				},
+				"disk_size_gb": {
+					Type:     schema.TypeInt,
+					Optional: true,
+				},
+				"snapshot_id": {
+					Type:     schema.TypeString,
+					Optional: true,
+				},
+			},
+		},
+	}
+
 	return &schema.Resource{
 		Create: resourceJDCloudInstanceCreate,
 		Read:   resourceJDCloudInstanceRead,
@@ -60,13 +110,13 @@ func resourceJDCloudInstance() *schema.Resource {
 				Optional: true,
 			},
 
-			"private_id": {
+			"primary_ip": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"security_groups": {
+			"security_group_ids": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem: &schema.Schema{
@@ -74,10 +124,35 @@ func resourceJDCloudInstance() *schema.Resource {
 				},
 			},
 
-			"public_id": {
+			"network_interface_name": {
 				Type:     schema.TypeString,
-				Computed: true,
+				Optional: true,
 			},
+			"secondary_ips": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
+			"secondary_ip_count": {
+				Type:     schema.TypeInt,
+				Optional: true,
+			},
+			"sanity_check": {
+				Type:     schema.TypeInt,
+				Optional: true,
+			},
+			"elastic_ip_bandwidth_mbps": {
+				Type:     schema.TypeInt,
+				Optional: true,
+			},
+			"elastic_ip_provider": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
+			"system_disk": diskSchema,
 		},
 	}
 }
@@ -176,14 +251,20 @@ func resourceJDCloudInstanceCreate(d *schema.ResourceData, m interface{}) error 
 		spec.KeyNames = []string{d.Get("key_names").(string)}
 	}
 
-	if _, ok := d.GetOk("private_id"); ok {
-		spec.PrimaryNetworkInterface.NetworkInterface.PrimaryIpAddress = GetStringAddr(d, "private_id")
+	if _, ok := d.GetOk("primary_ip"); ok {
+		spec.PrimaryNetworkInterface.NetworkInterface.PrimaryIpAddress = GetStringAddr(d, "primary_ip")
+	}
+	if _, ok := d.GetOk("network_interface_name"); ok {
+		spec.PrimaryNetworkInterface.NetworkInterface.NetworkInterfaceName = GetStringAddr(d, "network_interface_name")
+	}
+	if v, ok := d.GetOk("secondary_ips"); ok {
+		spec.PrimaryNetworkInterface.NetworkInterface.SecondaryIpAddresses = InterfaceToStringArray(v.(*schema.Set).List())
 	}
 
-	if sgs, ok := d.GetOk("security_groups"); ok {
+	if sgs, ok := d.GetOk("security_group_ids"); ok {
 		sgList := InterfaceToStringArray(sgs.(*schema.Set).List())
 		if len(sgList) > DefaultSecurityGroupsMax {
-			return fmt.Errorf("the maximum allowed number of security_groups is %d", DefaultSecurityGroupsMax)
+			return fmt.Errorf("the maximum allowed number of security_group_ids is %d", DefaultSecurityGroupsMax)
 		}
 		spec.PrimaryNetworkInterface.NetworkInterface.SecurityGroups = sgList
 	}
@@ -217,9 +298,9 @@ func resourceJDCloudInstanceRead(d *schema.ResourceData, m interface{}) error {
 	d.Set("password", d.Get("password"))
 	d.Set("description", vmInstanceDetail.Result.Instance.Description)
 	d.Set("subnet_id", vmInstanceDetail.Result.Instance.SubnetId)
-	d.Set("private_id", vmInstanceDetail.Result.Instance.PrimaryNetworkInterface.NetworkInterface.PrimaryIp)
+	d.Set("primary_ip", vmInstanceDetail.Result.Instance.PrimaryNetworkInterface.NetworkInterface.PrimaryIp)
 	d.Set("key_names", vmInstanceDetail.Result.Instance.KeyNames)
-	d.Set("security_groups", vmInstanceDetail.Result.Instance.PrimaryNetworkInterface.NetworkInterface.SecurityGroups)
+	d.Set("security_group_ids", vmInstanceDetail.Result.Instance.PrimaryNetworkInterface.NetworkInterface.SecurityGroups)
 	return nil
 }
 

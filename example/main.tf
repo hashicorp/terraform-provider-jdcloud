@@ -50,6 +50,58 @@ resource "jdcloud_instance" "vm-1" {
   password      = "${var.vm_password}"
   key_names     = "${jdcloud_key_pairs.key-1.key_name}"
   description   = "Managed by terraform"
+
+  primary_ip             = "172.16.1.3"
+  network_interface_name = "veth1"
+  secondary_ips          = ["172.16.1.4", "172.16.1.5"]
+  secondary_ip_count     = 2
+  security_group_ids     = ["${jdcloud_network_security_group.sg-1.network_security_group_id}"]
+  sanity_check           = 1
+
+  elastic_ip_bandwidth_mbps = 10
+  elastic_ip_provider       = "bgp"
+
+  system_disk = {
+    disk_category = "local"
+    auto_delete   = true
+    device_name   = "vda"
+    no_device     = true
+
+    az           = ""
+    disk_name    = "vm1-disk-1"
+    description  = "test"
+    disk_type    = "premium-hdd"
+    disk_size_gb = 50
+    snapshot_id  = ""
+  }
+
+  data_disk = {
+    disk_category = "local"
+    auto_delete   = true
+    device_name   = "vdb"
+    no_device     = true
+
+    az           = ""
+    disk_name    = "vm1-disk-2"
+    description  = "test"
+    disk_type    = "premium-hdd"
+    disk_size_gb = 50
+    snapshot_id  = ""
+  }
+
+  data_disk = {
+    disk_category = "local"
+    auto_delete   = true
+    device_name   = "vdc"
+    no_device     = true
+
+    az           = ""
+    disk_name    = "vm1-disk-3"
+    description  = "test"
+    disk_type    = "premium-hdd"
+    disk_size_gb = 50
+    snapshot_id  = ""
+  }
 }
 
 resource "jdcloud_subnet" "jd-subnet-1" {
@@ -65,8 +117,7 @@ resource "jdcloud_route_table" "jd-route-table-1" {
   description      = "Testing"
 }
 
-resource "jdcloud_route_table_association" "route-table-association-1"{
-  subnet_id        = "${jdcloud_subnet.jd-subnet-1.id}"
-  route_table_id   = "${jdcloud_route_table.jd-route-table-1.id}"
+resource "jdcloud_route_table_association" "route-table-association-1" {
+  subnet_id      = "${jdcloud_subnet.jd-subnet-1.id}"
+  route_table_id = "${jdcloud_route_table.jd-route-table-1.id}"
 }
-
