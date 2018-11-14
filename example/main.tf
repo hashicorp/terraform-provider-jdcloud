@@ -45,16 +45,15 @@ resource "jdcloud_instance" "vm-1" {
   instance_name = "my-vm-1"
   instance_type = "c.n1.large"
   image_id      = "bba85cab-dfdc-4359-9218-7a2de429dd80"
-  subnet_id     = "${jdcloud_subnet.jd-subnet-1.id}"
-  disk_category = "local"
   password      = "${var.vm_password}"
   key_names     = "${jdcloud_key_pairs.key-1.key_name}"
   description   = "Managed by terraform"
 
-  primary_ip             = "172.16.1.3"
+  subnet_id              = "${jdcloud_subnet.jd-subnet-1.id}"
   network_interface_name = "veth1"
-  secondary_ips          = ["172.16.1.4", "172.16.1.5"]
-  secondary_ip_count     = 2
+  primary_ip             = "172.16.0.13"
+  secondary_ips          = ["172.16.0.14", "172.16.0.15"]
+  # secondary_ip_count   = 2
   security_group_ids     = ["${jdcloud_network_security_group.sg-1.network_security_group_id}"]
   sanity_check           = 1
 
@@ -66,13 +65,6 @@ resource "jdcloud_instance" "vm-1" {
     auto_delete   = true
     device_name   = "vda"
     no_device     = true
-
-    az           = ""
-    disk_name    = "vm1-disk-1"
-    description  = "test"
-    disk_type    = "premium-hdd"
-    disk_size_gb = 50
-    snapshot_id  = ""
   }
 
   data_disk = {
@@ -80,27 +72,19 @@ resource "jdcloud_instance" "vm-1" {
     auto_delete   = true
     device_name   = "vdb"
     no_device     = true
-
-    az           = ""
-    disk_name    = "vm1-disk-2"
-    description  = "test"
-    disk_type    = "premium-hdd"
-    disk_size_gb = 50
-    snapshot_id  = ""
   }
 
   data_disk = {
-    disk_category = "local"
+    disk_category = "cloud"
     auto_delete   = true
     device_name   = "vdc"
     no_device     = true
 
-    az           = ""
-    disk_name    = "vm1-disk-3"
+    az           = "cn-north-1a"
+    disk_name    = "vm1-datadisk-1"
     description  = "test"
     disk_type    = "premium-hdd"
     disk_size_gb = 50
-    snapshot_id  = ""
   }
 }
 
