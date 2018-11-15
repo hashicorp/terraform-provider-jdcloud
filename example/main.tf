@@ -105,3 +105,12 @@ resource "jdcloud_route_table_association" "route-table-association-1" {
   subnet_id      = "${jdcloud_subnet.jd-subnet-1.id}"
   route_table_id = "${jdcloud_route_table.jd-route-table-1.id}"
 }
+
+resource "jdcloud_key_pairs" "keypairs_1" {
+  key_name   = "JDCLODU-123312FMK"
+  public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEAm3c0aR7zI0Xkrm1MD3zDrazC+fR+DV6p/xdzQJWviqPSFGfsatptY3Bc6gYF/qY+Jjccmrm6SKrtW0xPicCw5/uGAuIyhzBnG1Ix0fITdJkeBzyBpxdu/oxnJuvu5P8BLfoFH80ovUqysnttC/7hHBp+uIctkt/g14Kqd7kuPc0Gp4cx7tntNWpmzHJI9i+ayF95nJyFGIjF/s57b9pcKnnv2LXkMDNxsnzgWwPpi2hqGpQSz//ji8GgSED08u34zSjVbPc0TYJy4GO+uD8hozGnf9Evlpqx4OSB0D+4AuRcIniPgCOotYpOdp3Lj7CQRwzkiFZ6YpOxj1qMD4fnjQ== rsa-key-jddevelop"
+}
+
+resource "jdcloud_key_pairs" "keypairs_2" {
+  key_name = "JDCLODU-123312FMF"
+}
