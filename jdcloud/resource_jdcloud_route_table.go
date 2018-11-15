@@ -27,6 +27,7 @@ func resourceJDCloudRouteTable() *schema.Resource {
 			"vpc_id": {
 				Type:        schema.TypeString,
 				Required:    true,
+				ForceNew:    true,
 				Description: "Vpc name this route table belong to",
 			},
 
@@ -77,11 +78,54 @@ func resourceRouteTableCreate(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceRouteTableRead(d *schema.ResourceData, m interface{}) error {
+
+	config := m.(*JDCloudConfig)
+	routeClient := client.NewVpcClient(config.Credential)
+
+	req := apis.NewDescribeRouteTableRequest(config.Region, d.Id())
+	resp, err := routeClient.DescribeRouteTable(req)
+
+	if resp.Error.Code == 404 && resp.Error.Status == "NOT_FOUND" {
+		d.SetId("")
+		return nil
+	}
+	if err != nil {
+		fmt.Errorf("Sorry we can not read this route table :%s", err)
+	}
+
+	// In case of vpc_id got modified by other users
+	// We were required to update vpc_id to detect accordingly
+	d.Set("route_table_name", resp.Result.RouteTable.RouteTableName)
+	d.Set("description", resp.Result.RouteTable.Description)
+	d.Set("vpc_id", resp.Result.RouteTable.VpcId)
+
 	return nil
 }
 
 func resourceRouteTableUpdate(d *schema.ResourceData, m interface{}) error {
-	return resourceRouteTableRead(d, m)
+	d.Partial(true)
+
+	config := m.(*JDCloudConfig)
+	routeClient := client.NewVpcClient(config.Credential)
+
+	if d.HasChange("route_table_name") || d.HasChange("description") {
+		req := apis.NewModifyRouteTableRequestWithAllParams(
+			config.Region,
+			d.Id(),
+			GetStringAddr(d, "route_table_name"),
+			GetStringAddr(d, "description"),
+		)
+		resp, err := routeClient.ModifyRouteTable(req)
+		if err != nil {
+			return nil
+		}
+
+		if resp.Error.Code != 0 {
+			return fmt.Errorf("We can not make this update: %s", resp.Error)
+		}
+	}
+	d.Partial(false)
+	return nil
 }
 
 func resourceRouteTableDelete(d *schema.ResourceData, m interface{}) error {

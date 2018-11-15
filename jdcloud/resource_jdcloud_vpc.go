@@ -32,6 +32,7 @@ func resourceJDCloudVpc() *schema.Resource {
 			"cidr_block": {
 				Type:        schema.TypeString,
 				Required:    true,
+				ForceNew:    true,
 				Description: "String of CIDR block",
 			},
 
@@ -88,7 +89,7 @@ func resourceVpcCreate(d *schema.ResourceData, m interface{}) error {
 	resp, err := vpcClient.CreateVpc(req)
 
 	/*	TODO:   addressPrefix and description are indeed optional rather than required,
-	select the creation function properly according to configuration file.
+		select the creation function properly according to configuration file.
 	*/
 
 	/*
@@ -134,8 +135,42 @@ func resourceVpcRead(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
+/*
+	Differences between [Read] and [Update]:
+
+		Read   : When resources has been changed remotely,modoify d *schema.ResourceData
+		Update : When config files has been modified, update the resources correspondingly
+
+	Notice that [Read] will only modify parameter [d *schema.ResourceData]
+	However the config file stored locally will not be changed. Modify the config
+	File after [d] has been changed, or else it will be changed back in next apply
+*/
 func resourceVpcUpdate(d *schema.ResourceData, m interface{}) error {
-	return resourceVpcRead(d, m)
+	d.Partial(true)
+
+	config := m.(*JDCloudConfig)
+	vpcClient := client.NewVpcClient(config.Credential)
+
+	if d.HasChange("vpc_name") || d.HasChange("description") {
+		req := apis.NewModifyVpcRequestWithAllParams(
+			config.Region,
+			d.Id(),
+			GetStringAddr(d, "vpc_name"),
+			GetStringAddr(d, "description"),
+		)
+		resp, err := vpcClient.ModifyVpc(req)
+		if err != nil {
+			return err
+		}
+		if resp.Error.Code != 0 {
+			return fmt.Errorf("We can not do this,reasons:", resp.Error)
+		}
+
+		d.SetPartial("vpc_name")
+		d.SetPartial("description")
+	}
+	d.Partial(false)
+	return nil
 }
 
 func resourceVpcDelete(d *schema.ResourceData, m interface{}) error {

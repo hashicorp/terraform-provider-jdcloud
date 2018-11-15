@@ -21,12 +21,14 @@ func resourceJDCloudSubnet() *schema.Resource {
 			"vpc_id": {
 				Type:        schema.TypeString,
 				Required:    true,
+				ForceNew:    true,
 				Description: "Id of vpc",
 			},
 
 			"cidr_block": {
 				Type:        schema.TypeString,
 				Required:    true,
+				ForceNew:    true,
 				Description: "Cidr block,must be the subset of VPC-cidr",
 			},
 
@@ -67,9 +69,10 @@ func resourceSubnetCreate(d *schema.ResourceData, m interface{}) error {
 	vpcId := d.Get("vpc_id").(string)
 	subnetName := d.Get("subnet_name").(string)
 	addressPrefix := d.Get("cidr_block").(string)
+	description := GetStringAddr(d, "description")
 	// Be aware that [cidr_block of subnet] must be a subset of the [Vpc cidr_block] it attaches to
 
-	req := apis.NewCreateSubnetRequest(regionId, vpcId, subnetName, addressPrefix)
+	req := apis.NewCreateSubnetRequestWithAllParams(regionId, vpcId, subnetName, addressPrefix, nil, description)
 	resp, err := subnetClient.CreateSubnet(req)
 
 	if err != nil {
@@ -85,11 +88,52 @@ func resourceSubnetCreate(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceSubnetRead(d *schema.ResourceData, m interface{}) error {
+
+	config := m.(*JDCloudConfig)
+	subnetClient := client.NewVpcClient(config.Credential)
+
+	req := apis.NewDescribeSubnetRequest(config.Region, d.Id())
+	resp, err := subnetClient.DescribeSubnet(req)
+
+	if resp.Error.Code == 404 && resp.Error.Status == "NOT_FOUND" {
+		d.SetId("")
+		return nil
+	}
+	if err != nil {
+		fmt.Errorf("Sorry we can not read this route table :%s", err)
+	}
+
+	d.Set("subnet_name", resp.Result.Subnet.SubnetName)
+	d.Set("description", resp.Result.Subnet.Description)
+
 	return nil
+
 }
 
 func resourceSubnetUpdate(d *schema.ResourceData, m interface{}) error {
-	return resourceSubnetRead(d, m)
+	d.Partial(true)
+
+	config := m.(*JDCloudConfig)
+	subnetClient := client.NewVpcClient(config.Credential)
+
+	if d.HasChange("subnet_name") || d.HasChange("description") {
+		req := apis.NewModifySubnetRequestWithAllParams(
+			config.Region,
+			d.Id(),
+			GetStringAddr(d, "subnet_name"),
+			GetStringAddr(d, "description"),
+		)
+		resp, err := subnetClient.ModifySubnet(req)
+		if err != nil {
+			return nil
+		}
+
+		if resp.Error.Code != 0 {
+			return fmt.Errorf("We can not make this update: %s", resp.Error)
+		}
+	}
+	d.Partial(false)
+	return nil
 }
 
 func resourceSubnetDelete(d *schema.ResourceData, m interface{}) error {

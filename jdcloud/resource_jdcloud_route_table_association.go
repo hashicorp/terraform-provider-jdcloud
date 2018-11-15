@@ -18,16 +18,31 @@ func resourceJDCloudRouteTableAssociation() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 
-			"subnet_id": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "Name you route table",
-			},
-
 			"route_table_id": {
 				Type:        schema.TypeString,
 				Required:    true,
+				ForceNew:    true,
+				Description: "Name you route table",
+			},
+
+			"subnet_id": {
+				Type: schema.TypeList,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+				Required:    true,
 				Description: "Vpc name this route table belong to",
+			},
+
+			"description": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "",
+				Description: "See comments below",
+
+				// This parameter appears only because we were asked not to set all parameters "ForceNew"
+				// However, "ForceNew" seems to be the most intuitive and appropriate way here.
+				// In order to set them to be "ForceNew". I add this params while we dont really need it.
 			},
 		},
 	}
@@ -39,9 +54,9 @@ func resourceRouteTableAssociationCreate(d *schema.ResourceData, m interface{}) 
 	associationClient := client.NewVpcClient(config.Credential)
 
 	regionId := config.Region
-	subnetId := d.Get("subnet_id").(string)
+	subnetId_interdface := d.Get("subnet_id").([]interface{})
+	subnetIds := InterfaceToStringArray(subnetId_interdface)
 	routeTableId := d.Get("route_table_id").(string)
-	subnetIds := []string{subnetId}
 
 	req := apis.NewAssociateRouteTableRequest(regionId, routeTableId, subnetIds)
 	resp, err := associationClient.AssociateRouteTable(req)
@@ -52,22 +67,32 @@ func resourceRouteTableAssociationCreate(d *schema.ResourceData, m interface{}) 
 	if resp.Error.Code != 0 {
 		return fmt.Errorf("Sorry we cannot associate this table as expected : %s", resp.Error)
 	}
-	d.SetId(resp.RequestID)
+	d.SetId(routeTableId)
 	return nil
 }
 
-/*
-	TODO
-	We are supposed to inform the operator that the route table he is currently
-	using will be disassociated automatically,  if he wish to associate a new one
-*/
-
 func resourceRouteTableAssociationRead(d *schema.ResourceData, m interface{}) error {
+
+	config := m.(*JDCloudConfig)
+	associationClient := client.NewVpcClient(config.Credential)
+
+	req := apis.NewDescribeRouteTableRequest(config.Region, d.Id())
+	resp, err := associationClient.DescribeRouteTable(req)
+
+	if err != nil {
+		return nil
+	}
+	d.Set("subnet_id", resp.Result.RouteTable.SubnetIds)
 	return nil
 }
 
 func resourceRouteTableAssociationUpdate(d *schema.ResourceData, m interface{}) error {
-	return resourceRouteTableAssociationRead(d, m)
+	origin, latest := d.GetChange("subnet_id")
+	d.Set("subnet_id", origin)
+	resourceRouteTableAssociationDelete(d, m)
+	d.Set("subnet_id", latest)
+	resourceRouteTableAssociationCreate(d, m)
+	return nil
 }
 
 func resourceRouteTableAssociationDelete(d *schema.ResourceData, m interface{}) error {
@@ -75,17 +100,22 @@ func resourceRouteTableAssociationDelete(d *schema.ResourceData, m interface{}) 
 	config := m.(*JDCloudConfig)
 	disassociationClient := client.NewVpcClient(config.Credential)
 
-	subnetId := d.Get("subnet_id").(string)
+	subnetId := d.Get("subnet_id").([]interface{})
+	subnetIds := InterfaceToStringArray(subnetId)
 	routeTableId := d.Get("route_table_id").(string)
-	req := apis.NewDisassociateRouteTableRequest(config.Region, routeTableId, subnetId)
-	resp, err := disassociationClient.DisassociateRouteTable(req)
 
-	if err != nil {
-		return err
+	for _, item := range subnetIds {
+		req := apis.NewDisassociateRouteTableRequest(config.Region, routeTableId, item)
+		resp, err := disassociationClient.DisassociateRouteTable(req)
+
+		if err != nil {
+			return err
+		}
+		if resp.Error.Code != 0 {
+			return fmt.Errorf("We cannot disassociate this route table for you : %s", resp.Error)
+		}
 	}
-	if resp.Error.Code != 0 {
-		return fmt.Errorf("We cannot disassociate this route table for you : %s", resp.Error)
-	}
+
 	d.SetId("")
 	return nil
 }
