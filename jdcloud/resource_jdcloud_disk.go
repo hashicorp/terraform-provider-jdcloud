@@ -21,10 +21,6 @@ func resourceJDCloudDisk() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"max_count": &schema.Schema{
-				Type:     schema.TypeInt,
-				Required: true,
-			},
 			"az": {
 				Type:         schema.TypeString,
 				Required:     true,
@@ -83,7 +79,7 @@ func resourceJDCloudDiskCreate(d *schema.ResourceData, meta interface{}) error {
 	diskClient := client.NewDiskClient(config.Credential)
 
 	clientToken := d.Get("client_token").(string)
-	maxCount, _ := d.Get("max_count").(int)
+	maxCount := 1 //olny one disk
 	diskSpec := diskModels.DiskSpec{
 		Az:         d.Get("az").(string),
 		DiskSizeGB: d.Get("disk_size_gb").(int),
@@ -105,7 +101,7 @@ func resourceJDCloudDiskCreate(d *schema.ResourceData, meta interface{}) error {
 		return errors.New(resp.Error.Message)
 	}
 
-	d.SetId(resp.RequestID)
+	d.SetId(resp.Result.DiskIds[0])
 	d.Set("disk_id", resp.Result.DiskIds[0])
 
 	return nil
@@ -125,8 +121,6 @@ func resourceJDCloudDiskDelete(d *schema.ResourceData, meta interface{}) error {
 
 	config := meta.(*JDCloudConfig)
 	diskClient := client.NewDiskClient(config.Credential)
-
-	//删除所有磁盘 for range ...
 
 	diskIDs := d.Get("disk_id").(string)
 
