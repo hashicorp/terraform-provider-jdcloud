@@ -20,6 +20,10 @@ func resourceJDCloudKeyPairs() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
+			"public_key": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 			"key_finger_print": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -39,26 +43,46 @@ func resourceJDCloudKeyPairsCreate(d *schema.ResourceData, meta interface{}) err
 
 	vmClient := client.NewVmClient(config.Credential)
 
-	//构造请求
-	rq := apis.NewCreateKeypairRequest(config.Region, keyName)
+	if publicKey, ok := d.GetOk("public_key"); ok {
 
-	//发送请求
-	resp, err := vmClient.CreateKeypair(rq)
+		rq := apis.NewImportKeypairRequest(config.Region, keyName, publicKey.(string))
 
-	if err != nil {
+		resp, err := vmClient.ImportKeypair(rq)
 
-		log.Printf("[DEBUG] create key pairs failed %s ", err.Error())
-		return err
+		if err != nil {
+
+			log.Printf("[DEBUG] import key pairs failed %s ", err.Error())
+			return err
+		}
+
+		if resp.Error.Code != 0 {
+			log.Printf("[DEBUG] import key pairs failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
+			return errors.New(resp.Error.Message)
+		}
+
+		d.SetId(resp.RequestID)
+
+	} else {
+
+		rq := apis.NewCreateKeypairRequest(config.Region, keyName)
+		resp, err := vmClient.CreateKeypair(rq)
+
+		if err != nil {
+
+			log.Printf("[DEBUG] create key pairs failed %s ", err.Error())
+			return err
+		}
+
+		if resp.Error.Code != 0 {
+			log.Printf("[DEBUG] create key pairs failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
+			return errors.New(resp.Error.Message)
+		}
+
+		d.SetId(resp.RequestID)
+		d.Set("key_finger_print", resp.Result.KeyFingerprint)
+		d.Set("private_key", resp.Result.PrivateKey)
+
 	}
-
-	if resp.Error.Code != 0 {
-		log.Printf("[DEBUG] create key pairs failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
-		return errors.New(resp.Error.Message)
-	}
-
-	d.SetId(resp.RequestID)
-	d.Set("key_finger_print", resp.Result.KeyFingerprint)
-	d.Set("private_key", resp.Result.PrivateKey)
 
 	return nil
 }

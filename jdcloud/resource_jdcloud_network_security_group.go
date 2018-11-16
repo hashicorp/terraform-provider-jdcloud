@@ -67,7 +67,7 @@ func resourceJDCloudNetworkSecurityGroupCreate(d *schema.ResourceData, meta inte
 		return errors.New(resp.Error.Message)
 	}
 
-	d.SetId(resp.RequestID)
+	d.SetId(resp.Result.NetworkSecurityGroupId)
 	d.Set("network_security_group_id", resp.Result.NetworkSecurityGroupId)
 
 	return nil
