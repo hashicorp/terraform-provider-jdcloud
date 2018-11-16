@@ -80,7 +80,7 @@ func resourceRouteTableAssociationRead(d *schema.ResourceData, m interface{}) er
 	resp, err := associationClient.DescribeRouteTable(req)
 
 	if err != nil {
-		return nil
+		return err
 	}
 	d.Set("subnet_id", resp.Result.RouteTable.SubnetIds)
 	return nil
@@ -88,10 +88,19 @@ func resourceRouteTableAssociationRead(d *schema.ResourceData, m interface{}) er
 
 func resourceRouteTableAssociationUpdate(d *schema.ResourceData, m interface{}) error {
 	origin, latest := d.GetChange("subnet_id")
+
 	d.Set("subnet_id", origin)
-	resourceRouteTableAssociationDelete(d, m)
+	err_ptr := resourceRouteTableAssociationDelete(d, m)
+	if err_ptr!= nil {
+		return err_ptr
+	}
+
 	d.Set("subnet_id", latest)
-	resourceRouteTableAssociationCreate(d, m)
+	err_ptr_2 := resourceRouteTableAssociationCreate(d, m)
+	if err_ptr_2 != nil {
+		return err_ptr_2
+	}
+
 	return nil
 }
 
