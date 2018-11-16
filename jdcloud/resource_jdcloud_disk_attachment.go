@@ -110,7 +110,5 @@ func resourceJDCloudDiskAttachmentDelete(d *schema.ResourceData, meta interface{
 		return errors.New(resp.Error.Message)
 	}
 
-	//TODO 查询确认卸载
-
 	return nil
 }
