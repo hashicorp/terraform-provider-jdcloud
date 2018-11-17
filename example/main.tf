@@ -29,7 +29,7 @@ resource "jdcloud_network_security_group" "sg-1" {
 }
 
 resource "jdcloud_network_security_group_rules" "sg-r-1" {
-  network_security_group_id = "${jdcloud_network_security_group.sg-1.network_security_group_id}"
+  network_security_group_id = "${jdcloud_network_security_group.sg-1.id}"
 
   add_security_group_rules = [{
     address_prefix = "0.0.0.0/0"
@@ -54,7 +54,7 @@ resource "jdcloud_instance" "vm-1" {
   primary_ip             = "172.16.0.13"
   secondary_ips          = ["172.16.0.14", "172.16.0.15"]
   # secondary_ip_count   = 2
-  security_group_ids     = ["${jdcloud_network_security_group.sg-1.network_security_group_id}"]
+  security_group_ids     = ["${jdcloud_network_security_group.sg-1.id}"]
   sanity_check           = 1
 
   elastic_ip_bandwidth_mbps = 10
