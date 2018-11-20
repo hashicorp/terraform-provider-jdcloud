@@ -21,6 +21,7 @@ func Provider() *schema.Provider {
 			"jdcloud_route_table_association":      resourceJDCloudRouteTableAssociation(),
 			"jdcloud_eip":                          resourceJDCloudEIP(),
 			"jdcloud_eip_association":              resourceJDCloudAssociateElasticIp(),
+			"jdcloud_network_interface_attachment": resourceJDCloudNetworkInterfaceAttach(),
 		},
 		Schema: map[string]*schema.Schema{
 			"access_key": &schema.Schema{

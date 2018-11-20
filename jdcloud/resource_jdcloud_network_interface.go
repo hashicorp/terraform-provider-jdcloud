@@ -132,7 +132,7 @@ func resourceJDCloudNetworkInterfaceCreate(d *schema.ResourceData, meta interfac
 		return errors.New(resp.Error.Message)
 	}
 
-	d.SetId(resp.RequestID)
+	d.SetId(resp.Result.NetworkInterfaceId)
 	d.Set("network_interface_id", resp.Result.NetworkInterfaceId)
 
 	return nil

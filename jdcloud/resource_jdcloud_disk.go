@@ -6,7 +6,9 @@ import (
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/disk/apis"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/disk/client"
 	diskModels "github.com/jdcloud-api/jdcloud-sdk-go/services/disk/models"
+	"github.com/satori/go.uuid"
 	"log"
+	"strings"
 )
 
 func resourceJDCloudDisk() *schema.Resource {
@@ -19,7 +21,7 @@ func resourceJDCloudDisk() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"client_token": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 			},
 			"az": {
 				Type:         schema.TypeString,
@@ -78,7 +80,24 @@ func resourceJDCloudDiskCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*JDCloudConfig)
 	diskClient := client.NewDiskClient(config.Credential)
 
-	clientToken := d.Get("client_token").(string)
+	var clientToken string
+
+	if clientTokenInterface, ok := d.GetOk("client_token"); ok {
+
+		clientToken = clientTokenInterface.(string)
+	} else {
+		nonce, _ := uuid.NewV4()
+		clientToken = nonce.String()
+
+		clientToken = strings.Replace(clientToken, "-", "", -1)
+
+		if len(clientToken) > 20 {
+			clientToken = string([]byte(clientToken)[:20])
+		}
+
+		d.Set("client_token", clientToken)
+	}
+
 	maxCount := 1 //olny one disk
 	diskSpec := diskModels.DiskSpec{
 		Az:         d.Get("az").(string),
