@@ -27,16 +27,19 @@ func Provider() *schema.Provider {
 			"access_key": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
+				DefaultFunc: schema.EnvDefaultFunc("access_key", nil),
 				Description: "Access key for API operations",
 			},
 			"secret_key": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
+				DefaultFunc: schema.EnvDefaultFunc("secret_key", nil),
 				Description: "Secret key for API operations",
 			},
 			"region": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
+				DefaultFunc: schema.EnvDefaultFunc("region", nil),
 				Description: "The region where JDCLOUD operations will take place",
 			},
 		},

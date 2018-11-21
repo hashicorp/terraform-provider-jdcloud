@@ -1,7 +1,6 @@
 package jdcloud
 
 import (
-	"errors"
 	"fmt"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -21,8 +20,8 @@ PROCESS:
 
 const TestAccVpcConfig = `
 resource "jdcloud_vpc" "vpc-TEST-1"{
-	name = "vpc_test"
-	cidr_block = "10.0.0.0/19"
+	vpc_name = "vpc_test"
+	cidr_block = "172.16.0.0/19"
 	description = "test"
 }
 `
@@ -45,8 +44,8 @@ func TestAccJDCloudVpc_basic(t *testing.T) {
 					// VPC_ID validation
 					testAccIfVpcExists("jdcloud_vpc.vpc-TEST-1", &vpcId),
 					// Remaining attributes validation
-					resource.TestCheckResourceAttr("jdcloud_vpc.vpc-TEST-1", "name", "vpc_tesing_stage"),
-					resource.TestCheckResourceAttr("jdcloud_vpc.vpc-TEST-1", "cidr_block", "10.0.0.0/19"),
+					resource.TestCheckResourceAttr("jdcloud_vpc.vpc-TEST-1", "vpc_name", "vpc_test"),
+					resource.TestCheckResourceAttr("jdcloud_vpc.vpc-TEST-1", "cidr_block", "172.16.0.0/19"),
 					resource.TestCheckResourceAttr("jdcloud_vpc.vpc-TEST-1", "description", "test"),
 				),
 			},
@@ -72,7 +71,7 @@ func testAccIfVpcExists(vpcName string, vpcId *string) resource.TestCheckFunc {
 		vpcIdStoredLocally := vpcInfoStoredLocally.Primary.ID
 
 		// STEP-2 : Check if VPC resource has been created remotely
-		vpcConfig := acceptanceTestProvider.Meta().(*JDCloudConfig)
+		vpcConfig := testAccProvider.Meta().(*JDCloudConfig)
 		vpcClient := client.NewVpcClient(vpcConfig.Credential)
 
 		req := apis.NewDescribeVpcRequest(vpcConfig.Region, vpcIdStoredLocally)
@@ -103,7 +102,7 @@ func testAccVpcDestroy(vpcIdStoredLocally *string) resource.TestCheckFunc {
 			return fmt.Errorf("vpcID is empty")
 		}
 
-		vpcConfig := acceptanceTestProvider.Meta().(*JDCloudConfig)
+		vpcConfig := testAccProvider.Meta().(*JDCloudConfig)
 		vpcClient := client.NewVpcClient(vpcConfig.Credential)
 
 		req := apis.NewDescribeVpcRequest(vpcConfig.Region, *vpcIdStoredLocally)
@@ -115,7 +114,7 @@ func testAccVpcDestroy(vpcIdStoredLocally *string) resource.TestCheckFunc {
 			return err
 		}
 		if resp.Error.Code == 0 {
-			return errors.New("resource still exists,check position-4")
+			return fmt.Errorf("resource still exists,check position-4")
 		}
 		return nil
 	}
