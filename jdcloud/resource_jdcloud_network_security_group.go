@@ -28,10 +28,6 @@ func resourceJDCloudNetworkSecurityGroup() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"network_security_group_id": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-			},
 		},
 	}
 }
@@ -68,7 +64,6 @@ func resourceJDCloudNetworkSecurityGroupCreate(d *schema.ResourceData, meta inte
 	}
 
 	d.SetId(resp.Result.NetworkSecurityGroupId)
-	d.Set("network_security_group_id", resp.Result.NetworkSecurityGroupId)
 
 	return nil
 
@@ -87,7 +82,7 @@ func resourceJDCloudNetworkSecurityGroupDelete(d *schema.ResourceData, meta inte
 
 	config := meta.(*JDCloudConfig)
 
-	networkSecurityGroupId := d.Get("network_security_group_id").(string)
+	networkSecurityGroupId := d.Id()
 
 	vpcClient := client.NewVpcClient(config.Credential)
 

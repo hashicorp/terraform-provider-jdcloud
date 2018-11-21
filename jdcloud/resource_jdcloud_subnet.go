@@ -1,10 +1,12 @@
 package jdcloud
 
 import (
+	"errors"
 	"fmt"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/apis"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/client"
+	"log"
 )
 
 func resourceJDCloudSubnet() *schema.Resource {
@@ -76,10 +78,11 @@ func resourceSubnetCreate(d *schema.ResourceData, m interface{}) error {
 	resp, err := subnetClient.CreateSubnet(req)
 
 	if err != nil {
+		log.Printf("[DEBUG] resourceSubnetCreate failed %s ", err.Error())
 		return err
-	}
-	if resp.Error.Code != 0 {
-		fmt.Errorf("Can not create new subnet: %s", resp.Error)
+	} else if resp.Error.Code != 0 {
+		log.Printf("[DEBUG] resourceSubnetCreate failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
+		return errors.New(resp.Error.Message)
 	}
 
 	d.SetId(resp.Result.SubnetId)
