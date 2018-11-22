@@ -2,6 +2,7 @@ package jdcloud
 
 import (
 	"errors"
+	"fmt"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/apis"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/client"
@@ -144,8 +145,7 @@ func resourceRouteTableRulesCreate(d *schema.ResourceData, m interface{}) error 
 	resp, err := routeTableRulesClient.AddRouteTableRules(req)
 
 	if err != nil || resp.Error.Code != 0 {
-		log.Printf("%s", resp.Error)
-		return errors.New("failed in adding route table rule,check position-2")
+		return fmt.Errorf("failed in adding route table rule,check position-2,%s",resp.Error)
 	}
 
 	d.SetId(routeTableId)
