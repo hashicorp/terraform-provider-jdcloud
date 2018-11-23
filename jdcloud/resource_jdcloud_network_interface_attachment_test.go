@@ -20,10 +20,10 @@ resource "jdcloud_network_interface_attachment" "attachment-TEST-1"{
 }
 `
 
-func TestAccJDCloudSubnet_basic(t *testing.T){
+func TestAccJDCloudnetworkInterface_basic(t *testing.T){
 
 	// This networkInterface ID is used to create and verify subnet
-	// Currently declared but assigned values later
+	// Currently declared but assig ned values later
 	var networkInterfaceId string
 
 	resource.Test(t, resource.TestCase{
