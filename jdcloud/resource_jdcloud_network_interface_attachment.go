@@ -94,6 +94,6 @@ func resourceJDCloudNetworkInterfaceAttachDelete(d *schema.ResourceData, meta in
 		log.Printf("[DEBUG] resourceJDCloudNetworkInterfaceAttachDelete  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 		return errors.New(resp.Error.Message)
 	}
-
+	d.SetId("")
 	return nil
 }

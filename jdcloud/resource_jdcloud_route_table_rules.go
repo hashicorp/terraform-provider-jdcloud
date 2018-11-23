@@ -130,6 +130,21 @@ func equalSliceString(a []string, b []string) bool {
 	return true
 }
 
+func sliceABelongToB(a []string, b []string) bool {
+	for _,itemInA := range a{
+		flag := false
+		for _,itemInB := range b{
+			if(itemInA==itemInB){
+				flag =true
+			}
+		}
+		if flag==false{
+			return false
+		}
+	}
+	return true
+}
+
 /* Key Functions */
 func resourceRouteTableRulesCreate(d *schema.ResourceData, m interface{}) error {
 
