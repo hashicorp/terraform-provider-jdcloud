@@ -94,5 +94,7 @@ func resourceJDCloudRouteTableRuleUpdate(d *schema.ResourceData, meta interface{
 }
 func resourceJDCloudRouteTableRuleDelete(d *schema.ResourceData, meta interface{}) error {
 
-	return errors.New("do not support delete route table rule ")
+	//return errors.New("do not support delete route table rule ")
+	//TODO route table rules do not have id,so this func is invalid
+	return nil
 }

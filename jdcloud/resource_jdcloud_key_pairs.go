@@ -5,6 +5,10 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vm/apis"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vm/client"
+	"io/ioutil"
+	"os"
+
+	commonModels "github.com/jdcloud-api/jdcloud-sdk-go/services/common/models"
 	"log"
 )
 
@@ -12,17 +16,19 @@ func resourceJDCloudKeyPairs() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceJDCloudKeyPairsCreate,
 		Read:   resourceJDCloudKeyPairsRead,
-		Update: resourceJDCloudKeyPairsUpdate,
+		//Update: resourceJDCloudKeyPairsUpdate,
 		Delete: resourceJDCloudKeyPairsDelete,
 
 		Schema: map[string]*schema.Schema{
 			"key_name": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 			"public_key": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				ForceNew: true,
 			},
 			"key_finger_print": &schema.Schema{
 				Type:     schema.TypeString,
@@ -31,6 +37,11 @@ func resourceJDCloudKeyPairs() *schema.Resource {
 			"private_key": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
+			},
+			"key_file": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
 			},
 		},
 	}
@@ -78,9 +89,14 @@ func resourceJDCloudKeyPairsCreate(d *schema.ResourceData, meta interface{}) err
 			return errors.New(resp.Error.Message)
 		}
 
-		d.SetId(resp.RequestID)
+		d.SetId(resp.Result.KeyName)
 		d.Set("key_finger_print", resp.Result.KeyFingerprint)
 		d.Set("private_key", resp.Result.PrivateKey)
+
+		if file, ok := d.GetOk("key_file"); ok {
+			ioutil.WriteFile(file.(string), []byte(resp.Result.PrivateKey), 0600)
+			os.Chmod(file.(string), 0400)
+		}
 
 	}
 
@@ -88,6 +104,40 @@ func resourceJDCloudKeyPairsCreate(d *schema.ResourceData, meta interface{}) err
 }
 
 func resourceJDCloudKeyPairsRead(d *schema.ResourceData, meta interface{}) error {
+
+	config := meta.(*JDCloudConfig)
+
+	keyName := d.Get("key_name").(string)
+
+	vmClient := client.NewVmClient(config.Credential)
+
+	var filter commonModels.Filter
+	filter.Name = "keyNames"
+	filter.Values = append(filter.Values, keyName)
+
+	var filters []commonModels.Filter
+
+	filters = append(filters, filter)
+	req := apis.NewDescribeKeypairsRequestWithAllParams(config.Region, nil, nil, filters)
+
+	resp, err := vmClient.DescribeKeypairs(req)
+	if err != nil {
+		log.Printf("[DEBUG] resourceJDCloudKeyPairsUpdate failed %s", err.Error())
+		return err
+	}
+
+	if resp.Error.Code != 0 {
+		log.Printf("[DEBUG] resourceJDCloudKeyPairsUpdate failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
+		return errors.New(resp.Error.Message)
+	}
+
+	if resp.Result.TotalCount == 0 {
+		log.Printf("[DEBUG] resourceJDCloudKeyPairsUpdate failed ,keypairs may be deleted ")
+		return nil
+	} else {
+
+		d.Set("key_finger_print", resp.Result.Keypairs[0].KeyFingerprint)
+	}
 
 	return nil
 }
