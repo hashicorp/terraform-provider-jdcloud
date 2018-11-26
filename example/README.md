@@ -18,9 +18,3 @@ $ terraform apply
 
 
 
-## Finish Resource:
-
-- [] Instance
-- [x] keypairs
-- [] Disk
-- [] EIP
