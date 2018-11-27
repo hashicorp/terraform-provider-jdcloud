@@ -9,7 +9,7 @@ import (
 )
 
 func resourceJDCloudDiskAttachment() *schema.Resource {
-	
+
 	return &schema.Resource{
 		Create: resourceJDCloudDiskAttachmentCreate,
 		Read:   resourceJDCloudDiskAttachmentRead,
