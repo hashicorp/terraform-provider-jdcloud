@@ -2,10 +2,13 @@ package jdcloud
 
 import (
 	"errors"
+	"fmt"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vm/apis"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vm/client"
 	"log"
+	"regexp"
+	"time"
 )
 
 func resourceJDCloudNetworkInterfaceAttach() *schema.Resource {
@@ -51,11 +54,24 @@ func resourceJDCloudNetworkInterfaceAttachCreate(d *schema.ResourceData, meta in
 		rq.AutoDelete = &autoDelete
 	}
 
+	// Restart count is set since deleting an attachment needs some time
+	// In case the last one has not been removed we are going to retry
+	restart_count := 0
+	restart_place:
 	resp, err := vmClient.AttachNetworkInterface(rq)
+	restart_count ++
+	errorMessage := fmt.Sprintf("%s",err)
+	previousTaskNotComplete,_ := regexp.MatchString("Conflict",errorMessage)
+	previousTaskNotComplete    = resp.Error.Code==400 || previousTaskNotComplete
+
+	if restart_count<2 && previousTaskNotComplete {
+		time.Sleep(5*time.Second)
+		goto restart_place
+	}
 
 	if err != nil {
-
 		log.Printf("[DEBUG] resourceJDCloudNetworkInterfaceAttachCreate failed %s ", err.Error())
+		return fmt.Errorf("haha")
 		return err
 	}
 
@@ -82,7 +98,20 @@ func resourceJDCloudNetworkInterfaceAttachDelete(d *schema.ResourceData, meta in
 	vmClient := client.NewVmClient(config.Credential)
 
 	rq := apis.NewDetachNetworkInterfaceRequest(config.Region, instanceID, networkInterfaceId)
+
+	restart_count := 0
+	restart_place:
+	restart_count ++
 	resp, err := vmClient.DetachNetworkInterface(rq)
+
+	errorMessage := fmt.Sprintf("%s",err)
+	previousTaskNotComplete,_ := regexp.MatchString("Conflict",errorMessage)
+	previousTaskNotComplete    = resp.Error.Code==400 || previousTaskNotComplete
+
+	if restart_count<2 && previousTaskNotComplete {
+		time.Sleep(5*time.Second)
+		goto restart_place
+	}
 
 	if err != nil {
 
@@ -94,6 +123,7 @@ func resourceJDCloudNetworkInterfaceAttachDelete(d *schema.ResourceData, meta in
 		log.Printf("[DEBUG] resourceJDCloudNetworkInterfaceAttachDelete  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 		return errors.New(resp.Error.Message)
 	}
+
 	d.SetId("")
 	return nil
 }

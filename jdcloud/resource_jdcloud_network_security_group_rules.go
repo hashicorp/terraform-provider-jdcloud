@@ -106,7 +106,6 @@ func resourceJDCloudNetworkSecurityGroupRulesCreate(d *schema.ResourceData, meta
 
 	//发送请求
 	resp, err := vpcClient.AddNetworkSecurityGroupRules(rq)
-
 	if err != nil {
 
 		log.Printf("[DEBUG] CreateNetworkSecurityGroup failed %s ", err.Error())
@@ -118,8 +117,7 @@ func resourceJDCloudNetworkSecurityGroupRulesCreate(d *schema.ResourceData, meta
 		return errors.New(resp.Error.Message)
 	}
 
-	//没有规则id返回，暂时是无法删除的
-	d.SetId(resp.RequestID)
+	d.SetId(networkSecurityGroupID)
 
 	return nil
 }
@@ -134,4 +132,48 @@ func resourceJDCloudNetworkSecurityGroupRulesUpdate(d *schema.ResourceData, meta
 func resourceJDCloudNetworkSecurityGroupRulesDelete(d *schema.ResourceData, meta interface{}) error {
 
 	return nil
+}
+
+func getSgRuleSpecs(d *schema.ResourceData, m interface{}) ([]vpc.SecurityGroupRule,[]string,error){
+
+	config   := m.(*JDCloudConfig)
+	sgClient := client.NewVpcClient(config.Credential)
+
+	regionId := config.Region
+	sgId     := d.Get("network_security_group_id").(string)
+
+	req 	 := apis.NewDescribeNetworkSecurityGroupRequest(regionId,sgId)
+	resp,err := sgClient.DescribeNetworkSecurityGroup(req)
+
+	if err!=nil{
+		return nil,nil,err
+	}
+
+	sgRulesList := resp.Result.NetworkSecurityGroup.SecurityGroupRules
+	sgRuleIdList := make([]string,0,len(sgRulesList))
+	for _,item := range sgRulesList {
+		sgRuleIdList = append(sgRuleIdList,item.RuleId)
+	}
+
+	return sgRulesList,sgRuleIdList,nil
+}
+
+func getIdList(previous []string,latest []string)([]string){
+
+	IdList :=  make([]string,0,len(latest)-len(previous))
+	for _,latestItem := range latest{
+
+		flag := false
+		for _,previousItem := range previous{
+
+			if latestItem == previousItem{
+
+				flag = true
+			}
+		}
+		if !flag{
+			IdList = append(IdList,latestItem)
+		}
+	}
+	return IdList
 }

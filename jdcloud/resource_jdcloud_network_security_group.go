@@ -2,6 +2,7 @@ package jdcloud
 
 import (
 	"errors"
+	"fmt"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/apis"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/client"
@@ -70,6 +71,26 @@ func resourceJDCloudNetworkSecurityGroupCreate(d *schema.ResourceData, meta inte
 }
 
 func resourceJDCloudNetworkSecurityGroupRead(d *schema.ResourceData, meta interface{}) error {
+
+	config   := meta.(*JDCloudConfig)
+	sgClient := client.NewVpcClient(config.Credential)
+
+	regionId := config.Region
+	sgId     := d.Get("network_security_group_id").(string)
+
+	req 	 := apis.NewDescribeNetworkSecurityGroupRequest(regionId,sgId)
+	resp,err := sgClient.DescribeNetworkSecurityGroup(req)
+
+	if err!=nil {
+		return err
+	}
+	if resp.Error.Code!=0 {
+		return fmt.Errorf("failed in creating new security group, fail info shown as below:%s",resp.Error)
+	}
+
+	d.Set("description",resp.Result.NetworkSecurityGroup.Description)
+	d.Set("network_security_group_name",resp.Result.NetworkSecurityGroup.NetworkSecurityGroupName)
+	d.Set("vpc_id",resp.Result.NetworkSecurityGroup.VpcId)
 
 	return nil
 }

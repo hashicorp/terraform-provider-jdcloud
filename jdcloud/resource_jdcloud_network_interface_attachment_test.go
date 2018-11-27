@@ -8,7 +8,6 @@ import (
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/client"
 	"github.com/pkg/errors"
 	"testing"
-	"time"
 )
 
 
@@ -20,10 +19,10 @@ resource "jdcloud_network_interface_attachment" "attachment-TEST-1"{
 }
 `
 
-func TestAccJDCloudnetworkInterface_basic(t *testing.T){
+func TestAccJDCloudNetworkInterfaceAttachment_basic(t *testing.T){
 
 	// This networkInterface ID is used to create and verify subnet
-	// Currently declared but assig ned values later
+	// Currently declared but assigned values later
 	var networkInterfaceId string
 
 	resource.Test(t, resource.TestCase{
@@ -49,8 +48,6 @@ func TestAccJDCloudnetworkInterface_basic(t *testing.T){
 func testAccIfNetworkInterfaceAttachmentExists(attachmentName string,networkInterfaceId *string) resource.TestCheckFunc{
 
 	return func(stateInfo *terraform.State) error {
-
-		time.Sleep(5*time.Second)
 
 		//STEP-1 : Check if attachment resource has been created locally
 		attachmentInfoStoredLocally,ok := stateInfo.RootModule().Resources[attachmentName]
@@ -96,8 +93,6 @@ func testAccIfNetworkInterfaceAttachmentExists(attachmentName string,networkInte
 func testAccCheckNetworkInterfaceAttachmentDestroy(networkInterfaceId *string) resource.TestCheckFunc {
 
 	return func(stateInfo *terraform.State) error {
-
-		time.Sleep(5*time.Second)
 
 		// networkInterfaceId is not supposed to be empty during testing stage
 		if*networkInterfaceId=="" {
