@@ -141,6 +141,12 @@ func resourceJDCloudDiskRead(d *schema.ResourceData, meta interface{}) error {
 	if err!=nil{
 		return err
 	}
+
+	if resp.Error.Code == 404 {
+		d.SetId("")
+		return nil
+	}
+
 	if resp.Error.Code!=0{
 		return fmt.Errorf("[ERROR] failed in resourceJDCloudDiskRead code:%d message:%s",resp.Error.Code,resp.Error.Message)
 	}
@@ -162,7 +168,7 @@ func resourceJDCloudDiskUpdate(d *schema.ResourceData, meta interface{}) error {
 		resp,err := diskClient.ModifyDiskAttribute(req)
 
 		if err != nil{
-			return err
+			return fmt.Errorf("[ERROR] failed in resourceJDCloudDiskUpdate err:%s",err.Error())
 		}
 		if resp.Error.Code!=0{
 			return fmt.Errorf("[ERROR] failed in resourceJDCloudDiskUpdate code:%d message:%s",resp.Error.Code,resp.Error.Message)
