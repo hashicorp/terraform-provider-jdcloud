@@ -1,12 +1,10 @@
 package jdcloud
 
 import (
-	"errors"
 	"fmt"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/apis"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/client"
-	"log"
 )
 
 func resourceJDCloudNetworkSecurityGroup() *schema.Resource {
@@ -28,6 +26,7 @@ func resourceJDCloudNetworkSecurityGroup() *schema.Resource {
 			"vpc_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 		},
 	}
@@ -36,38 +35,28 @@ func resourceJDCloudNetworkSecurityGroup() *schema.Resource {
 func resourceJDCloudNetworkSecurityGroupCreate(d *schema.ResourceData, meta interface{}) error {
 
 	config := meta.(*JDCloudConfig)
-
 	vpcId := d.Get("vpc_id").(string)
 	networkSecurityGroupName := d.Get("network_security_group_name").(string)
 
 	vpcClient := client.NewVpcClient(config.Credential)
-
-	//构造请求
 	rq := apis.NewCreateNetworkSecurityGroupRequest(config.Region, vpcId, networkSecurityGroupName)
-
 	if descriptionInterface, ok := d.GetOk("description"); ok {
 		description := descriptionInterface.(string)
 		rq.Description = &description
 	}
 
-	//发送请求
 	resp, err := vpcClient.CreateNetworkSecurityGroup(rq)
 
 	if err != nil {
-
-		log.Printf("[DEBUG] CreateNetworkSecurityGroup failed %s ", err.Error())
-		return err
+		return fmt.Errorf("[ERROR] resourceJDCloudNetworkSecurityGroupCreate failed %s ", err.Error())
 	}
 
 	if resp.Error.Code != 0 {
-		log.Printf("[DEBUG] CreateNetworkSecurityGroup failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
-		return errors.New(resp.Error.Message)
+		return fmt.Errorf("[ERROR] resourceJDCloudNetworkSecurityGroupCreate failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
 
 	d.SetId(resp.Result.NetworkSecurityGroupId)
-
 	return nil
-
 }
 
 func resourceJDCloudNetworkSecurityGroupRead(d *schema.ResourceData, meta interface{}) error {
@@ -76,53 +65,66 @@ func resourceJDCloudNetworkSecurityGroupRead(d *schema.ResourceData, meta interf
 	sgClient := client.NewVpcClient(config.Credential)
 
 	regionId := config.Region
-	sgId     := d.Get("network_security_group_id").(string)
+	sgId     := d.Id()
 
 	req 	 := apis.NewDescribeNetworkSecurityGroupRequest(regionId,sgId)
 	resp,err := sgClient.DescribeNetworkSecurityGroup(req)
 
-	if err!=nil {
-		return err
+	if err != nil {
+		return fmt.Errorf("[ERROR] resourceJDCloudNetworkSecurityGroupRead failed %s ", err.Error())
 	}
-	if resp.Error.Code!=0 {
-		return fmt.Errorf("failed in creating new security group, fail info shown as below:%s",resp.Error)
+
+	if resp.Error.Code == 404 {
+		d.SetId("")
+		return nil
+	}
+
+	if resp.Error.Code != 0 {
+		return fmt.Errorf("[ERROR] resourceJDCloudNetworkSecurityGroupRead failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
 
 	d.Set("description",resp.Result.NetworkSecurityGroup.Description)
 	d.Set("network_security_group_name",resp.Result.NetworkSecurityGroup.NetworkSecurityGroupName)
 	d.Set("vpc_id",resp.Result.NetworkSecurityGroup.VpcId)
-
 	return nil
 }
 
 func resourceJDCloudNetworkSecurityGroupUpdate(d *schema.ResourceData, meta interface{}) error {
 
+	config   := meta.(*JDCloudConfig)
+	sgClient := client.NewVpcClient(config.Credential)
+
+	if d.HasChange("network_security_group_name") || d.HasChange("description"){
+		req := apis.NewModifyNetworkSecurityGroupRequestWithAllParams(config.Region,d.Id(),GetStringAddr(d,"description"),GetStringAddr(d,"network_security_group_name"))
+		resp,err := sgClient.ModifyNetworkSecurityGroup(req)
+
+		if err != nil {
+			return fmt.Errorf("[ERROR] resourceJDCloudNetworkSecurityGroupUpdate failed %s ", err.Error())
+		}
+		if resp.Error.Code != 0 {
+			return fmt.Errorf("[ERROR] resourceJDCloudNetworkSecurityGroupUpdate failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
+		}
+	}
 	return nil
 }
+
+
 func resourceJDCloudNetworkSecurityGroupDelete(d *schema.ResourceData, meta interface{}) error {
 
 	config := meta.(*JDCloudConfig)
-
 	networkSecurityGroupId := d.Id()
-
 	vpcClient := client.NewVpcClient(config.Credential)
 
-	//构造请求
 	rq := apis.NewDeleteNetworkSecurityGroupRequest(config.Region, networkSecurityGroupId)
-
-	//发送请求
 	resp, err := vpcClient.DeleteNetworkSecurityGroup(rq)
 
 	if err != nil {
-
-		log.Printf("[DEBUG] CreateNetworkSecurityGroup failed %s ", err.Error())
-		return err
+		return fmt.Errorf("[ERROR] resourceJDCloudNetworkSecurityGroupDelete failed %s ", err.Error())
 	}
 
 	if resp.Error.Code != 0 {
-		log.Printf("[DEBUG] CreateNetworkSecurityGroup failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
-		return errors.New(resp.Error.Message)
+		return fmt.Errorf("[ERROR] resourceJDCloudNetworkSecurityGroupDelete failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
-
+	d.SetId("")
 	return nil
 }

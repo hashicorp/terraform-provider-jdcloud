@@ -13,9 +13,9 @@ import (
 
 const TestAccNetworkInterfaceAttachmentConfig = `
 resource "jdcloud_network_interface_attachment" "attachment-TEST-1"{
-	instance_id = "i-p3yh27xd3s"
-	network_interface_id = "port-p49f4wqq8g"
-	auto_delete = "true"
+  instance_id = "i-p3yh27xd3s"
+  network_interface_id = "port-ampj4oamxw"
+  auto_delete = "true"
 }
 `
 
@@ -69,7 +69,7 @@ func testAccIfNetworkInterfaceAttachmentExists(attachmentName string,networkInte
 		resp, err := attachmentClient.DescribeNetworkInterface(req)
 
 		if err!=nil{
-			return err
+			return fmt.Errorf("Create check  failed ,error message: %s",err.Error())
 		}
 		if resp.Error.Code != 0{
 			return fmt.Errorf("resources created locally but not remotely")
@@ -109,10 +109,14 @@ func testAccCheckNetworkInterfaceAttachmentDestroy(networkInterfaceId *string) r
 		// ErrorCode is supposed to be 404 since the subnet has already been deleted
 		// err is supposed to be nil pointer since query process shall finish
 		if err!=nil {
-			return err
+			return fmt.Errorf("delete check  failed ,error message: %s",err.Error())
 		}
 		if resp.Error.Code != 0{
 			return fmt.Errorf("something wrong happens or resource still exists")
+		}
+
+		if resp.Result.NetworkInterface.InstanceId != "" {
+			return fmt.Errorf("failed %s",resp.Result.NetworkInterface.InstanceId)
 		}
 		return nil
 	}

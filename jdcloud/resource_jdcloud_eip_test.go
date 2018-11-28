@@ -8,7 +8,6 @@ import (
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/client"
 	"strconv"
 	"testing"
-	"time"
 )
 
 
@@ -42,8 +41,6 @@ func TestAccJDCloudEIP_basic(t *testing.T) {
 func testAccIfEIPExists(resourceName string) resource.TestCheckFunc {
 
 	return func(stateInfo *terraform.State) error {
-
-		time.Sleep(time.Second*15)
 
 		infoStoredLocally, ok := stateInfo.RootModule().Resources[resourceName]
 		if ok == false {
