@@ -7,7 +7,7 @@ import (
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/apis"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/client"
 	vpc "github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/models"
-	"log"
+	"strconv"
 )
 
 func resourceJDCloudRouteTableRules() *schema.Resource {
@@ -46,6 +46,11 @@ func resourceJDCloudRouteTableRules() *schema.Resource {
 						"priority": &schema.Schema{
 							Type:     schema.TypeInt,
 							Optional: true,
+							Default:  100,
+						},
+						"rule_id": &schema.Schema{
+							Type:     schema.TypeInt,
+							Computed: true,
 						},
 					},
 				},
@@ -53,6 +58,149 @@ func resourceJDCloudRouteTableRules() *schema.Resource {
 		},
 	}
 }
+
+/* Key Functions */
+func resourceRouteTableRulesCreate(d *schema.ResourceData, meta interface{}) error {
+
+	config := meta.(*JDCloudConfig)
+	routeTableRulesClient := client.NewVpcClient(config.Credential)
+
+	regionId := config.Region
+	routeTableId := d.Get("route_table_id").(string)
+	routeTableRuleSpecsInterface := d.Get("route_table_rule_specs")
+
+	routeTableRuleSpecs := interfaceToStructArray(routeTableRuleSpecsInterface)
+	req := apis.NewAddRouteTableRulesRequestWithAllParams(regionId, routeTableId, routeTableRuleSpecs)
+	resp, err := routeTableRulesClient.AddRouteTableRules(req)
+
+	if err != nil {
+		return fmt.Errorf("[ERROR] resourceRouteTableRulesCreate failed %s ", err.Error())
+	}
+
+	if resp.Error.Code != 0 {
+		return fmt.Errorf("[ERROR] resourceRouteTableRulesCreate failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
+	}
+
+	//Rule id can only be retrieved via "read"
+	resourceRouteTableRulesRead(d,meta)
+	d.SetId(routeTableId)
+	return nil
+}
+
+
+func resourceRouteTableRulesRead(d *schema.ResourceData, meta interface{}) error {
+
+	config := meta.(*JDCloudConfig)
+	vpcClient := client.NewVpcClient(config.Credential)
+
+	req := apis.NewDescribeRouteTableRequest(config.Region, d.Get("route_table_id").(string))
+	resp, err := vpcClient.DescribeRouteTable(req)
+
+	if err != nil {
+		return fmt.Errorf("[ERROR] resourceRouteTableRulesRead failed %s ", err.Error())
+	}
+
+	if resp.Error.Code == 404 {
+		d.SetId("")
+		return nil
+	}
+
+	if resp.Error.Code != 0 {
+		return fmt.Errorf("[ERROR] resourceRouteTableRulesRead failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
+	}
+
+	ruleArrayInStructForm := resp.Result.RouteTable.RouteTableRules
+	ruleArrayInMapForm := make([]map[string]interface{}, 0, len(ruleArrayInStructForm))
+
+	for _, rule := range ruleArrayInStructForm {
+
+		aRuleInCorrectFrom := map[string]interface{}{
+			"next_hop_type":  rule.NextHopType,
+			"next_hop_id":    rule.NextHopId,
+			"address_prefix": rule.AddressPrefix,
+			"priority":       rule.Priority,
+			"rule_id" :       rule.RuleId,
+		}
+
+		ruleArrayInMapForm = append(ruleArrayInMapForm, aRuleInCorrectFrom)
+	}
+
+	ruleArrayInMapFormWithoutLocal := append(ruleArrayInMapForm[1:])
+	d.Set("route_table_rule_specs", ruleArrayInMapFormWithoutLocal)
+	return nil
+}
+
+
+func resourceRouteTableRulesUpdate(d *schema.ResourceData, meta interface{}) error {
+	//originalResourceData, latestResourceData := d.GetChange("route_table_rule_specs")
+	//d.Set("route_table_rule_specs", originalResourceData)
+	//resourceRouteTableRulesDelete(d, m)
+	//d.Set("route_table_rule_specs", latestResourceData)
+	//resourceRouteTableRulesCreate(d, m)
+
+	if d.HasChange("route_table_rule_specs"){
+
+		config := meta.(*JDCloudConfig)
+		vpcClient := client.NewVpcClient(config.Credential)
+		arrayLength := d.Get("route_table_rule_specs.#").(int)
+		modifyRouteTableRuleSpecs := make([]vpc.ModifyRouteTableRules,0,arrayLength)
+
+		for i:=0;i<arrayLength;i++ {
+
+			rule := vpc.ModifyRouteTableRules{
+				d.Get("route_table_rule_specs."+strconv.Itoa(i)+".rule_id").(string),
+				GetIntAddr(d,"route_table_rule_specs."+strconv.Itoa(i)+".priority"),
+				GetStringAddr(d,"route_table_rule_specs."+strconv.Itoa(i)+".next_hop_type"),
+				GetStringAddr(d,"route_table_rule_specs."+strconv.Itoa(i)+".next_hop_id"),
+				GetStringAddr(d,"route_table_rule_specs."+strconv.Itoa(i)+".address_prefix"),
+			}
+
+			modifyRouteTableRuleSpecs = append(modifyRouteTableRuleSpecs,rule)
+		}
+
+		req := apis.NewModifyRouteTableRulesRequest(config.Region,d.Id(),modifyRouteTableRuleSpecs)
+		resp,err := vpcClient.ModifyRouteTableRules(req)
+
+		if err != nil {
+			return fmt.Errorf("[ERROR] resourceRouteTableRulesUpdate failed %s ", err.Error())
+		}
+
+		if resp.Error.Code != 0 {
+			return fmt.Errorf("[ERROR] resourceRouteTableRulesUpdate failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
+		}
+	}
+
+	return nil
+}
+
+
+
+func resourceRouteTableRulesDelete(d *schema.ResourceData, m interface{}) error {
+
+	config := m.(*JDCloudConfig)
+	routeTableRulesClient := client.NewVpcClient(config.Credential)
+
+	regionId := config.Region
+	routeTableId := d.Get("route_table_id").(string)
+	ruleIds, _ := returnRuleIdArray(regionId, routeTableId, routeTableRulesClient)
+	ruleIds = append(ruleIds[1:])
+
+	req := apis.NewRemoveRouteTableRulesRequest(regionId, routeTableId, ruleIds)
+	resp, err := routeTableRulesClient.RemoveRouteTableRules(req)
+
+	if err != nil {
+		return fmt.Errorf("[ERROR] resourceRouteTableRulesDelete failed %s ", err.Error())
+	}
+
+	if resp.Error.Code != 0 {
+		return fmt.Errorf("[ERROR] resourceRouteTableRulesDelete failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
+	}
+
+	d.SetId("")
+	return nil
+}
+
+
 
 /* Helper Functions*/
 func interfaceToStructArray(configInterfaceArray interface{}) []vpc.AddRouteTableRules {
@@ -78,18 +226,19 @@ func interfaceToStructArray(configInterfaceArray interface{}) []vpc.AddRouteTabl
 
 func returnRuleIdArray(regionId string, routeTableId string, client *client.VpcClient) ([]string, error) {
 
-	describe_req_RT := apis.NewDescribeRouteTableRequest(regionId, routeTableId)
-	resp_RT, err := client.DescribeRouteTable(describe_req_RT)
+	req := apis.NewDescribeRouteTableRequest(regionId, routeTableId)
+	resp, err := client.DescribeRouteTable(req)
+
 	if err != nil {
 		return nil, errors.New("cant query ruleID_array, reasons not sure,check position-3")
 	}
 
-	rule_array := resp_RT.Result.RouteTable.RouteTableRules
-	rule_id_array := make([]string, 0, len(rule_array))
-	for _, a_single_rule := range rule_array {
-		rule_id_array = append(rule_id_array, a_single_rule.RuleId)
+	ruleArray := resp.Result.RouteTable.RouteTableRules
+	ruleIdArray := make([]string, 0, len(ruleArray))
+	for _, rule := range ruleArray {
+		ruleIdArray = append(ruleIdArray, rule.RuleId)
 	}
-	return rule_id_array, nil
+	return ruleIdArray, nil
 }
 
 func equalSliceString(a []string, b []string) bool {
@@ -143,86 +292,4 @@ func sliceABelongToB(a []string, b []string) bool {
 		}
 	}
 	return true
-}
-
-/* Key Functions */
-func resourceRouteTableRulesCreate(d *schema.ResourceData, m interface{}) error {
-
-	config := m.(*JDCloudConfig)
-	routeTableRulesClient := client.NewVpcClient(config.Credential)
-
-	regionId := config.Region
-	routeTableId := d.Get("route_table_id").(string)
-	routeTableRuleSpecsInterface := d.Get("route_table_rule_specs")
-
-	routeTableRuleSpecs := interfaceToStructArray(routeTableRuleSpecsInterface)
-	req := apis.NewAddRouteTableRulesRequestWithAllParams(regionId, routeTableId, routeTableRuleSpecs)
-	resp, err := routeTableRulesClient.AddRouteTableRules(req)
-
-	if err != nil || resp.Error.Code != 0 {
-		return fmt.Errorf("failed in adding route table rule,check position-2,%s",resp.Error)
-	}
-
-	d.SetId(routeTableId)
-	return nil
-}
-
-func resourceRouteTableRulesRead(d *schema.ResourceData, m interface{}) error {
-
-	config := m.(*JDCloudConfig)
-	routeTableRulesClient := client.NewVpcClient(config.Credential)
-
-	regionId := config.Region
-	routeTableId := d.Get("route_table_id").(string)
-	describeRequestOnRouteTable := apis.NewDescribeRouteTableRequest(regionId, routeTableId)
-	describeResponseOnRouteTable, _ := routeTableRulesClient.DescribeRouteTable(describeRequestOnRouteTable)
-	latestRuleListInStructForm := describeResponseOnRouteTable.Result.RouteTable.RouteTableRules
-
-	latestRuleListInCorrectForm := make([]map[string]interface{}, 0, len(latestRuleListInStructForm))
-	for _, rule := range latestRuleListInStructForm {
-
-		aRuleInCorrectFrom := map[string]interface{}{
-			"next_hop_type":  rule.NextHopType,
-			"next_hop_id":    rule.NextHopId,
-			"address_prefix": rule.AddressPrefix,
-			"priority":       rule.Priority,
-		}
-
-		latestRuleListInCorrectForm = append(latestRuleListInCorrectForm, aRuleInCorrectFrom)
-	}
-
-	latestRuleListInCorrectFormWithoutLocal := append(latestRuleListInCorrectForm[1:])
-	d.Set("route_table_rule_specs", latestRuleListInCorrectFormWithoutLocal)
-	return nil
-}
-
-func resourceRouteTableRulesUpdate(d *schema.ResourceData, m interface{}) error {
-	originalResourceData, latestResourceData := d.GetChange("route_table_rule_specs")
-	d.Set("route_table_rule_specs", originalResourceData)
-	resourceRouteTableRulesDelete(d, m)
-	d.Set("route_table_rule_specs", latestResourceData)
-	resourceRouteTableRulesCreate(d, m)
-	return nil
-}
-
-func resourceRouteTableRulesDelete(d *schema.ResourceData, m interface{}) error {
-
-	config := m.(*JDCloudConfig)
-	routeTableRulesClient := client.NewVpcClient(config.Credential)
-
-	regionId := config.Region
-	routeTableId := d.Get("route_table_id").(string)
-	ruleIds, _ := returnRuleIdArray(regionId, routeTableId, routeTableRulesClient)
-	ruleIds = append(ruleIds[1:])
-
-	req := apis.NewRemoveRouteTableRulesRequest(regionId, routeTableId, ruleIds)
-	resp, err := routeTableRulesClient.RemoveRouteTableRules(req)
-
-	if err != nil || resp.Error.Code != 0 {
-		log.Print("%s", resp.Error)
-		return errors.New("failed in deleting rules,check position-1")
-	}
-
-	d.SetId("")
-	return nil
 }

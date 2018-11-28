@@ -22,91 +22,116 @@ func resourceJDCloudRouteTableAssociation() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				Description: "Name you route table",
 			},
 
 			"subnet_id": {
 				Type: schema.TypeList,
+				Required:    true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
-				Required:    true,
-				Description: "Vpc name this route table belong to",
 			},
 
 			"description": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Default:     "",
-				Description: "See comments below",
-
-				// This parameter appears only because we were asked not to set all parameters "ForceNew"
-				// However, "ForceNew" seems to be the most intuitive and appropriate way here.
-				// In order to set them to be "ForceNew". I add this params while we dont really need it.
 			},
 		},
 	}
 }
 
-func resourceRouteTableAssociationCreate(d *schema.ResourceData, m interface{}) error {
+func resourceRouteTableAssociationCreate(d *schema.ResourceData, meta interface{}) error {
 
-	config := m.(*JDCloudConfig)
+	config := meta.(*JDCloudConfig)
 	associationClient := client.NewVpcClient(config.Credential)
 
 	regionId := config.Region
-	subnetId_interdface := d.Get("subnet_id").([]interface{})
-	subnetIds := InterfaceToStringArray(subnetId_interdface)
+	subnetIdInterface := d.Get("subnet_id").([]interface{})
+	subnetIds := InterfaceToStringArray(subnetIdInterface)
 	routeTableId := d.Get("route_table_id").(string)
 
 	req := apis.NewAssociateRouteTableRequest(regionId, routeTableId, subnetIds)
 	resp, err := associationClient.AssociateRouteTable(req)
 
 	if err != nil {
-		return nil
+		return fmt.Errorf("[ERROR] resourceRouteTableAssociationCreate failed %s ", err.Error())
 	}
+
 	if resp.Error.Code != 0 {
-		return fmt.Errorf("Sorry we cannot associate this table as expected : %s", resp.Error)
+		return fmt.Errorf("[ERROR] resourceRouteTableAssociationCreate failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
+
 	d.SetId(routeTableId)
 	return nil
 }
 
-func resourceRouteTableAssociationRead(d *schema.ResourceData, m interface{}) error {
 
-	config := m.(*JDCloudConfig)
+func resourceRouteTableAssociationRead(d *schema.ResourceData, meta interface{}) error {
+
+	config := meta.(*JDCloudConfig)
 	associationClient := client.NewVpcClient(config.Credential)
 
 	req := apis.NewDescribeRouteTableRequest(config.Region, d.Id())
 	resp, err := associationClient.DescribeRouteTable(req)
 
 	if err != nil {
-		return err
+		return fmt.Errorf("[ERROR] resourceRouteTableAssociationRead failed %s ", err.Error())
 	}
+
+	if resp.Error.Code != 0 {
+		return fmt.Errorf("[ERROR] resourceRouteTableAssociationRead failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
+	}
+
 	d.Set("subnet_id", resp.Result.RouteTable.SubnetIds)
 	return nil
 }
 
-func resourceRouteTableAssociationUpdate(d *schema.ResourceData, m interface{}) error {
+
+func resourceRouteTableAssociationUpdate(d *schema.ResourceData, meta interface{}) error {
+
+	//if d.HasChange("subnet_id") {
+	//
+	//	config := meta.(*JDCloudConfig)
+	//	associationClient := client.NewVpcClient(config.Credential)
+	//
+	//	length := d.Get("subnet_id.#").(int)
+	//	subnetIds := make([]string,0,length)
+	//	for i:=0;i<length;i++{
+	//		subnetIds = append(subnetIds,d.Get("subnet_id."+strconv.Itoa(i)).(string))
+	//	}
+	//
+	//	req := apis.NewAssociateRouteTableRequest(config.Region, d.Id(),subnetIds)
+	//	resp, err := associationClient.DescribeRouteTable(req)
+	//
+	//	if err != nil {
+	//		return fmt.Errorf("[ERROR] resourceRouteTableAssociationUpdate failed %s ", err.Error())
+	//	}
+	//
+	//	if resp.Error.Code != 0 {
+	//		return fmt.Errorf("[ERROR] resourceRouteTableAssociationUpdate failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
+	//	}
+	//}
+
 	origin, latest := d.GetChange("subnet_id")
 
 	d.Set("subnet_id", origin)
-	err_ptr := resourceRouteTableAssociationDelete(d, m)
-	if err_ptr!= nil {
-		return err_ptr
+	err := resourceRouteTableAssociationDelete(d, meta)
+	if err != nil {
+		return fmt.Errorf("[ERROR] resourceRouteTableAssociationUpdate failed %s ", err.Error())
 	}
 
 	d.Set("subnet_id", latest)
-	err_ptr_2 := resourceRouteTableAssociationCreate(d, m)
-	if err_ptr_2 != nil {
-		return err_ptr_2
+	err = resourceRouteTableAssociationCreate(d, meta)
+	if err != nil {
+		return fmt.Errorf("[ERROR] resourceRouteTableAssociationUpdate failed %s ", err.Error())
 	}
 
 	return nil
 }
 
-func resourceRouteTableAssociationDelete(d *schema.ResourceData, m interface{}) error {
+func resourceRouteTableAssociationDelete(d *schema.ResourceData, meta interface{}) error {
 
-	config := m.(*JDCloudConfig)
+	config := meta.(*JDCloudConfig)
 	disassociationClient := client.NewVpcClient(config.Credential)
 
 	subnetId := d.Get("subnet_id").([]interface{})
@@ -118,10 +143,11 @@ func resourceRouteTableAssociationDelete(d *schema.ResourceData, m interface{}) 
 		resp, err := disassociationClient.DisassociateRouteTable(req)
 
 		if err != nil {
-			return err
+			return fmt.Errorf("[ERROR] resourceRouteTableAssociationDelete failed %s ", err.Error())
 		}
+
 		if resp.Error.Code != 0 {
-			return fmt.Errorf("We cannot disassociate this route table for you : %s", resp.Error)
+			return fmt.Errorf("[ERROR] resourceRouteTableAssociationDelete failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 		}
 	}
 

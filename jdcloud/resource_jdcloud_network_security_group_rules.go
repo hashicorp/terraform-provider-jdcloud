@@ -172,12 +172,12 @@ func resourceJDCloudNetworkSecurityGroupRulesUpdate(d *schema.ResourceData, meta
 		for i:=0;i<sgRuleLength;i++{
 
 			sgRule := vpc.ModifySecurityGroupRules{
-				d.Get("rule_id").(string),
-				GetIntAddr(d,"protocol"),
-				GetIntAddr(d,"from_port"),
-				GetIntAddr(d,"to_port"),
-				GetStringAddr(d,"address_prefix"),
-				GetStringAddr(d,"description"),
+				d.Get("add_security_group_rules."+strconv.Itoa(i)+".rule_id").(string),
+				GetIntAddr(d,"add_security_group_rules."+strconv.Itoa(i)+".protocol"),
+				GetIntAddr(d,"add_security_group_rules."+strconv.Itoa(i)+".from_port"),
+				GetIntAddr(d,"add_security_group_rules."+strconv.Itoa(i)+".to_port"),
+				GetStringAddr(d,"add_security_group_rules."+strconv.Itoa(i)+".address_prefix"),
+				GetStringAddr(d,"add_security_group_rules."+strconv.Itoa(i)+".description"),
 			}
 
 			modifySecurityGroupRuleSpecs = append(modifySecurityGroupRuleSpecs,sgRule)
