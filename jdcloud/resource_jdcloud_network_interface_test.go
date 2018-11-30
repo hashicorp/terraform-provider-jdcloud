@@ -23,15 +23,15 @@ resource "jdcloud_network_interface" "network-interface-TEST-1"{
 }
 `
 
-func TestAccJDCloudNetworkInterface_basic(t *testing.T){
+func TestAccJDCloudNetworkInterface_basic(t *testing.T) {
 
 	// This networkInterfaceId is used to create and verify network interface
 	// Currently declared but assigned values later
 	var networkInterfaceId string
 
 	resource.Test(t, resource.TestCase{
-		PreCheck: func() { testAccPreCheck(t) },
-		Providers: testAccProviders,
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckNetworkInterfaceDestroy(&networkInterfaceId),
 		Steps: []resource.TestStep{
 			{
@@ -51,16 +51,16 @@ func TestAccJDCloudNetworkInterface_basic(t *testing.T){
 
 }
 
-func testAccIfNetworkInterfaceExists(networkInterfaceName string,networkInterfaceId *string) resource.TestCheckFunc{
+func testAccIfNetworkInterfaceExists(networkInterfaceName string, networkInterfaceId *string) resource.TestCheckFunc {
 
 	return func(stateInfo *terraform.State) error {
 
 		//STEP-1 : Check if networkInterface resource has been created locally
-		networkInterfaceInfoStoredLocally,ok := stateInfo.RootModule().Resources[networkInterfaceName]
-		if ok==false{
-			return fmt.Errorf("networkInterfaceName namely {%s} has not been created",networkInterfaceName)
+		networkInterfaceInfoStoredLocally, ok := stateInfo.RootModule().Resources[networkInterfaceName]
+		if ok == false {
+			return fmt.Errorf("networkInterfaceName namely {%s} has not been created", networkInterfaceName)
 		}
-		if networkInterfaceInfoStoredLocally.Primary.ID==""{
+		if networkInterfaceInfoStoredLocally.Primary.ID == "" {
 			return fmt.Errorf("operation failed,networkInterfaceName resources created but ID not set")
 		}
 		networkInterfaceIdStoredLocally := networkInterfaceInfoStoredLocally.Primary.ID
@@ -69,52 +69,48 @@ func testAccIfNetworkInterfaceExists(networkInterfaceName string,networkInterfac
 		networkInterfaceConfig := testAccProvider.Meta().(*JDCloudConfig)
 		networkInterfaceClient := client.NewVpcClient(networkInterfaceConfig.Credential)
 
-		requestOnNetworkInterface := apis.NewDescribeNetworkInterfaceRequest(networkInterfaceConfig.Region,networkInterfaceIdStoredLocally)
+		requestOnNetworkInterface := apis.NewDescribeNetworkInterfaceRequest(networkInterfaceConfig.Region, networkInterfaceIdStoredLocally)
 		responseOnNetworkInterface, err := networkInterfaceClient.DescribeNetworkInterface(requestOnNetworkInterface)
 
 		if err != nil {
 			return err
 		}
-		if responseOnNetworkInterface.Error.Code != 0{
-			return fmt.Errorf("resources created locally but not remotely: %s",responseOnNetworkInterface.Error)
+		if responseOnNetworkInterface.Error.Code != 0 {
+			return fmt.Errorf("resources created locally but not remotely: %s", responseOnNetworkInterface.Error)
 		}
-
-
 
 		// STEP-3-Verification on SECONDARY-IP-ADDRESSES
 
 		// Build secondary ip list stored locally
-		secondaryIpListLengthLocal,_ := strconv.Atoi(networkInterfaceInfoStoredLocally.Primary.Attributes["secondary_ip_addresses.#"])
-		secondaryIpListLocal := make([]string,0,secondaryIpListLengthLocal)
-		for i:=0;i< secondaryIpListLengthLocal;i++{
+		secondaryIpListLengthLocal, _ := strconv.Atoi(networkInterfaceInfoStoredLocally.Primary.Attributes["secondary_ip_addresses.#"])
+		secondaryIpListLocal := make([]string, 0, secondaryIpListLengthLocal)
+		for i := 0; i < secondaryIpListLengthLocal; i++ {
 			ip_index := "secondary_ip_addresses." + strconv.Itoa(i)
-			secondaryIpListLocal = append(secondaryIpListLocal,networkInterfaceInfoStoredLocally.Primary.Attributes[ip_index])
+			secondaryIpListLocal = append(secondaryIpListLocal, networkInterfaceInfoStoredLocally.Primary.Attributes[ip_index])
 		}
 
 		// Build secondary ip list stored remotely
-		secondaryIpListLengthRemote  := len(responseOnNetworkInterface.Result.NetworkInterface.SecondaryIps)
-		secondaryIpListRemote := make([]string,0,secondaryIpListLengthRemote)
-		for i:=0;i< secondaryIpListLengthRemote;i++{
-			secondaryIpListRemote = append(secondaryIpListRemote,responseOnNetworkInterface.Result.NetworkInterface.SecondaryIps[i].PrivateIpAddress)
+		secondaryIpListLengthRemote := len(responseOnNetworkInterface.Result.NetworkInterface.SecondaryIps)
+		secondaryIpListRemote := make([]string, 0, secondaryIpListLengthRemote)
+		for i := 0; i < secondaryIpListLengthRemote; i++ {
+			secondaryIpListRemote = append(secondaryIpListRemote, responseOnNetworkInterface.Result.NetworkInterface.SecondaryIps[i].PrivateIpAddress)
 		}
 
 		// Compare two ip lists, check if they match
 
-		if ok:=sliceABelongToB(secondaryIpListLocal,secondaryIpListRemote);ok==false{
+		if ok := sliceABelongToB(secondaryIpListLocal, secondaryIpListRemote); ok == false {
 			return fmt.Errorf("secondary ip list stored locally and remotely does not match")
 		}
 
-
-
 		// STEP-4-Verification on SECURITY-GROUPS
-		securityGroupLengthLocal,_ := strconv.Atoi(networkInterfaceInfoStoredLocally.Primary.Attributes["security_groups.#"])
-		securityGroupLocal := make([]string,0,securityGroupLengthLocal)
-		for i:=0;i< securityGroupLengthLocal;i++{
+		securityGroupLengthLocal, _ := strconv.Atoi(networkInterfaceInfoStoredLocally.Primary.Attributes["security_groups.#"])
+		securityGroupLocal := make([]string, 0, securityGroupLengthLocal)
+		for i := 0; i < securityGroupLengthLocal; i++ {
 			sg_index := "security_groups." + strconv.Itoa(i)
-			securityGroupLocal = append(securityGroupLocal,networkInterfaceInfoStoredLocally.Primary.Attributes[sg_index])
+			securityGroupLocal = append(securityGroupLocal, networkInterfaceInfoStoredLocally.Primary.Attributes[sg_index])
 		}
 		securityGroupRemote := responseOnNetworkInterface.Result.NetworkInterface.NetworkSecurityGroupIds
-		if ok:=equalSliceString(securityGroupLocal,securityGroupRemote);ok==false{
+		if ok := equalSliceString(securityGroupLocal, securityGroupRemote); ok == false {
 			return fmt.Errorf("security group list stored locally and remotely does not match")
 		}
 
@@ -125,34 +121,29 @@ func testAccIfNetworkInterfaceExists(networkInterfaceName string,networkInterfac
 	}
 }
 
-
-
-
 func testAccCheckNetworkInterfaceDestroy(networkInterfaceId *string) resource.TestCheckFunc {
 
 	return func(stateInfo *terraform.State) error {
 
 		// networkInterface ID is not supposed to be empty during testing stage
-		if*networkInterfaceId=="" {
+		if *networkInterfaceId == "" {
 			return errors.New("networkInterfaceId is empty")
 		}
 
 		networkInterfaceConfig := testAccProvider.Meta().(*JDCloudConfig)
 		networkInterfaceClient := client.NewVpcClient(networkInterfaceConfig.Credential)
 
-		requestOnNetworkInterface := apis.NewDescribeNetworkInterfaceRequest(networkInterfaceConfig.Region,*networkInterfaceId)
+		requestOnNetworkInterface := apis.NewDescribeNetworkInterfaceRequest(networkInterfaceConfig.Region, *networkInterfaceId)
 		responseOnNetworkInterface, err := networkInterfaceClient.DescribeNetworkInterface(requestOnNetworkInterface)
-
 
 		// ErrorCode is supposed to be 404 since the networkInterface has already been deleted
 		// err is supposed to be nil pointer since query process shall finish
-		if err!=nil {
+		if err != nil {
 			return err
 		}
-		if responseOnNetworkInterface.Error.Code!=404{
+		if responseOnNetworkInterface.Error.Code != 404 {
 			return fmt.Errorf("something wrong happens or resource still exists")
 		}
 		return nil
 	}
 }
-

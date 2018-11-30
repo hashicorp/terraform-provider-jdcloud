@@ -58,8 +58,8 @@ func resourceAssociateElasticIpRead(d *schema.ResourceData, meta interface{}) er
 	elasticIpId := d.Get("elastic_ip_id").(string)
 
 	vmClient := client.NewVmClient(config.Credential)
-	req := apis.NewDescribeInstanceRequest(config.Region,instanceID)
-	resp ,err := vmClient.DescribeInstance(req)
+	req := apis.NewDescribeInstanceRequest(config.Region, instanceID)
+	resp, err := vmClient.DescribeInstance(req)
 
 	if err != nil {
 		return fmt.Errorf("[ERROR] resourceAssociateElasticIpRead failed %s ", err.Error())

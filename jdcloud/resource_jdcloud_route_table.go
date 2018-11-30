@@ -19,22 +19,21 @@ func resourceJDCloudRouteTable() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 
 			"route_table_name": {
-				Type:        schema.TypeString,
-				Required:    true,
+				Type:     schema.TypeString,
+				Required: true,
 			},
 			"vpc_id": {
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
 			},
 			"description": {
-				Type:        schema.TypeString,
-				Optional:    true,
+				Type:     schema.TypeString,
+				Optional: true,
 			},
 		},
 	}
 }
-
 
 func resourceRouteTableCreate(d *schema.ResourceData, m interface{}) error {
 
@@ -60,7 +59,6 @@ func resourceRouteTableCreate(d *schema.ResourceData, m interface{}) error {
 	d.SetId(resp.Result.RouteTableId)
 	return nil
 }
-
 
 func resourceRouteTableRead(d *schema.ResourceData, meta interface{}) error {
 
@@ -89,7 +87,6 @@ func resourceRouteTableRead(d *schema.ResourceData, meta interface{}) error {
 
 	return nil
 }
-
 
 func resourceRouteTableUpdate(d *schema.ResourceData, meta interface{}) error {
 

@@ -10,7 +10,6 @@ import (
 	"testing"
 )
 
-
 const TestAccEIPConfig = `
 resource "jdcloud_eip" "eip-TEST-1"{
 	eip_provider = "bgp" 
@@ -47,7 +46,7 @@ func testAccIfEIPExists(resourceName string) resource.TestCheckFunc {
 			return fmt.Errorf("we can not find a resouce namely:{%s} in terraform.State", resourceName)
 		}
 		if infoStoredLocally.Primary.ID == "" {
-			return fmt.Errorf("operation failed, resource:%s is created but ID not set",resourceName)
+			return fmt.Errorf("operation failed, resource:%s is created but ID not set", resourceName)
 		}
 		eipId := infoStoredLocally.Primary.ID
 		resourceId := infoStoredLocally.Primary.Attributes["eip_provider"]
@@ -59,12 +58,12 @@ func testAccIfEIPExists(resourceName string) resource.TestCheckFunc {
 		req := apis.NewDescribeElasticIpRequest(config.Region, eipId)
 		resp, err := vpcClient.DescribeElasticIp(req)
 
-		if err != nil || resp.Error.Code!=0 {
-			return fmt.Errorf("Error.Code = %d,Error.Message=%s,err.Error()",resp.Error.Code,resp.Error.Message,err.Error())
+		if err != nil || resp.Error.Code != 0 {
+			return fmt.Errorf("Error.Code = %d,Error.Message=%s,err.Error()", resp.Error.Code, resp.Error.Message, err.Error())
 		}
 
-		bandWidthInt,_ := strconv.Atoi(bandWidth)
-		if resp.Result.ElasticIp.Provider != resourceId || resp.Result.ElasticIp.BandwidthMbps != bandWidthInt{
+		bandWidthInt, _ := strconv.Atoi(bandWidth)
+		if resp.Result.ElasticIp.Provider != resourceId || resp.Result.ElasticIp.BandwidthMbps != bandWidthInt {
 			return fmt.Errorf("resource info does not match")
 		}
 
@@ -89,7 +88,7 @@ func testAccEIPDestroy(resourceName string) resource.TestCheckFunc {
 			return err
 		}
 
-		if resp.Error.Code == 0{
+		if resp.Error.Code == 0 {
 			return fmt.Errorf("failed in deleting resources")
 		}
 

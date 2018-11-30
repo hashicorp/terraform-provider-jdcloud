@@ -82,11 +82,10 @@ func resourceRouteTableRulesCreate(d *schema.ResourceData, meta interface{}) err
 	}
 
 	//Rule id can only be retrieved via "read"
-	resourceRouteTableRulesRead(d,meta)
+	resourceRouteTableRulesRead(d, meta)
 	d.SetId(routeTableId)
 	return nil
 }
-
 
 func resourceRouteTableRulesRead(d *schema.ResourceData, meta interface{}) error {
 
@@ -119,7 +118,7 @@ func resourceRouteTableRulesRead(d *schema.ResourceData, meta interface{}) error
 			"next_hop_id":    rule.NextHopId,
 			"address_prefix": rule.AddressPrefix,
 			"priority":       rule.Priority,
-			"rule_id" :       rule.RuleId,
+			"rule_id":        rule.RuleId,
 		}
 
 		ruleArrayInMapForm = append(ruleArrayInMapForm, aRuleInCorrectFrom)
@@ -130,7 +129,6 @@ func resourceRouteTableRulesRead(d *schema.ResourceData, meta interface{}) error
 	return nil
 }
 
-
 func resourceRouteTableRulesUpdate(d *schema.ResourceData, meta interface{}) error {
 	//originalResourceData, latestResourceData := d.GetChange("route_table_rule_specs")
 	//d.Set("route_table_rule_specs", originalResourceData)
@@ -138,28 +136,28 @@ func resourceRouteTableRulesUpdate(d *schema.ResourceData, meta interface{}) err
 	//d.Set("route_table_rule_specs", latestResourceData)
 	//resourceRouteTableRulesCreate(d, m)
 
-	if d.HasChange("route_table_rule_specs"){
+	if d.HasChange("route_table_rule_specs") {
 
 		config := meta.(*JDCloudConfig)
 		vpcClient := client.NewVpcClient(config.Credential)
 		arrayLength := d.Get("route_table_rule_specs.#").(int)
-		modifyRouteTableRuleSpecs := make([]vpc.ModifyRouteTableRules,0,arrayLength)
+		modifyRouteTableRuleSpecs := make([]vpc.ModifyRouteTableRules, 0, arrayLength)
 
-		for i:=0;i<arrayLength;i++ {
+		for i := 0; i < arrayLength; i++ {
 
 			rule := vpc.ModifyRouteTableRules{
-				d.Get("route_table_rule_specs."+strconv.Itoa(i)+".rule_id").(string),
-				GetIntAddr(d,"route_table_rule_specs."+strconv.Itoa(i)+".priority"),
-				GetStringAddr(d,"route_table_rule_specs."+strconv.Itoa(i)+".next_hop_type"),
-				GetStringAddr(d,"route_table_rule_specs."+strconv.Itoa(i)+".next_hop_id"),
-				GetStringAddr(d,"route_table_rule_specs."+strconv.Itoa(i)+".address_prefix"),
+				d.Get("route_table_rule_specs." + strconv.Itoa(i) + ".rule_id").(string),
+				GetIntAddr(d, "route_table_rule_specs."+strconv.Itoa(i)+".priority"),
+				GetStringAddr(d, "route_table_rule_specs."+strconv.Itoa(i)+".next_hop_type"),
+				GetStringAddr(d, "route_table_rule_specs."+strconv.Itoa(i)+".next_hop_id"),
+				GetStringAddr(d, "route_table_rule_specs."+strconv.Itoa(i)+".address_prefix"),
 			}
 
-			modifyRouteTableRuleSpecs = append(modifyRouteTableRuleSpecs,rule)
+			modifyRouteTableRuleSpecs = append(modifyRouteTableRuleSpecs, rule)
 		}
 
-		req := apis.NewModifyRouteTableRulesRequest(config.Region,d.Id(),modifyRouteTableRuleSpecs)
-		resp,err := vpcClient.ModifyRouteTableRules(req)
+		req := apis.NewModifyRouteTableRulesRequest(config.Region, d.Id(), modifyRouteTableRuleSpecs)
+		resp, err := vpcClient.ModifyRouteTableRules(req)
 
 		if err != nil {
 			return fmt.Errorf("[ERROR] resourceRouteTableRulesUpdate failed %s ", err.Error())
@@ -172,8 +170,6 @@ func resourceRouteTableRulesUpdate(d *schema.ResourceData, meta interface{}) err
 
 	return nil
 }
-
-
 
 func resourceRouteTableRulesDelete(d *schema.ResourceData, m interface{}) error {
 
@@ -199,8 +195,6 @@ func resourceRouteTableRulesDelete(d *schema.ResourceData, m interface{}) error 
 	d.SetId("")
 	return nil
 }
-
-
 
 /* Helper Functions*/
 func interfaceToStructArray(configInterfaceArray interface{}) []vpc.AddRouteTableRules {
@@ -280,14 +274,14 @@ func equalSliceString(a []string, b []string) bool {
 }
 
 func sliceABelongToB(a []string, b []string) bool {
-	for _,itemInA := range a{
+	for _, itemInA := range a {
 		flag := false
-		for _,itemInB := range b{
-			if(itemInA==itemInB){
-				flag =true
+		for _, itemInB := range b {
+			if itemInA == itemInB {
+				flag = true
 			}
 		}
-		if flag==false{
+		if flag == false {
 			return false
 		}
 	}

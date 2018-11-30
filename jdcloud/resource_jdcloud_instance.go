@@ -14,6 +14,18 @@ import (
 	"time"
 )
 
+/*
+  Reminder:
+  1.Currently, the only way you can use cloud disk as [System Disk] is to
+	select your region as "cn-east-2". Usually when you set your region as
+	"cn-north-1", you can only use [local] disk instead,and the volume will
+	be fixed to 40Gb
+
+  2. disk type "premium-hdd" is currently out of stock, use [ssd] instead
+
+  3. set no device as false to set up your data disk
+*/
+
 func resourceJDCloudInstance() *schema.Resource {
 	diskSchema := &schema.Resource{
 		Schema: map[string]*schema.Schema{
@@ -202,7 +214,7 @@ func QueryInstanceDetail(d *schema.ResourceData, m interface{}) (*apis.DescribeI
 	vmClient := client.NewVmClient(config.Credential)
 	req := apis.NewDescribeInstanceRequest(config.Region, d.Id())
 	resp, err := vmClient.DescribeInstance(req)
-	if resp.Error.Code == 404 && resp.Error.Status == "NOT_FOUND" {
+	if resp.Error.Code == 404 {
 		resp.Result.Instance.Status = VM_DELETED
 	}
 	return resp, err
@@ -260,6 +272,7 @@ func resourceJDCloudInstanceCreate(d *schema.ResourceData, m interface{}) error 
 			spec.SystemDisk = newDiskSpecFromSchema(systemDisk[0].(map[string]interface{}))
 		}
 	}
+
 	if v, ok := d.GetOk("data_disk"); ok {
 		dataDisk := []vm.InstanceDiskAttachmentSpec{}
 		for _, v := range v.([]interface{}) {
@@ -267,7 +280,6 @@ func resourceJDCloudInstanceCreate(d *schema.ResourceData, m interface{}) error 
 			dataDisk = append(dataDisk, *spec)
 		}
 		spec.DataDisks = dataDisk
-		log.Printf("DATA DISK: %s\n", dataDisk)
 	}
 
 	if _, ok := d.GetOk("description"); ok {
@@ -320,6 +332,7 @@ func resourceJDCloudInstanceCreate(d *schema.ResourceData, m interface{}) error 
 
 	req := apis.NewCreateInstancesRequest(config.Region, &spec)
 	req.SetMaxCount(1)
+
 	resp, err := vmClient.CreateInstances(req)
 	if err != nil {
 		return err
@@ -328,7 +341,6 @@ func resourceJDCloudInstanceCreate(d *schema.ResourceData, m interface{}) error 
 	}
 
 	d.SetId(resp.Result.InstanceIds[0])
-
 	return waitForInstance(d, m, VM_RUNNING)
 }
 
@@ -341,6 +353,7 @@ func resourceJDCloudInstanceRead(d *schema.ResourceData, m interface{}) error {
 		}
 		return fmt.Errorf("query vm instance fail: %s", err)
 	}
+
 	d.Set("instance_name", vmInstanceDetail.Result.Instance.InstanceName)
 	d.Set("image_id", vmInstanceDetail.Result.Instance.ImageId)
 	d.Set("instance_type", vmInstanceDetail.Result.Instance.InstanceType)
@@ -420,6 +433,7 @@ func resourceJDCloudInstanceUpdate(d *schema.ResourceData, m interface{}) error 
 }
 
 func resourceJDCloudInstanceDelete(d *schema.ResourceData, m interface{}) error {
+
 	vmInstanceDetail, err := QueryInstanceDetail(d, m)
 	if err != nil {
 		return fmt.Errorf("query instance fail: %s", err)

@@ -22,21 +22,21 @@ PROCESS:
 const TestAccSubnetConfig = `
 resource "jdcloud_subnet" "subnet-TEST-1"{
 	vpc_id = "vpc-npvvk4wr5j"
-	cidr_block = "10.0.0.0/16"
+	cidr_block = "10.0.128.0/24"
 	subnet_name = "aa"
 	description = "test"
 }
 `
 
-func TestAccJDCloudSubnet_basic(t *testing.T){
+func TestAccJDCloudSubnet_basic(t *testing.T) {
 
 	// This subnet ID is used to create and verify subnet
 	// Currently declared but assigned values later
 	var subnetId string
 
 	resource.Test(t, resource.TestCase{
-		PreCheck: func() { testAccPreCheck(t) },
-		Providers: testAccProviders,
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckSubnetDestroy(&subnetId),
 		Steps: []resource.TestStep{
 			{
@@ -47,7 +47,7 @@ func TestAccJDCloudSubnet_basic(t *testing.T){
 					testAccIfSubnetExists("jdcloud_subnet.subnet-TEST-1", &subnetId),
 					// Remaining attributes validation
 					resource.TestCheckResourceAttr("jdcloud_subnet.subnet-TEST-1", "vpc_id", "vpc-npvvk4wr5j"),
-					resource.TestCheckResourceAttr("jdcloud_subnet.subnet-TEST-1", "cidr_block", "10.0.0.0/16"),
+					resource.TestCheckResourceAttr("jdcloud_subnet.subnet-TEST-1", "cidr_block", "10.0.128.0/24"),
 					resource.TestCheckResourceAttr("jdcloud_subnet.subnet-TEST-1", "subnet_name", "aa"),
 					resource.TestCheckResourceAttr("jdcloud_subnet.subnet-TEST-1", "description", "test"),
 				),
@@ -57,18 +57,16 @@ func TestAccJDCloudSubnet_basic(t *testing.T){
 
 }
 
-
-
-func testAccIfSubnetExists(subnetName string,subnetId *string) resource.TestCheckFunc{
+func testAccIfSubnetExists(subnetName string, subnetId *string) resource.TestCheckFunc {
 
 	return func(stateInfo *terraform.State) error {
 
 		//STEP-1 : Check if subnet resource has been created locally
-		subnetInfoStoredLocally,ok := stateInfo.RootModule().Resources[subnetName]
-		if ok==false{
-			return fmt.Errorf("subnet namely {%s} has not been created",subnetName)
+		subnetInfoStoredLocally, ok := stateInfo.RootModule().Resources[subnetName]
+		if ok == false {
+			return fmt.Errorf("subnet namely {%s} has not been created", subnetName)
 		}
-		if subnetInfoStoredLocally.Primary.ID==""{
+		if subnetInfoStoredLocally.Primary.ID == "" {
 			return fmt.Errorf("operation failed, resources created but ID not set")
 		}
 		subnetIdStoredLocally := subnetInfoStoredLocally.Primary.ID
@@ -77,14 +75,13 @@ func testAccIfSubnetExists(subnetName string,subnetId *string) resource.TestChec
 		subnetConfig := testAccProvider.Meta().(*JDCloudConfig)
 		subnetClient := client.NewVpcClient(subnetConfig.Credential)
 
-		req := apis.NewDescribeSubnetRequest(subnetConfig.Region,subnetIdStoredLocally)
+		req := apis.NewDescribeSubnetRequest(subnetConfig.Region, subnetIdStoredLocally)
 		resp, err := subnetClient.DescribeSubnet(req)
 
-		if err!=nil{
+		if err != nil {
 			return err
 		}
-		if resp.Error.Code != 0{
-			//return fmt.Errorf("%s",resp.Error)
+		if resp.Error.Code != 0 {
 			return fmt.Errorf("resources created locally but not remotely")
 		}
 
@@ -92,16 +89,15 @@ func testAccIfSubnetExists(subnetName string,subnetId *string) resource.TestChec
 		//  Remotely, next we are going to validate the remaining attributes
 		*subnetId = subnetIdStoredLocally
 		return nil
- 	}
+	}
 }
-
 
 func testAccCheckSubnetDestroy(subnetIdStoredLocally *string) resource.TestCheckFunc {
 
 	return func(stateInfo *terraform.State) error {
 
 		// subnet ID is not supposed to be empty during testing stage
-		if*subnetIdStoredLocally=="" {
+		if *subnetIdStoredLocally == "" {
 			return errors.New("subnetID is empty")
 		}
 
@@ -113,10 +109,10 @@ func testAccCheckSubnetDestroy(subnetIdStoredLocally *string) resource.TestCheck
 
 		// ErrorCode is supposed to be 404 since the subnet has already been deleted
 		// err is supposed to be nil pointer since query process shall finish
-		if err!=nil {
+		if err != nil {
 			return err
 		}
-		if resp.Error.Code!=404{
+		if resp.Error.Code != 404 {
 			return fmt.Errorf("something wrong happens or resource still exists")
 		}
 		return nil

@@ -61,14 +61,14 @@ func resourceJDCloudNetworkSecurityGroupCreate(d *schema.ResourceData, meta inte
 
 func resourceJDCloudNetworkSecurityGroupRead(d *schema.ResourceData, meta interface{}) error {
 
-	config   := meta.(*JDCloudConfig)
+	config := meta.(*JDCloudConfig)
 	sgClient := client.NewVpcClient(config.Credential)
 
 	regionId := config.Region
-	sgId     := d.Id()
+	sgId := d.Id()
 
-	req 	 := apis.NewDescribeNetworkSecurityGroupRequest(regionId,sgId)
-	resp,err := sgClient.DescribeNetworkSecurityGroup(req)
+	req := apis.NewDescribeNetworkSecurityGroupRequest(regionId, sgId)
+	resp, err := sgClient.DescribeNetworkSecurityGroup(req)
 
 	if err != nil {
 		return fmt.Errorf("[ERROR] resourceJDCloudNetworkSecurityGroupRead failed %s ", err.Error())
@@ -83,20 +83,20 @@ func resourceJDCloudNetworkSecurityGroupRead(d *schema.ResourceData, meta interf
 		return fmt.Errorf("[ERROR] resourceJDCloudNetworkSecurityGroupRead failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
 
-	d.Set("description",resp.Result.NetworkSecurityGroup.Description)
-	d.Set("network_security_group_name",resp.Result.NetworkSecurityGroup.NetworkSecurityGroupName)
-	d.Set("vpc_id",resp.Result.NetworkSecurityGroup.VpcId)
+	d.Set("description", resp.Result.NetworkSecurityGroup.Description)
+	d.Set("network_security_group_name", resp.Result.NetworkSecurityGroup.NetworkSecurityGroupName)
+	d.Set("vpc_id", resp.Result.NetworkSecurityGroup.VpcId)
 	return nil
 }
 
 func resourceJDCloudNetworkSecurityGroupUpdate(d *schema.ResourceData, meta interface{}) error {
 
-	config   := meta.(*JDCloudConfig)
+	config := meta.(*JDCloudConfig)
 	sgClient := client.NewVpcClient(config.Credential)
 
-	if d.HasChange("network_security_group_name") || d.HasChange("description"){
-		req := apis.NewModifyNetworkSecurityGroupRequestWithAllParams(config.Region,d.Id(),GetStringAddr(d,"description"),GetStringAddr(d,"network_security_group_name"))
-		resp,err := sgClient.ModifyNetworkSecurityGroup(req)
+	if d.HasChange("network_security_group_name") || d.HasChange("description") {
+		req := apis.NewModifyNetworkSecurityGroupRequestWithAllParams(config.Region, d.Id(), GetStringAddr(d, "description"), GetStringAddr(d, "network_security_group_name"))
+		resp, err := sgClient.ModifyNetworkSecurityGroup(req)
 
 		if err != nil {
 			return fmt.Errorf("[ERROR] resourceJDCloudNetworkSecurityGroupUpdate failed %s ", err.Error())
@@ -107,7 +107,6 @@ func resourceJDCloudNetworkSecurityGroupUpdate(d *schema.ResourceData, meta inte
 	}
 	return nil
 }
-
 
 func resourceJDCloudNetworkSecurityGroupDelete(d *schema.ResourceData, meta interface{}) error {
 

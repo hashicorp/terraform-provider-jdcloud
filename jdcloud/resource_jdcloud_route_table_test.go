@@ -16,6 +16,7 @@ resource "jdcloud_route_table" "route-table-TEST-1"{
 	description = "test"
 }
 `
+
 func TestAccJDCloudRouteTable_basic(t *testing.T) {
 
 	// routeTableId is declared but not assigned any values here
@@ -71,7 +72,6 @@ func testAccIfRouteTableExists(routeTableName string, routeTableId *string) reso
 			return fmt.Errorf("according to the ID stored locally,we cannot find any RouteTable created remotely")
 		}
 
-
 		// RouteTable ID has been validated
 		// We are going to validate the remaining attributes - name,vpc_id,description
 		*routeTableId = routeTableIdStoredLocally
@@ -79,13 +79,12 @@ func testAccIfRouteTableExists(routeTableName string, routeTableId *string) reso
 	}
 }
 
-
 func testAccRouteTableDestroy(routeTableIdStoredLocally *string) resource.TestCheckFunc {
 
 	return func(stateInfo *terraform.State) error {
 
 		//  routeTableId is not supposed to be empty
-		if *routeTableIdStoredLocally==""{
+		if *routeTableIdStoredLocally == "" {
 			return fmt.Errorf("route Table Id appears to be empty")
 		}
 

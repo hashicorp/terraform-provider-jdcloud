@@ -22,13 +22,13 @@ resource "jdcloud_disk" "disk_test_1" {
 }
 `
 
-func TestAccJDCloudDisk_basic(t *testing.T){
+func TestAccJDCloudDisk_basic(t *testing.T) {
 
 	var diskId string
 
 	resource.Test(t, resource.TestCase{
-		PreCheck: func() { testAccPreCheck(t) },
-		Providers: testAccProviders,
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDiskDestroy(&diskId),
 		Steps: []resource.TestStep{
 			{
@@ -60,7 +60,7 @@ func testAccIfDiskExists(diskName string, diskId *string) resource.TestCheckFunc
 		diskConfig := testAccProvider.Meta().(*JDCloudConfig)
 		diskClient := client.NewDiskClient(diskConfig.Credential)
 
-		req := apis.NewDescribeDiskRequest(diskConfig.Region,*diskId)
+		req := apis.NewDescribeDiskRequest(diskConfig.Region, *diskId)
 		resp, err := diskClient.DescribeDisk(req)
 
 		if err != nil {
@@ -69,16 +69,16 @@ func testAccIfDiskExists(diskName string, diskId *string) resource.TestCheckFunc
 		if resp.Error.Code != 0 {
 			return fmt.Errorf("according to the ID stored locally,we cannot find any RouteTable created remotely")
 		}
-		if localDiskInfo.Primary.Attributes["az"]!=resp.Result.Disk.Az {
+		if localDiskInfo.Primary.Attributes["az"] != resp.Result.Disk.Az {
 			return fmt.Errorf("info does not match on az")
 		}
-		if localDiskInfo.Primary.Attributes["disk_size_gb"]!= strconv.Itoa(resp.Result.Disk.DiskSizeGB) {
+		if localDiskInfo.Primary.Attributes["disk_size_gb"] != strconv.Itoa(resp.Result.Disk.DiskSizeGB) {
 			return fmt.Errorf("info does not match on disk_size_gb")
 		}
-		if localDiskInfo.Primary.Attributes["disk_type"]!=resp.Result.Disk.DiskType {
+		if localDiskInfo.Primary.Attributes["disk_type"] != resp.Result.Disk.DiskType {
 			return fmt.Errorf("info does not match on disktype")
 		}
-		if localDiskInfo.Primary.Attributes["name"]!=resp.Result.Disk.Name {
+		if localDiskInfo.Primary.Attributes["name"] != resp.Result.Disk.Name {
 			return fmt.Errorf("info does not match on name")
 		}
 
@@ -91,31 +91,31 @@ func testAccCheckDiskDestroy(diskId *string) resource.TestCheckFunc {
 	return func(stateInfo *terraform.State) error {
 		return nil
 
-		if*diskId=="" {
+		if *diskId == "" {
 			return errors.New("subnetID is empty")
 		}
 
 		diskConfig := testAccProvider.Meta().(*JDCloudConfig)
 		diskClient := client.NewDiskClient(diskConfig.Credential)
 
-		req := apis.NewDescribeDiskRequest(diskConfig.Region,*diskId)
+		req := apis.NewDescribeDiskRequest(diskConfig.Region, *diskId)
 
 		retryCount := 0
-		retryTag:
-			resp, err := diskClient.DescribeDisk(req)
+	retryTag:
+		resp, err := diskClient.DescribeDisk(req)
 
-		if err!=nil {
+		if err != nil {
 			return err
 		}
 
-		if resp.Result.Disk.Status == "deleting" && retryCount<3{
+		if resp.Result.Disk.Status == "deleting" && retryCount < 3 {
 			retryCount++
-			time.Sleep(time.Second*3)
+			time.Sleep(time.Second * 3)
 			goto retryTag
 		}
 
-		if resp.Result.Disk.Status!="deleted"{
-			return fmt.Errorf("resource still exists %s,%s",*diskId,resp.Result.Disk.Status)
+		if resp.Result.Disk.Status != "deleted" {
+			return fmt.Errorf("resource still exists %s,%s", *diskId, resp.Result.Disk.Status)
 		}
 		return nil
 	}

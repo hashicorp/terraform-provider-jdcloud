@@ -10,29 +10,28 @@ import (
 	"testing"
 )
 
-
 const TestAccSecurityGroupRuleConfig = `
-resource "jdcloud_network_security_group_rules" "sg-rule-TEST-1"{
-	network_security_group_id = "sg-r7ych5nw90"
-	add_security_group_rules = [{
-		address_prefix =  "0.0.0.0/0"
-		direction = "0"
-		from_port = "8000"
-		protocol = "300"
-		to_port = "8900"
-	}]
+resource "jdcloud_network_security_group_rules" "sg-TEST-1" {
+  network_security_group_id = "sg-ym9yp1egi0"
+  add_security_group_rules = [{
+    address_prefix = "0.0.0.0/0"
+    direction      = "0"
+    from_port      = "10"
+    protocol       = "6"
+    to_port        = "20"
+  }]
 }
 `
 
-func TestAccJDCloudSecurityGroupRule_basic(t *testing.T){
+func TestAccJDCloudSecurityGroupRule_basic(t *testing.T) {
 
 	// This SecurityGroupRule ID is used to create and verify subnet
 	// Currently declared but assigned values later
 	var SecurityGroupRuleId string
 
 	resource.Test(t, resource.TestCase{
-		PreCheck: func() { testAccPreCheck(t) },
-		Providers: testAccProviders,
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckSecurityGroupRuleDestroy(&SecurityGroupRuleId),
 		Steps: []resource.TestStep{
 			{
@@ -40,8 +39,7 @@ func TestAccJDCloudSecurityGroupRule_basic(t *testing.T){
 				Check: resource.ComposeTestCheckFunc(
 
 					// SecurityGroupRuleId verification
-					testAccIfSecurityGroupRuleExists("jdcloud_network_security_group_rules.sg-rule-TEST-1", &SecurityGroupRuleId),
-
+					testAccIfSecurityGroupRuleExists("jdcloud_network_security_group_rules.sg-TEST-1", &SecurityGroupRuleId),
 				),
 			},
 		},
@@ -49,18 +47,16 @@ func TestAccJDCloudSecurityGroupRule_basic(t *testing.T){
 
 }
 
-
-
-func testAccIfSecurityGroupRuleExists(securityGroupRuleName string,securityGroupRuleId *string) resource.TestCheckFunc{
+func testAccIfSecurityGroupRuleExists(securityGroupRuleName string, securityGroupRuleId *string) resource.TestCheckFunc {
 
 	return func(stateInfo *terraform.State) error {
 
 		//STEP-1 : Check if securityGroup resource has been created locally
-		securityGroupRuleInfoStoredLocally,ok := stateInfo.RootModule().Resources[securityGroupRuleName]
-		if ok==false{
-			return fmt.Errorf("securityGroup namely {%s} has not been created",securityGroupRuleName)
+		securityGroupRuleInfoStoredLocally, ok := stateInfo.RootModule().Resources[securityGroupRuleName]
+		if ok == false {
+			return fmt.Errorf("securityGroupRule namely {%s} has not been created", securityGroupRuleName)
 		}
-		if securityGroupRuleInfoStoredLocally.Primary.ID==""{
+		if securityGroupRuleInfoStoredLocally.Primary.ID == "" {
 			return fmt.Errorf("operation failed, resources created but ID not set")
 		}
 		securityGroupIdStoredLocally := securityGroupRuleInfoStoredLocally.Primary.Attributes["network_security_group_id"]
@@ -69,27 +65,27 @@ func testAccIfSecurityGroupRuleExists(securityGroupRuleName string,securityGroup
 		securityGroupRuleConfig := testAccProvider.Meta().(*JDCloudConfig)
 		securityGroupRuleClient := client.NewVpcClient(securityGroupRuleConfig.Credential)
 
-		req := apis.NewDescribeNetworkSecurityGroupRequest(securityGroupRuleConfig.Region,securityGroupIdStoredLocally)
+		req := apis.NewDescribeNetworkSecurityGroupRequest(securityGroupRuleConfig.Region, securityGroupIdStoredLocally)
 		resp, err := securityGroupRuleClient.DescribeNetworkSecurityGroup(req)
 
-		if err!=nil{
+		if err != nil {
 			return err
 		}
 
 		sgRulesRemote := resp.Result.NetworkSecurityGroup.SecurityGroupRules
-		sgRulesLocal  := securityGroupRuleInfoStoredLocally.Primary
+		sgRulesLocal := securityGroupRuleInfoStoredLocally.Primary
 
-		sgLocalLength,_ := strconv.Atoi(sgRulesLocal.Attributes["add_security_group_rules.#"])
+		sgLocalLength, _ := strconv.Atoi(sgRulesLocal.Attributes["add_security_group_rules.#"])
 
-		for i := 0;i<sgLocalLength;i++ {
+		for i := 0; i < sgLocalLength; i++ {
 			flag := false
-			addressPrefix :=  sgRulesLocal.Attributes["add_security_group_rules." + strconv.Itoa(i) + ".address_prefix"]
-			for _,sgRemote := range sgRulesRemote{
+			addressPrefix := sgRulesLocal.Attributes["add_security_group_rules."+strconv.Itoa(i)+".address_prefix"]
+			for _, sgRemote := range sgRulesRemote {
 				if addressPrefix == sgRemote.AddressPrefix {
-						flag = true
+					flag = true
 				}
 			}
-			if flag==false {
+			if flag == false {
 				return fmt.Errorf("resource local dues not match remote")
 			}
 		}
@@ -100,7 +96,6 @@ func testAccIfSecurityGroupRuleExists(securityGroupRuleName string,securityGroup
 		return nil
 	}
 }
-
 
 func testAccCheckSecurityGroupRuleDestroy(securityGroupRuleId *string) resource.TestCheckFunc {
 

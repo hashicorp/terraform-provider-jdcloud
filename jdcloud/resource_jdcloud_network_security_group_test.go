@@ -18,15 +18,15 @@ resource "jdcloud_network_security_group" "sg-TEST-1"{
 }
 `
 
-func TestAccJDCloudSecurityGroup_basic(t *testing.T){
+func TestAccJDCloudSecurityGroup_basic(t *testing.T) {
 
 	// This securityGroupId is used to create and verify securityGroup
 	// Currently declared but assigned values later
 	var securityGroupId string
 
 	resource.Test(t, resource.TestCase{
-		PreCheck: func() { testAccPreCheck(t) },
-		Providers: testAccProviders,
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckSecurityGroupDestroy(&securityGroupId),
 		Steps: []resource.TestStep{
 			{
@@ -35,7 +35,6 @@ func TestAccJDCloudSecurityGroup_basic(t *testing.T){
 
 					// securityGroupId verification
 					testAccIfSecurityGroupExists("jdcloud_network_security_group.sg-TEST-1", &securityGroupId),
-
 				),
 			},
 		},
@@ -43,18 +42,16 @@ func TestAccJDCloudSecurityGroup_basic(t *testing.T){
 
 }
 
-
-
-func testAccIfSecurityGroupExists(securityGroupName string,securityGroupId *string) resource.TestCheckFunc{
+func testAccIfSecurityGroupExists(securityGroupName string, securityGroupId *string) resource.TestCheckFunc {
 
 	return func(stateInfo *terraform.State) error {
 
 		//STEP-1 : Check if securityGroup resource has been created locally
-		securityGroupInfoStoredLocally,ok := stateInfo.RootModule().Resources[securityGroupName]
-		if ok==false{
-			return fmt.Errorf("securityGroup namely {%s} has not been created",securityGroupName)
+		securityGroupInfoStoredLocally, ok := stateInfo.RootModule().Resources[securityGroupName]
+		if ok == false {
+			return fmt.Errorf("securityGroup namely {%s} has not been created", securityGroupName)
 		}
-		if securityGroupInfoStoredLocally.Primary.ID==""{
+		if securityGroupInfoStoredLocally.Primary.ID == "" {
 			return fmt.Errorf("operation failed, resources created but ID not set")
 		}
 		securityGroupIdStoredLocally := securityGroupInfoStoredLocally.Primary.ID
@@ -63,13 +60,13 @@ func testAccIfSecurityGroupExists(securityGroupName string,securityGroupId *stri
 		securityGroupConfig := testAccProvider.Meta().(*JDCloudConfig)
 		securityGroupClient := client.NewVpcClient(securityGroupConfig.Credential)
 
-		req := apis.NewDescribeNetworkSecurityGroupRequest(securityGroupConfig.Region,securityGroupIdStoredLocally)
+		req := apis.NewDescribeNetworkSecurityGroupRequest(securityGroupConfig.Region, securityGroupIdStoredLocally)
 		resp, err := securityGroupClient.DescribeNetworkSecurityGroup(req)
 
-		if err!=nil{
+		if err != nil {
 			return err
 		}
-		if resp.Error.Code != 0{
+		if resp.Error.Code != 0 {
 			return fmt.Errorf("resources created locally but not remotely")
 		}
 
@@ -80,28 +77,27 @@ func testAccIfSecurityGroupExists(securityGroupName string,securityGroupId *stri
 	}
 }
 
-
 func testAccCheckSecurityGroupDestroy(securityGroupIdStoredLocally *string) resource.TestCheckFunc {
 
 	return func(stateInfo *terraform.State) error {
 
 		// securityGroup ID is not supposed to be empty during testing stage
-		if*securityGroupIdStoredLocally=="" {
+		if *securityGroupIdStoredLocally == "" {
 			return errors.New("securityGroupId is empty")
 		}
 
 		securityGroupConfig := testAccProvider.Meta().(*JDCloudConfig)
 		securityGroupClient := client.NewVpcClient(securityGroupConfig.Credential)
 
-		req := apis.NewDescribeNetworkSecurityGroupRequest(securityGroupConfig.Region,*securityGroupIdStoredLocally)
+		req := apis.NewDescribeNetworkSecurityGroupRequest(securityGroupConfig.Region, *securityGroupIdStoredLocally)
 		resp, err := securityGroupClient.DescribeNetworkSecurityGroup(req)
 
 		// ErrorCode is supposed to be 404 since the securityGroup has already been deleted
 		// err is supposed to be nil pointer since query process shall finish
-		if err!=nil {
+		if err != nil {
 			return err
 		}
-		if resp.Error.Code!=404{
+		if resp.Error.Code != 404 {
 			return fmt.Errorf("something wrong happens or resource still exists")
 		}
 		return nil

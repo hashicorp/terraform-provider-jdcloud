@@ -54,10 +54,10 @@ func resourceJDCloudDiskAttachmentCreate(d *schema.ResourceData, meta interface{
 	diskID := d.Get("disk_id").(string)
 
 	req := apis.NewAttachDiskRequest(config.Region, instanceID, diskID)
-	if _,ok := d.GetOk("device_name");ok{
-		req.DeviceName =  GetStringAddr(d,"device_name")
+	if _, ok := d.GetOk("device_name"); ok {
+		req.DeviceName = GetStringAddr(d, "device_name")
 	}
-	if autoDeleteInterface,ok := d.GetOk("auto_delete");ok{
+	if autoDeleteInterface, ok := d.GetOk("auto_delete"); ok {
 		autoDelete := autoDeleteInterface.(bool)
 		req.AutoDelete = &autoDelete
 	}
@@ -76,7 +76,6 @@ func resourceJDCloudDiskAttachmentCreate(d *schema.ResourceData, meta interface{
 	return nil
 }
 
-
 func resourceJDCloudDiskAttachmentRead(d *schema.ResourceData, meta interface{}) error {
 
 	// If disk has been found detached from instance
@@ -86,15 +85,15 @@ func resourceJDCloudDiskAttachmentRead(d *schema.ResourceData, meta interface{})
 	diskID := d.Get("disk_id").(string)
 
 	vmClient := client.NewVmClient(config.Credential)
-	req := apis.NewDescribeInstanceRequest(config.Region,instanceID)
-	resp ,err := vmClient.DescribeInstance(req)
+	req := apis.NewDescribeInstanceRequest(config.Region, instanceID)
+	resp, err := vmClient.DescribeInstance(req)
 
 	if err != nil {
 		return err
 	}
-	for _,disk := range resp.Result.Instance.DataDisks{
-		if diskID == disk.CloudDisk.DiskId{
-			d.Set("auto_delete",disk.AutoDelete)
+	for _, disk := range resp.Result.Instance.DataDisks {
+		if diskID == disk.CloudDisk.DiskId {
+			d.Set("auto_delete", disk.AutoDelete)
 			return nil
 		}
 	}
@@ -109,19 +108,19 @@ func resourceJDCloudDiskAttachmentUpdate(d *schema.ResourceData, meta interface{
 
 		config := meta.(*JDCloudConfig)
 		regionID := config.Region
-		diskID := GetStringAddr(d,"disk_id")
+		diskID := GetStringAddr(d, "disk_id")
 		autoDelete := d.Get("auto_delete").(bool)
 		instanceID := d.Get("instance_id").(string)
 
-		diskAttributeArray := []vm.InstanceDiskAttribute{vm.InstanceDiskAttribute{diskID,&autoDelete}}
-		req := apis.NewModifyInstanceDiskAttributeRequestWithAllParams(regionID,instanceID,diskAttributeArray)
+		diskAttributeArray := []vm.InstanceDiskAttribute{vm.InstanceDiskAttribute{diskID, &autoDelete}}
+		req := apis.NewModifyInstanceDiskAttributeRequestWithAllParams(regionID, instanceID, diskAttributeArray)
 		vmClient := client.NewVmClient(config.Credential)
-		resp,err := vmClient.ModifyInstanceDiskAttribute(req)
+		resp, err := vmClient.ModifyInstanceDiskAttribute(req)
 
-		if err!=nil{
+		if err != nil {
 			return fmt.Errorf("[ERROR] Failed in resourceJDCloudDiskAttachmentCreate failed %s ", err.Error())
 		}
-		if resp.Error.Code!=0{
+		if resp.Error.Code != 0 {
 			return fmt.Errorf("[ERROR] Failed in resourceJDCloudDiskAttachmentUpdate,Error code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 		}
 	}

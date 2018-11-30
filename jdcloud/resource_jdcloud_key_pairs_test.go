@@ -31,8 +31,8 @@ func TestAccJDCloudKeyPairs_basic(t *testing.T) {
 
 					// VPC_ID validation
 					testAccIfKeyPairsExists("jdcloud_key_pairs.keypairs_1", &keyName),
-			),
-		},
+				),
+			},
 		},
 	})
 }
@@ -48,7 +48,7 @@ func testAccIfKeyPairsExists(name string, id *string) resource.TestCheckFunc {
 			return fmt.Errorf("we can not find a resource namely:{%s} in terraform.State", name)
 		}
 		if infoStoredLocally.Primary.ID == "" {
-			return fmt.Errorf("operation failed, resource :{%s} is created but ID not set",name)
+			return fmt.Errorf("operation failed, resource :{%s} is created but ID not set", name)
 		}
 		idStoredLocally := infoStoredLocally.Primary.Attributes["key_name"]
 
@@ -66,13 +66,13 @@ func testAccIfKeyPairsExists(name string, id *string) resource.TestCheckFunc {
 		}
 
 		keysExists := false
-		for _,key := range resp.Result.Keypairs {
-			if idStoredLocally == key.KeyName{
+		for _, key := range resp.Result.Keypairs {
+			if idStoredLocally == key.KeyName {
 				keysExists = true
 				break
 			}
 		}
-		if keysExists==false{
+		if keysExists == false {
 			return fmt.Errorf("keys not been created remotely")
 		}
 
@@ -99,13 +99,13 @@ func testAccKeyPairsDestroy(name *string) resource.TestCheckFunc {
 			return err
 		}
 		keysExists := false
-		for _,key := range resp.Result.Keypairs {
-			if *name == key.KeyName{
+		for _, key := range resp.Result.Keypairs {
+			if *name == key.KeyName {
 				keysExists = true
 				break
 			}
 		}
-		if keysExists==true{
+		if keysExists == true {
 			return fmt.Errorf("keys still exists")
 		}
 		return nil

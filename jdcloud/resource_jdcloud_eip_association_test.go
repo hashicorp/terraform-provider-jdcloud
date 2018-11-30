@@ -9,11 +9,10 @@ import (
 	"testing"
 )
 
-
 const TestAccEIPAssociationConfig = `
 resource "jdcloud_eip_association" "eip-association-TEST-1"{
-	instance_id = "i-dbg1mij83f"
-	elastic_ip_id = "fip-5xnjiyxxus"
+	instance_id = "i-p3yh27xd3s"
+	elastic_ip_id = "fip-e3lfigpewx"
 }
 `
 
@@ -46,7 +45,7 @@ func testAccIfEIPAssociationExists(resourceName string) resource.TestCheckFunc {
 			return fmt.Errorf("we can not find a resouce namely:{%s} in terraform.State", resourceName)
 		}
 		if infoStoredLocally.Primary.ID == "" {
-			return fmt.Errorf("operation failed, resource:%s is created but ID not set",resourceName)
+			return fmt.Errorf("operation failed, resource:%s is created but ID not set", resourceName)
 		}
 		EIPId := infoStoredLocally.Primary.Attributes["elastic_ip_id"]
 		instanceId := infoStoredLocally.Primary.Attributes["instance_id"]

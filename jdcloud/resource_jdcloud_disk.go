@@ -32,7 +32,7 @@ func resourceJDCloudDisk() *schema.Resource {
 				Type:         schema.TypeString,
 				Required:     true,
 				ValidateFunc: validateStringNoEmpty,
-				ForceNew: 	  true,
+				ForceNew:     true,
 			},
 			"description": {
 				Type:     schema.TypeString,
@@ -71,13 +71,13 @@ func resourceJDCloudDisk() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ValidateFunc: validateStringInSlice([]string{"prepaid_by_duration", "postpaid_by_usage", "postpaid_by_duration"}, false),
-				ForceNew: 	  true,
+				ForceNew:     true,
 			},
 			"charge_unit": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ValidateFunc: validateStringInSlice([]string{"month", "year"}, false),
-				ForceNew: 	  true,
+				ForceNew:     true,
 			},
 			"disk_id": {
 				Type:     schema.TypeString,
@@ -124,8 +124,8 @@ func resourceJDCloudDiskCreate(d *schema.ResourceData, meta interface{}) error {
 	// This part is added since attribute "description"
 	// Can only be via DiskUpdate rather than "create"
 	if description, ok := d.GetOk("description"); ok {
-		d.Set("description",description.(string))
-		return resourceJDCloudDiskUpdate(d,meta)
+		d.Set("description", description.(string))
+		return resourceJDCloudDiskUpdate(d, meta)
 	}
 
 	return nil
@@ -135,10 +135,10 @@ func resourceJDCloudDiskRead(d *schema.ResourceData, meta interface{}) error {
 
 	config := meta.(*JDCloudConfig)
 	diskClient := client.NewDiskClient(config.Credential)
-	req := apis.NewDescribeDiskRequestWithAllParams(config.Region,d.Id())
-	resp ,err := diskClient.DescribeDisk(req)
+	req := apis.NewDescribeDiskRequestWithAllParams(config.Region, d.Id())
+	resp, err := diskClient.DescribeDisk(req)
 
-	if err!=nil{
+	if err != nil {
 		return err
 	}
 
@@ -147,31 +147,31 @@ func resourceJDCloudDiskRead(d *schema.ResourceData, meta interface{}) error {
 		return nil
 	}
 
-	if resp.Error.Code!=0{
-		return fmt.Errorf("[ERROR] failed in resourceJDCloudDiskRead code:%d message:%s",resp.Error.Code,resp.Error.Message)
+	if resp.Error.Code != 0 {
+		return fmt.Errorf("[ERROR] failed in resourceJDCloudDiskRead code:%d message:%s", resp.Error.Code, resp.Error.Message)
 	}
 
-	d.Set("name",resp.Result.Disk.Name)
-	d.Set("description",resp.Result.Disk.Description)
+	d.Set("name", resp.Result.Disk.Name)
+	d.Set("description", resp.Result.Disk.Description)
 	return nil
 }
 
 func resourceJDCloudDiskUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	//Only NAME and DESCRIPTION is allowed to modify
-	if d.HasChange("name") || d.HasChange("description"){
+	if d.HasChange("name") || d.HasChange("description") {
 
 		config := meta.(*JDCloudConfig)
 		diskClient := client.NewDiskClient(config.Credential)
 
-		req := apis.NewModifyDiskAttributeRequestWithAllParams(config.Region,d.Id(),GetStringAddr(d,"name"),GetStringAddr(d,"description"))
-		resp,err := diskClient.ModifyDiskAttribute(req)
+		req := apis.NewModifyDiskAttributeRequestWithAllParams(config.Region, d.Id(), GetStringAddr(d, "name"), GetStringAddr(d, "description"))
+		resp, err := diskClient.ModifyDiskAttribute(req)
 
-		if err != nil{
-			return fmt.Errorf("[ERROR] failed in resourceJDCloudDiskUpdate err:%s",err.Error())
+		if err != nil {
+			return fmt.Errorf("[ERROR] failed in resourceJDCloudDiskUpdate err:%s", err.Error())
 		}
-		if resp.Error.Code!=0{
-			return fmt.Errorf("[ERROR] failed in resourceJDCloudDiskUpdate code:%d message:%s",resp.Error.Code,resp.Error.Message)
+		if resp.Error.Code != 0 {
+			return fmt.Errorf("[ERROR] failed in resourceJDCloudDiskUpdate code:%d message:%s", resp.Error.Code, resp.Error.Message)
 		}
 	}
 	return nil
@@ -187,20 +187,20 @@ func resourceJDCloudDiskDelete(d *schema.ResourceData, meta interface{}) error {
 	req := apis.NewDeleteDiskRequest(config.Region, diskIDs)
 
 	// cloud disk may take some time to delete hence a retry loop is introduced
-	for retryCount:=0;retryCount<3;retryCount++{
+	for retryCount := 0; retryCount < 3; retryCount++ {
 
-		resp,err := diskClient.DeleteDisk(req)
+		resp, err := diskClient.DeleteDisk(req)
 
-		if err==nil && resp.Error.Code==0{
+		if err == nil && resp.Error.Code == 0 {
 			break
 		}
-		if (resp.Error.Message == "Cannot delete disk in status creating" ||
-			resp.Error.Message == "Can't delete no charged resource"){
-			time.Sleep(3*time.Second)
+		if resp.Error.Message == "Cannot delete disk in status creating" ||
+			resp.Error.Message == "Can't delete no charged resource" {
+			time.Sleep(3 * time.Second)
 			continue
 		}
-		if resp.Error.Code != 0 || err != nil{
-			return fmt.Errorf("[ERROR] failed in resourceJDCloudDiskUpdate code:%d message:%s error:",resp.Error.Code,resp.Error.Message,err.Error())
+		if resp.Error.Code != 0 || err != nil {
+			return fmt.Errorf("[ERROR] failed in resourceJDCloudDiskUpdate code:%d message:%s error:", resp.Error.Code, resp.Error.Message, err.Error())
 		}
 	}
 

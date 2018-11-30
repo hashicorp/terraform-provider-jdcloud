@@ -22,15 +22,15 @@ resource "jdcloud_route_table_rules" "rule-TEST-1"{
 }
 `
 
-func TestAccJDCloudRouteTableRules_basic(t *testing.T){
+func TestAccJDCloudRouteTableRules_basic(t *testing.T) {
 
 	// routeTableRuleId is the key to create,query process
 	// Currently declared but assigned values later
 	var routeTableId string
 
 	resource.Test(t, resource.TestCase{
-		PreCheck: func() { testAccPreCheck(t) },
-		Providers: testAccProviders,
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckRouteTableRuleDestroy(&routeTableId),
 		Steps: []resource.TestStep{
 			{
@@ -40,7 +40,6 @@ func TestAccJDCloudRouteTableRules_basic(t *testing.T){
 					// Here we gathered all verification in one function
 					// We did this since the info stored remotely cannot be easily get
 					testAccIfRouteTableRuleExists("jdcloud_route_table_rules.rule-TEST-1", &routeTableId),
-
 				),
 			},
 		},
@@ -48,17 +47,17 @@ func TestAccJDCloudRouteTableRules_basic(t *testing.T){
 
 }
 
-func testAccIfRouteTableRuleExists(ruleName string,routeTableId *string) resource.TestCheckFunc {
+func testAccIfRouteTableRuleExists(ruleName string, routeTableId *string) resource.TestCheckFunc {
 
 	return func(stateInfo *terraform.State) error {
 
 		//STEP-1 : Check if rule resource has been stored locally
-		ruleInfoStoredLocally,ok := stateInfo.RootModule().Resources[ruleName]
-		if ok==false {
-			return fmt.Errorf("RouteTableRule namely: %s has not been created",ruleName)
+		ruleInfoStoredLocally, ok := stateInfo.RootModule().Resources[ruleName]
+		if ok == false {
+			return fmt.Errorf("RouteTableRule namely: %s has not been created", ruleName)
 		}
-		if ruleInfoStoredLocally.Primary.ID==""{
-			return fmt.Errorf("RouteTableRules namely %s created but ID not set",ruleName)
+		if ruleInfoStoredLocally.Primary.ID == "" {
+			return fmt.Errorf("RouteTableRules namely %s created but ID not set", ruleName)
 		}
 
 		//STEP-2 : Check if rules has been created remotely
@@ -78,13 +77,12 @@ func testAccIfRouteTableRuleExists(ruleName string,routeTableId *string) resourc
 		//STEP-2-2 : Compare stored info on RouteTableRule locally and remotely
 		ruleListStoredRemotely := responseOnRouteTable.Result.RouteTable.RouteTableRules
 		ruleListStoredRemotelyWithoutDefault := ruleListStoredRemotely[1:]
-		ruleCount,_  := strconv.Atoi(ruleInfoStoredLocally.Primary.Attributes["route_table_rule_specs.#"])
-
+		ruleCount, _ := strconv.Atoi(ruleInfoStoredLocally.Primary.Attributes["route_table_rule_specs.#"])
 
 		// Compare rule count
-		if ruleCount!=len(ruleListStoredRemotelyWithoutDefault){
+		if ruleCount != len(ruleListStoredRemotelyWithoutDefault) {
 			return fmt.Errorf("expect to have %d rules remotely,actually get %d(Default case included)",
-									 ruleCount+1,len(ruleListStoredRemotelyWithoutDefault))
+				ruleCount+1, len(ruleListStoredRemotelyWithoutDefault))
 		}
 
 		// Compare remaining attributes
@@ -92,29 +90,27 @@ func testAccIfRouteTableRuleExists(ruleName string,routeTableId *string) resourc
 		for i := 0; i < ruleCount; i++ {
 			flag := false
 			attrAddress := "route_table_rule_specs." + strconv.Itoa(i) + ".address_prefix"
-			attrType   := "route_table_rule_specs." + strconv.Itoa(i) + ".next_hop_type"
-			attrId     := "route_table_rule_specs." + strconv.Itoa(i) + ".next_hop_id"
+			attrType := "route_table_rule_specs." + strconv.Itoa(i) + ".next_hop_type"
+			attrId := "route_table_rule_specs." + strconv.Itoa(i) + ".next_hop_id"
 			if ruleListStoredRemotelyWithoutDefault[i].AddressPrefix == attr.Attributes[attrAddress] {
 				flag = (ruleListStoredRemotelyWithoutDefault[i].NextHopId == attr.Attributes[attrId]) &&
-					   (ruleListStoredRemotelyWithoutDefault[i].NextHopType ==attr.Attributes[attrType] )
+					(ruleListStoredRemotelyWithoutDefault[i].NextHopType == attr.Attributes[attrType])
 			}
-			if flag==false{
+			if flag == false {
 				return fmt.Errorf("rule info stored locally and remotely does not match")
 			}
 		}
 
-		//*routeTableId = routeTableIdStoredLocally
 		return nil
 	}
 }
-
 
 func testAccCheckRouteTableRuleDestroy(routeTableId *string) resource.TestCheckFunc {
 
 	return func(stateInfo *terraform.State) error {
 
 		//  routeTableId is not supposed to be empty
-		if *routeTableId==""{
+		if *routeTableId == "" {
 			return fmt.Errorf("route Table Id appears to be empty")
 		}
 
@@ -125,7 +121,7 @@ func testAccCheckRouteTableRuleDestroy(routeTableId *string) resource.TestCheckF
 		requestOnRouteTable := apis.NewDescribeRouteTableRequest(routeTableRegion, *routeTableId)
 		responseOnRouteTable, err := routeTableClient.DescribeRouteTable(requestOnRouteTable)
 
-		if err!=nil{
+		if err != nil {
 			return err
 		}
 		if len(responseOnRouteTable.Result.RouteTable.RouteTableRules) > 1 {

@@ -19,22 +19,22 @@ func resourceJDCloudRouteTableAssociation() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 
 			"route_table_id": {
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
 			},
 
 			"subnet_id": {
-				Type: schema.TypeList,
-				Required:    true,
+				Type:     schema.TypeList,
+				Required: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
 			},
 
 			"description": {
-				Type:        schema.TypeString,
-				Optional:    true,
+				Type:     schema.TypeString,
+				Optional: true,
 			},
 		},
 	}
@@ -65,7 +65,6 @@ func resourceRouteTableAssociationCreate(d *schema.ResourceData, meta interface{
 	return nil
 }
 
-
 func resourceRouteTableAssociationRead(d *schema.ResourceData, meta interface{}) error {
 
 	config := meta.(*JDCloudConfig)
@@ -86,31 +85,7 @@ func resourceRouteTableAssociationRead(d *schema.ResourceData, meta interface{})
 	return nil
 }
 
-
 func resourceRouteTableAssociationUpdate(d *schema.ResourceData, meta interface{}) error {
-
-	//if d.HasChange("subnet_id") {
-	//
-	//	config := meta.(*JDCloudConfig)
-	//	associationClient := client.NewVpcClient(config.Credential)
-	//
-	//	length := d.Get("subnet_id.#").(int)
-	//	subnetIds := make([]string,0,length)
-	//	for i:=0;i<length;i++{
-	//		subnetIds = append(subnetIds,d.Get("subnet_id."+strconv.Itoa(i)).(string))
-	//	}
-	//
-	//	req := apis.NewAssociateRouteTableRequest(config.Region, d.Id(),subnetIds)
-	//	resp, err := associationClient.DescribeRouteTable(req)
-	//
-	//	if err != nil {
-	//		return fmt.Errorf("[ERROR] resourceRouteTableAssociationUpdate failed %s ", err.Error())
-	//	}
-	//
-	//	if resp.Error.Code != 0 {
-	//		return fmt.Errorf("[ERROR] resourceRouteTableAssociationUpdate failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
-	//	}
-	//}
 
 	origin, latest := d.GetChange("subnet_id")
 

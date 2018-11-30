@@ -53,11 +53,11 @@ func resourceJDCloudNetworkInterface() *schema.Resource {
 				Optional: true,
 			},
 			"security_groups": &schema.Schema{
-				Type:     schema.TypeList,
+				Type: schema.TypeList,
 				// Optional : Can be provided by user
 				// Computed : Can be provided by computed
-				Optional : true,
-				Computed : true,
+				Optional: true,
+				Computed: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
@@ -81,15 +81,15 @@ func resourceJDCloudNetworkInterfaceCreate(d *schema.ResourceData, meta interfac
 	req.NetworkInterfaceName = &networkInterfaceName
 
 	if _, ok := d.GetOk("az"); ok {
-		req.Az = GetStringAddr(d,"az")
+		req.Az = GetStringAddr(d, "az")
 	}
 
 	if _, ok := d.GetOk("description"); ok {
-		req.Description = GetStringAddr(d,"description")
+		req.Description = GetStringAddr(d, "description")
 	}
 
 	if _, ok := d.GetOk("sanity_check"); ok {
-		req.SanityCheck = GetIntAddr(d,"sanity_check")
+		req.SanityCheck = GetIntAddr(d, "sanity_check")
 	}
 
 	if v, ok := d.GetOk("secondary_ip_addresses"); ok {
@@ -128,7 +128,7 @@ func resourceJDCloudNetworkInterfaceCreate(d *schema.ResourceData, meta interfac
 
 	// Default sgID is set and retrieved via "READ"
 	if setDefaultSecurityGroup {
-		resourceJDCloudNetworkInterfaceRead(d,meta)
+		resourceJDCloudNetworkInterfaceRead(d, meta)
 	}
 
 	return nil
@@ -139,43 +139,43 @@ func resourceJDCloudNetworkInterfaceRead(d *schema.ResourceData, meta interface{
 	config := meta.(*JDCloudConfig)
 	networkInterfaceClient := client.NewVpcClient(config.Credential)
 
-	req := apis.NewDescribeNetworkInterfaceRequest(config.Region,d.Id())
+	req := apis.NewDescribeNetworkInterfaceRequest(config.Region, d.Id())
 	resp, err := networkInterfaceClient.DescribeNetworkInterface(req)
 
 	if err != nil {
 		return err
 	}
 
-	if resp.Error.Code != 0{
-		return fmt.Errorf("[ERROR] resourceJDCloudNetworkInterfaceRead failed error code:%d, message:%s",resp.Error.Code,resp.Error.Message)
+	if resp.Error.Code != 0 {
+		return fmt.Errorf("[ERROR] resourceJDCloudNetworkInterfaceRead failed error code:%d, message:%s", resp.Error.Code, resp.Error.Message)
 	}
 
-	if resp.Result.NetworkInterface.Az != ""{
-		d.Set("az",resp.Result.NetworkInterface.Az)
+	if resp.Result.NetworkInterface.Az != "" {
+		d.Set("az", resp.Result.NetworkInterface.Az)
 	}
 
-	if resp.Result.NetworkInterface.Description != ""{
-		d.Set("description",resp.Result.NetworkInterface.Description)
+	if resp.Result.NetworkInterface.Description != "" {
+		d.Set("description", resp.Result.NetworkInterface.Description)
 	}
 
-	if resp.Result.NetworkInterface.NetworkInterfaceName != ""{
-		d.Set("network_interface_name",resp.Result.NetworkInterface.NetworkInterfaceName)
+	if resp.Result.NetworkInterface.NetworkInterfaceName != "" {
+		d.Set("network_interface_name", resp.Result.NetworkInterface.NetworkInterfaceName)
 	}
 
-	if resp.Result.NetworkInterface.SanityCheck != 0{
-		d.Set("sanity_check",resp.Result.NetworkInterface.SanityCheck)
+	if resp.Result.NetworkInterface.SanityCheck != 0 {
+		d.Set("sanity_check", resp.Result.NetworkInterface.SanityCheck)
 	}
 
-	if resp.Result.NetworkInterface.PrimaryIp.ElasticIpAddress != ""{
-		d.Set("primary_ip_address",resp.Result.NetworkInterface.PrimaryIp.ElasticIpAddress)
+	if resp.Result.NetworkInterface.PrimaryIp.ElasticIpAddress != "" {
+		d.Set("primary_ip_address", resp.Result.NetworkInterface.PrimaryIp.ElasticIpAddress)
 	}
 
-	if len(resp.Result.NetworkInterface.SecondaryIps) != 0{
-		d.Set("secondary_ip_addresses",resp.Result.NetworkInterface.SecondaryIps)
+	if len(resp.Result.NetworkInterface.SecondaryIps) != 0 {
+		d.Set("secondary_ip_addresses", resp.Result.NetworkInterface.SecondaryIps)
 	}
 
 	if len(resp.Result.NetworkInterface.NetworkSecurityGroupIds) != 0 {
-		d.Set("security_groups",resp.Result.NetworkInterface.NetworkSecurityGroupIds)
+		d.Set("security_groups", resp.Result.NetworkInterface.NetworkSecurityGroupIds)
 	}
 
 	return nil
@@ -186,7 +186,7 @@ func resourceJDCloudNetworkInterfaceUpdate(d *schema.ResourceData, meta interfac
 	vpcClient := client.NewVpcClient(config.Credential)
 
 	sg := InterfaceToStringArray(d.Get("security_groups").([]interface{}))
-	req := apis.NewModifyNetworkInterfaceRequestWithAllParams(config.Region, d.Id(),GetStringAddr(d,"network_interface_name"), GetStringAddr(d,"description"),sg)
+	req := apis.NewModifyNetworkInterfaceRequestWithAllParams(config.Region, d.Id(), GetStringAddr(d, "network_interface_name"), GetStringAddr(d, "description"), sg)
 	resp, err := vpcClient.ModifyNetworkInterface(req)
 
 	if err != nil {

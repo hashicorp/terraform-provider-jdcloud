@@ -7,7 +7,6 @@ import (
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/client"
 )
 
-
 func resourceJDCloudVpc() *schema.Resource {
 
 	return &schema.Resource{
@@ -20,19 +19,19 @@ func resourceJDCloudVpc() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 
 			"vpc_name": {
-				Type:        schema.TypeString,
-				Required:    true,
+				Type:     schema.TypeString,
+				Required: true,
 			},
 
 			"cidr_block": {
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
 			},
 
 			"description": {
-				Type:        schema.TypeString,
-				Optional:    true,
+				Type:     schema.TypeString,
+				Optional: true,
 			},
 		},
 	}
@@ -44,16 +43,15 @@ func resourceVpcCreate(d *schema.ResourceData, m interface{}) error {
 	regionID := config.Region
 	vpcName := d.Get("vpc_name").(string)
 	req := apis.NewCreateVpcRequest(regionID, vpcName)
-	if _,ok := d.GetOk("cidr_block");ok{
+	if _, ok := d.GetOk("cidr_block"); ok {
 		req.AddressPrefix = GetStringAddr(d, "cidr_block")
 	}
-	if _,ok := d.GetOk("description");ok{
+	if _, ok := d.GetOk("description"); ok {
 		req.Description = GetStringAddr(d, "description")
 	}
 
 	vpcClient := client.NewVpcClient(config.Credential)
 	resp, err := vpcClient.CreateVpc(req)
-
 
 	if err != nil {
 		return fmt.Errorf("[ERROR] resourceVpcCreate failed %s ", err.Error())
@@ -66,7 +64,6 @@ func resourceVpcCreate(d *schema.ResourceData, m interface{}) error {
 	d.SetId(resp.Result.VpcId)
 	return nil
 }
-
 
 func resourceVpcRead(d *schema.ResourceData, m interface{}) error {
 
@@ -94,7 +91,6 @@ func resourceVpcRead(d *schema.ResourceData, m interface{}) error {
 	d.Set("description", resp.Result.Vpc.Description)
 	return nil
 }
-
 
 func resourceVpcUpdate(d *schema.ResourceData, m interface{}) error {
 

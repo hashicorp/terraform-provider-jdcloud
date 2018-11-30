@@ -8,10 +8,9 @@ import (
 var testAccProvider *schema.Provider
 var testAccProviders map[string]terraform.ResourceProvider
 
-
 func init() {
 	testAccProvider = Provider()
 	testAccProviders = map[string]terraform.ResourceProvider{
-		"jdcloud":testAccProvider,
+		"jdcloud": testAccProvider,
 	}
 }

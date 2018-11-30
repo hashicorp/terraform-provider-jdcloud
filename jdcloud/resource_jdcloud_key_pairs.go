@@ -90,17 +90,17 @@ func resourceJDCloudKeyPairsRead(d *schema.ResourceData, meta interface{}) error
 	vmClient := client.NewVmClient(config.Credential)
 	resp, err := vmClient.DescribeKeypairs(req)
 
-	if err!=nil{
+	if err != nil {
 		return nil
 	}
 
-	for _,key := range resp.Result.Keypairs{
+	for _, key := range resp.Result.Keypairs {
 		if key.KeyName == keyName {
 			return nil
 		}
 	}
 
-	if resp.Error.Code!=0 {
+	if resp.Error.Code != 0 {
 		return fmt.Errorf("[ERROR] read key pairs failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
 	d.SetId("")

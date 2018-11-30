@@ -7,7 +7,6 @@ import (
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vm/client"
 	vpcApis "github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/apis"
 	vpc "github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/client"
-	"log"
 	"regexp"
 	"time"
 )
@@ -17,7 +16,7 @@ import (
 func resourceJDCloudNetworkInterfaceAttach() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceJDCloudNetworkInterfaceAttachCreate,
-		Read:   resourceJDCloudNetworkInterfaceAttachRead,
+		Read: resourceJDCloudNetworkInterfaceAttachRead,
 		Delete: resourceJDCloudNetworkInterfaceAttachDelete,
 
 		Schema: map[string]*schema.Schema{
@@ -42,6 +41,10 @@ func resourceJDCloudNetworkInterfaceAttach() *schema.Resource {
 	}
 }
 
+/*
+	Its been proved that the id of both will be set
+	Immediately after the request has been sent
+*/
 func resourceJDCloudNetworkInterfaceAttachCreate(d *schema.ResourceData, meta interface{}) error {
 
 	config := meta.(*JDCloudConfig)
@@ -56,9 +59,9 @@ func resourceJDCloudNetworkInterfaceAttachCreate(d *schema.ResourceData, meta in
 		req.AutoDelete = &autoDelete
 	}
 
-	resp,err := vmClient.AttachNetworkInterface(req)
+	resp, err := vmClient.AttachNetworkInterface(req)
 
-	if err!=nil {
+	if err != nil {
 		return fmt.Errorf("[ERROR] resourceJDCloudNetworkInterfaceAttachCreate failed %s ", err.Error())
 	}
 
@@ -69,9 +72,7 @@ func resourceJDCloudNetworkInterfaceAttachCreate(d *schema.ResourceData, meta in
 	return nil
 }
 
-
 func resourceJDCloudNetworkInterfaceAttachRead(d *schema.ResourceData, meta interface{}) error {
-
 	return nil
 }
 
@@ -83,24 +84,31 @@ func resourceJDCloudNetworkInterfaceAttachDelete(d *schema.ResourceData, meta in
 	vmClient := client.NewVmClient(config.Credential)
 	rq := apis.NewDetachNetworkInterfaceRequest(config.Region, instanceID, networkInterfaceId)
 
-	for retryCount:=0;retryCount<3;retryCount++ {
+	vpcClient := vpc.NewVpcClient(config.Credential)
+	reqQuery := vpcApis.NewDescribeNetworkInterfaceRequest(config.Region, networkInterfaceId)
+
+	for retryCount := 0; retryCount < 3; retryCount++ {
 
 		resp, err := vmClient.DetachNetworkInterface(rq)
 		errorMessage := fmt.Sprintf("%s", err)
 		previousTaskNotComplete, _ := regexp.MatchString("Conflict", errorMessage)
 		previousTaskNotComplete = resp.Error.Code == 400 || previousTaskNotComplete
 
-		if err==nil && resp.Error.Code==0{
+		resp2, _ := vpcClient.DescribeNetworkInterface(reqQuery)
+		instanceIdQueried := resp2.Result.NetworkInterface.InstanceId
+		CurrentTaskNotComplete := instanceIdQueried == instanceID
+
+		if CurrentTaskNotComplete || previousTaskNotComplete {
+			time.Sleep(5 * time.Second)
+			continue
+		}
+
+		if err == nil && resp.Error.Code == 0 {
 			d.SetId("")
 			return nil
 		}
 
-		if previousTaskNotComplete {
-			time.Sleep(5*time.Second)
-			continue
-		}
-
-		if err!=nil {
+		if err != nil {
 			return fmt.Errorf("[ERROR] resourceJDCloudNetworkInterfaceAttachDelete failed %s ", err.Error())
 		}
 
@@ -110,25 +118,4 @@ func resourceJDCloudNetworkInterfaceAttachDelete(d *schema.ResourceData, meta in
 	}
 
 	return fmt.Errorf("[ERROR] resourceJDCloudNetworkInterfaceAttachDelete")
-}
-
-func retryQueryingDetails(d *schema.ResourceData, meta interface{}) error {
-
-	config := meta.(*JDCloudConfig)
-	networkInterfaceId := d.Get("network_interface_id").(string)
-	attachmentClient := vpc.NewVpcClient(config.Credential)
-	req := vpcApis.NewDescribeNetworkInterfaceRequest(config.Region,networkInterfaceId)
-
-	for retryCount:=0; retryCount<3;retryCount++ {
-		resp, err := attachmentClient.DescribeNetworkInterface(req)
-		log.Printf("pos-I %s",resp.Result.NetworkInterface.InstanceId)
-		if err!=nil || resp.Error.Code != 0 {
-			return fmt.Errorf("[ERROR] retry querying failed %s ", err.Error())
-		}
-		if resp.Result.NetworkInterface.InstanceId==""{
-			return nil
-		}
-		time.Sleep(time.Second*5)
-	}
-	return fmt.Errorf("[ERROR] retry querying failed")
 }
