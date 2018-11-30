@@ -31,3 +31,11 @@ License
 ---------------------
 
 Apache License Version 2
+
+
+## Finish Resource:
+
+- [ ] Instance
+- [x] keypairs
+- [ ] Disk
+- [ ] EIP
