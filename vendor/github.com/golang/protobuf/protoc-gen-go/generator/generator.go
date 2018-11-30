@@ -973,39 +973,6 @@ func (g *Generator) ObjectNamed(typeName string) Object {
 	if !ok {
 		g.Fail("can't find object with type", typeName)
 	}
-
-	// If the file of this object isn't a direct dependency of the current file,
-	// or in the current file, then this object has been publicly imported into
-	// a dependency of the current file.
-	// We should return the ImportedDescriptor object for it instead.
-	direct := *o.File().Name == *g.file.Name
-	if !direct {
-		for _, dep := range g.file.Dependency {
-			if *g.fileByName(dep).Name == *o.File().Name {
-				direct = true
-				break
-			}
-		}
-	}
-	if !direct {
-		found := false
-	Loop:
-		for _, dep := range g.file.Dependency {
-			df := g.fileByName(*g.fileByName(dep).Name)
-			for _, td := range df.imp {
-				if td.o == o {
-					// Found it!
-					o = td
-					found = true
-					break Loop
-				}
-			}
-		}
-		if !found {
-			log.Printf("protoc-gen-go: WARNING: failed finding publicly imported dependency for %v, used in %v", typeName, *g.file.Name)
-		}
-	}
-
 	return o
 }
 
@@ -1295,7 +1262,7 @@ func (g *Generator) makeComments(path string) (string, bool) {
 	w := new(bytes.Buffer)
 	nl := ""
 	for _, line := range strings.Split(strings.TrimSuffix(loc.GetLeadingComments(), "\n"), "\n") {
-		fmt.Fprintf(w, "%s// %s", nl, strings.TrimPrefix(line, " "))
+		fmt.Fprintf(w, "%s//%s", nl, line)
 		nl = "\n"
 	}
 	return w.String(), true
@@ -1536,6 +1503,18 @@ func (g *Generator) goTag(message *Descriptor, field *descriptor.FieldDescriptor
 				g.Fail("unknown enum type", CamelCaseSlice(obj.TypeName()))
 			}
 			defaultValue = enum.integerValueAsString(defaultValue)
+		case descriptor.FieldDescriptorProto_TYPE_FLOAT:
+			if def := defaultValue; def != "inf" && def != "-inf" && def != "nan" {
+				if f, err := strconv.ParseFloat(defaultValue, 32); err == nil {
+					defaultValue = fmt.Sprint(float32(f))
+				}
+			}
+		case descriptor.FieldDescriptorProto_TYPE_DOUBLE:
+			if def := defaultValue; def != "inf" && def != "-inf" && def != "nan" {
+				if f, err := strconv.ParseFloat(defaultValue, 64); err == nil {
+					defaultValue = fmt.Sprint(f)
+				}
+			}
 		}
 		defaultValue = ",def=" + defaultValue
 	}
@@ -1677,11 +1656,16 @@ func (g *Generator) GoType(message *Descriptor, field *descriptor.FieldDescripto
 }
 
 func (g *Generator) RecordTypeUse(t string) {
-	if _, ok := g.typeNameToObject[t]; ok {
-		// Call ObjectNamed to get the true object to record the use.
-		obj := g.ObjectNamed(t)
-		g.usedPackages[obj.GoImportPath()] = true
+	if _, ok := g.typeNameToObject[t]; !ok {
+		return
 	}
+	importPath := g.ObjectNamed(t).GoImportPath()
+	if importPath == g.outputImportPath {
+		// Don't record use of objects in our package.
+		return
+	}
+	g.AddImport(importPath)
+	g.usedPackages[importPath] = true
 }
 
 // Method names that may be generated.  Fields with these names get an
@@ -1781,7 +1765,7 @@ func (g *Generator) defaultConstantName(goMessageType, protoFieldName string) st
 // oneofField - field containing list of subfields:
 // - oneofSubField - a field within the oneof
 
-// msgCtx contais the context for the generator functions.
+// msgCtx contains the context for the generator functions.
 type msgCtx struct {
 	goName  string      // Go struct name of the message, e.g. MessageName
 	message *Descriptor // The descriptor for the message
@@ -1885,6 +1869,7 @@ type oneofSubField struct {
 	fieldNumber   int                                  // Actual field number, as defined in proto, e.g. 12
 	getterDef     string                               // Default for getters, e.g. "nil", `""` or "Default_MessageType_FieldName"
 	protoDef      string                               // Default value as defined in the proto file, e.g "yoshi" or "5"
+	deprecated    string                               // Deprecation comment, if any.
 }
 
 // wireTypeName returns a textual wire type, needed for oneof sub fields in generated code.
@@ -2154,6 +2139,9 @@ func (f *oneofField) getter(g *Generator, mc *msgCtx) {
 	g.P()
 	// Getters for each oneof
 	for _, sf := range f.subFields {
+		if sf.deprecated != "" {
+			g.P(sf.deprecated)
+		}
 		g.P("func (m *", mc.goName, ") ", Annotate(mc.message.file, sf.fullPath, sf.getterName), "() "+sf.goType+" {")
 		g.P("if x, ok := m.", f.getterName, "().(*", sf.oneofTypeName, "); ok {")
 		g.P("return x.", sf.goName)
@@ -2231,6 +2219,14 @@ func (g *Generator) generateDefaultConstants(mc *msgCtx, topLevelFields []topLev
 				def = "float32(" + def + ")"
 			}
 			kind = "var "
+		case df.getProtoType() == descriptor.FieldDescriptorProto_TYPE_FLOAT:
+			if f, err := strconv.ParseFloat(def, 32); err == nil {
+				def = fmt.Sprint(float32(f))
+			}
+		case df.getProtoType() == descriptor.FieldDescriptorProto_TYPE_DOUBLE:
+			if f, err := strconv.ParseFloat(def, 64); err == nil {
+				def = fmt.Sprint(f)
+			}
 		case df.getProtoType() == descriptor.FieldDescriptorProto_TYPE_ENUM:
 			// Must be an enum.  Need to construct the prefixed name.
 			obj := g.ObjectNamed(df.getProtoTypeName())
@@ -2412,17 +2408,6 @@ func (g *Generator) generateCommonMethods(mc *msgCtx) {
 
 	// Extension support methods
 	if len(mc.message.ExtensionRange) > 0 {
-		// message_set_wire_format only makes sense when extensions are defined.
-		if opts := mc.message.Options; opts != nil && opts.GetMessageSetWireFormat() {
-			g.P()
-			g.P("func (m *", mc.goName, ") MarshalJSON() ([]byte, error) {")
-			g.P("return ", g.Pkg["proto"], ".MarshalMessageSetJSON(&m.XXX_InternalExtensions)")
-			g.P("}")
-			g.P("func (m *", mc.goName, ") UnmarshalJSON(buf []byte) error {")
-			g.P("return ", g.Pkg["proto"], ".UnmarshalMessageSetJSON(buf, &m.XXX_InternalExtensions)")
-			g.P("}")
-		}
-
 		g.P()
 		g.P("var extRange_", mc.goName, " = []", g.Pkg["proto"], ".ExtensionRange{")
 		for _, r := range mc.message.ExtensionRange {
@@ -2583,6 +2568,11 @@ func (g *Generator) generateMessage(message *Descriptor) {
 			}
 		}
 
+		fieldDeprecated := ""
+		if field.GetOptions().GetDeprecated() {
+			fieldDeprecated = deprecationComment
+		}
+
 		dvalue := g.getterDefault(field, goTypeName)
 		if oneof {
 			tname := goTypeName + "_" + fieldName
@@ -2626,15 +2616,11 @@ func (g *Generator) generateMessage(message *Descriptor) {
 				getterDef:     dvalue,
 				protoDef:      field.GetDefaultValue(),
 				oneofTypeName: tname,
+				deprecated:    fieldDeprecated,
 			}
 			oneofField.subFields = append(oneofField.subFields, &sf)
 			g.RecordTypeUse(field.GetTypeName())
 			continue
-		}
-
-		fieldDeprecated := ""
-		if field.GetOptions().GetDeprecated() {
-			fieldDeprecated = deprecationComment
 		}
 
 		fieldFullPath := fmt.Sprintf("%s,%d,%d", message.path, messageFieldPath, i)
@@ -2682,26 +2668,23 @@ func (g *Generator) generateMessage(message *Descriptor) {
 	g.generateOneofFuncs(mc, topLevelFields)
 	g.P()
 
-	if !message.group {
-
-		var oneofTypes []string
-		for _, f := range topLevelFields {
-			if of, ok := f.(*oneofField); ok {
-				for _, osf := range of.subFields {
-					oneofTypes = append(oneofTypes, osf.oneofTypeName)
-				}
+	var oneofTypes []string
+	for _, f := range topLevelFields {
+		if of, ok := f.(*oneofField); ok {
+			for _, osf := range of.subFields {
+				oneofTypes = append(oneofTypes, osf.oneofTypeName)
 			}
 		}
-
-		opts := message.Options
-		ms := &messageSymbol{
-			sym:           goTypeName,
-			hasExtensions: len(message.ExtensionRange) > 0,
-			isMessageSet:  opts != nil && opts.GetMessageSetWireFormat(),
-			oneofTypes:    oneofTypes,
-		}
-		g.file.addExport(message, ms)
 	}
+
+	opts := message.Options
+	ms := &messageSymbol{
+		sym:           goTypeName,
+		hasExtensions: len(message.ExtensionRange) > 0,
+		isMessageSet:  opts != nil && opts.GetMessageSetWireFormat(),
+		oneofTypes:    oneofTypes,
+	}
+	g.file.addExport(message, ms)
 
 	for _, ext := range message.ext {
 		g.generateExtension(ext)
@@ -2830,10 +2813,8 @@ func (g *Generator) generateExtension(ext *ExtensionDescriptor) {
 	// In addition, the situation for when to apply this special case is implemented
 	// differently in other languages:
 	// https://github.com/google/protobuf/blob/aff10976/src/google/protobuf/text_format.cc#L1560
-	mset := false
 	if extDesc.GetOptions().GetMessageSetWireFormat() && typeName[len(typeName)-1] == "message_set_extension" {
 		typeName = typeName[:len(typeName)-1]
-		mset = true
 	}
 
 	// For text formatting, the package must be exactly what the .proto file declares,
@@ -2855,10 +2836,6 @@ func (g *Generator) generateExtension(ext *ExtensionDescriptor) {
 	g.P()
 
 	g.addInitf("%s.RegisterExtension(%s)", g.Pkg["proto"], ext.DescName())
-	if mset {
-		// Generate a bit more code to register with message_set.go.
-		g.addInitf("%s.RegisterMessageSetType((%s)(nil), %d, %q)", g.Pkg["proto"], fieldType, *field.Number, extName)
-	}
 
 	g.file.addExport(ext, constOrVarSymbol{ccTypeName, "var", ""})
 }
