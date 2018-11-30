@@ -1,11 +1,10 @@
 package jdcloud
 
 import (
-	"errors"
+	"fmt"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vm/apis"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vm/client"
-	"log"
 )
 
 func resourceJDCloudAssociateElasticIp() *schema.Resource {
@@ -38,19 +37,14 @@ func resourceAssociateElasticIpCreate(d *schema.ResourceData, meta interface{}) 
 	elasticIpId := d.Get("elastic_ip_id").(string)
 
 	vmClient := client.NewVmClient(config.Credential)
-
-	//构造请求
 	rq := apis.NewAssociateElasticIpRequest(config.Region, instanceID, elasticIpId)
-
-	//发送请求
 	resp, err := vmClient.AssociateElasticIp(rq)
 
 	if err != nil {
-		log.Printf("[DEBUG] resourceAssociateElasticIpCreate failed %s ", err.Error())
-		return err
-	} else if resp.Error.Code != 0 {
-		log.Printf("[DEBUG] resourceAssociateElasticIpCreate  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
-		return errors.New(resp.Error.Message)
+		return fmt.Errorf("[ERROR] resourceAssociateElasticIpCreate failed %s ", err.Error())
+	}
+	if resp.Error.Code != 0 {
+		return fmt.Errorf("[ERROR] resourceAssociateElasticIpCreate code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
 
 	d.SetId(resp.RequestID)
@@ -58,6 +52,21 @@ func resourceAssociateElasticIpCreate(d *schema.ResourceData, meta interface{}) 
 	return nil
 }
 func resourceAssociateElasticIpRead(d *schema.ResourceData, meta interface{}) error {
+
+	config := meta.(*JDCloudConfig)
+	instanceID := d.Get("instance_id").(string)
+	elasticIpId := d.Get("elastic_ip_id").(string)
+
+	vmClient := client.NewVmClient(config.Credential)
+	req := apis.NewDescribeInstanceRequest(config.Region, instanceID)
+	resp, err := vmClient.DescribeInstance(req)
+
+	if err != nil {
+		return fmt.Errorf("[ERROR] resourceAssociateElasticIpRead failed %s ", err.Error())
+	}
+	if resp.Result.Instance.ElasticIpId != elasticIpId {
+		d.SetId("")
+	}
 
 	return nil
 }
@@ -67,27 +76,17 @@ func resourceAssociateElasticIpDelete(d *schema.ResourceData, meta interface{}) 
 	config := meta.(*JDCloudConfig)
 	instanceID := d.Get("instance_id").(string)
 	elasticIpId := d.Get("elastic_ip_id").(string)
-
-	vmClient := client.NewVmClient(config.Credential)
-
-	//构造请求
 	rq := apis.NewDisassociateElasticIpRequest(config.Region, instanceID, elasticIpId)
 
-	//发送请求
+	vmClient := client.NewVmClient(config.Credential)
 	resp, err := vmClient.DisassociateElasticIp(rq)
 
 	if err != nil {
-
-		log.Printf("[DEBUG] resourceAssociateElasticIpDelete failed %s ", err.Error())
-		return err
+		return fmt.Errorf("[DEBUG] resourceAssociateElasticIpDelete failed %s ", err.Error())
 	}
-
 	if resp.Error.Code != 0 {
-		log.Printf("[DEBUG] resourceAssociateElasticIpDelete  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
-		return errors.New(resp.Error.Message)
+		return fmt.Errorf("[DEBUG] resourceAssociateElasticIpDelete  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
-
-	//TODO 查询确认卸载
 
 	return nil
 }

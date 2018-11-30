@@ -21,11 +21,11 @@
 package balancer
 
 import (
+	"context"
 	"errors"
 	"net"
 	"strings"
 
-	"golang.org/x/net/context"
 	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
@@ -94,6 +94,9 @@ type NewSubConnOptions struct {
 	// SubConn. If it's nil, the original creds from grpc DialOptions will be
 	// used.
 	CredsBundle credentials.Bundle
+	// HealthCheckEnabled indicates whether health check service should be
+	// enabled on this SubConn
+	HealthCheckEnabled bool
 }
 
 // ClientConn represents a gRPC ClientConn.
@@ -155,6 +158,9 @@ type PickOptions struct {
 	// FullMethodName is the method name that NewClientStream() is called
 	// with. The canonical format is /service/Method.
 	FullMethodName string
+	// Header contains the metadata from the RPC's client header.  The metadata
+	// should not be modified; make a copy first if needed.
+	Header metadata.MD
 }
 
 // DoneInfo contains additional information for done.

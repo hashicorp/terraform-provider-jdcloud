@@ -19,39 +19,22 @@ func resourceJDCloudRouteTable() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 
 			"route_table_name": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "Name you route table",
+				Type:     schema.TypeString,
+				Required: true,
 			},
-
 			"vpc_id": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "Vpc name this route table belong to",
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
 			},
-
 			"description": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "describe this route table",
+				Type:     schema.TypeString,
+				Optional: true,
 			},
 		},
 	}
 }
 
-//---------------------------------------------------- Helper Function
-func deleteRoute(d *schema.ResourceData, m interface{}) (*apis.DeleteRouteTableResponse, error) {
-
-	config := m.(*JDCloudConfig)
-	routeClient := client.NewVpcClient(config.Credential)
-
-	req := apis.NewDeleteRouteTableRequest(config.Region, d.Id())
-	resp, err := routeClient.DeleteRouteTable(req)
-
-	return resp, err
-}
-
-//---------------------------------------------------- Key Function
 func resourceRouteTableCreate(d *schema.ResourceData, m interface{}) error {
 
 	config := m.(*JDCloudConfig)
@@ -59,35 +42,93 @@ func resourceRouteTableCreate(d *schema.ResourceData, m interface{}) error {
 
 	regionId := config.Region
 	vpcId := d.Get("vpc_id").(string)
-	table_name := d.Get("route_table_name").(string)
+	tableName := d.Get("route_table_name").(string)
 	description := d.Get("description").(string)
 
-	req := apis.NewCreateRouteTableRequestWithAllParams(regionId, vpcId, table_name, &description)
+	req := apis.NewCreateRouteTableRequestWithAllParams(regionId, vpcId, tableName, &description)
 	resp, err := routeClient.CreateRouteTable(req)
 
 	if err != nil {
-		return err
+		return fmt.Errorf("[ERROR] resourceRouteTableCreate failed %s ", err.Error())
 	}
+
 	if resp.Error.Code != 0 {
-		return fmt.Errorf("Can not create route table: %s", resp.Error)
+		return fmt.Errorf("[ERROR] resourceRouteTableCreate failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
 
 	d.SetId(resp.Result.RouteTableId)
 	return nil
 }
 
-func resourceRouteTableRead(d *schema.ResourceData, m interface{}) error {
+func resourceRouteTableRead(d *schema.ResourceData, meta interface{}) error {
+
+	config := meta.(*JDCloudConfig)
+	routeClient := client.NewVpcClient(config.Credential)
+
+	req := apis.NewDescribeRouteTableRequest(config.Region, d.Id())
+	resp, err := routeClient.DescribeRouteTable(req)
+
+	if err != nil {
+		return fmt.Errorf("[ERROR] resourceRouteTableRead failed %s ", err.Error())
+	}
+
+	if resp.Error.Code == 404 {
+		d.SetId("")
+		return nil
+	}
+
+	if resp.Error.Code != 0 {
+		return fmt.Errorf("[ERROR] resourceRouteTableRead failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
+	}
+
+	d.Set("route_table_name", resp.Result.RouteTable.RouteTableName)
+	d.Set("description", resp.Result.RouteTable.Description)
+	d.Set("vpc_id", resp.Result.RouteTable.VpcId)
+
 	return nil
 }
 
-func resourceRouteTableUpdate(d *schema.ResourceData, m interface{}) error {
-	return resourceRouteTableRead(d, m)
+func resourceRouteTableUpdate(d *schema.ResourceData, meta interface{}) error {
+
+	config := meta.(*JDCloudConfig)
+	routeClient := client.NewVpcClient(config.Credential)
+
+	if d.HasChange("route_table_name") || d.HasChange("description") {
+		req := apis.NewModifyRouteTableRequestWithAllParams(
+			config.Region,
+			d.Id(),
+			GetStringAddr(d, "route_table_name"),
+			GetStringAddr(d, "description"),
+		)
+		resp, err := routeClient.ModifyRouteTable(req)
+		if err != nil {
+			return fmt.Errorf("[ERROR] resourceRouteTableUpdate failed %s ", err.Error())
+		}
+
+		if resp.Error.Code != 0 {
+			return fmt.Errorf("[ERROR] resourceRouteTableUpdate failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
+		}
+	}
+
+	return nil
 }
 
-func resourceRouteTableDelete(d *schema.ResourceData, m interface{}) error {
-	if _, err := deleteRoute(d, m); err != nil {
-		return fmt.Errorf("Cannot delete this route table: %s", err)
+func resourceRouteTableDelete(d *schema.ResourceData, meta interface{}) error {
+
+	config := meta.(*JDCloudConfig)
+	routeClient := client.NewVpcClient(config.Credential)
+
+	req := apis.NewDeleteRouteTableRequest(config.Region, d.Id())
+	resp, err := routeClient.DeleteRouteTable(req)
+
+	if err != nil {
+		return fmt.Errorf("[ERROR] resourceRouteTableDelete failed %s ", err.Error())
 	}
+
+	if resp.Error.Code != 0 {
+		return fmt.Errorf("[ERROR] resourceRouteTableDelete failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
+	}
+
 	d.SetId("")
 	return nil
 }

@@ -2,12 +2,12 @@ package jdcloud
 
 import (
 	"errors"
+	"fmt"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vm/apis"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vm/client"
 	"io/ioutil"
 	"os"
-
 	commonModels "github.com/jdcloud-api/jdcloud-sdk-go/services/common/models"
 	"log"
 )
@@ -61,14 +61,11 @@ func resourceJDCloudKeyPairsCreate(d *schema.ResourceData, meta interface{}) err
 		resp, err := vmClient.ImportKeypair(rq)
 
 		if err != nil {
-
-			log.Printf("[DEBUG] import key pairs failed %s ", err.Error())
-			return err
+			return fmt.Errorf("[ERROR] import key pairs failed %s ", err.Error())
 		}
 
 		if resp.Error.Code != 0 {
-			log.Printf("[DEBUG] import key pairs failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
-			return errors.New(resp.Error.Message)
+			return fmt.Errorf("[ERROR] import key pairs failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 		}
 
 		d.SetId(resp.RequestID)
@@ -79,14 +76,11 @@ func resourceJDCloudKeyPairsCreate(d *schema.ResourceData, meta interface{}) err
 		resp, err := vmClient.CreateKeypair(rq)
 
 		if err != nil {
-
-			log.Printf("[DEBUG] create key pairs failed %s ", err.Error())
-			return err
+			return fmt.Errorf("[DEBUG] create key pairs failed %s ", err.Error())
 		}
 
 		if resp.Error.Code != 0 {
-			log.Printf("[DEBUG] create key pairs failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
-			return errors.New(resp.Error.Message)
+			return fmt.Errorf("[DEBUG] create key pairs failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 		}
 
 		d.SetId(resp.Result.KeyName)
@@ -106,7 +100,6 @@ func resourceJDCloudKeyPairsCreate(d *schema.ResourceData, meta interface{}) err
 func resourceJDCloudKeyPairsRead(d *schema.ResourceData, meta interface{}) error {
 
 	config := meta.(*JDCloudConfig)
-
 	keyName := d.Get("key_name").(string)
 
 	vmClient := client.NewVmClient(config.Credential)
@@ -140,30 +133,34 @@ func resourceJDCloudKeyPairsRead(d *schema.ResourceData, meta interface{}) error
 	}
 
 	return nil
-}
 
-func resourceJDCloudKeyPairsUpdate(d *schema.ResourceData, meta interface{}) error {
+	for _, key := range resp.Result.Keypairs {
+		if key.KeyName == keyName {
+			return nil
+		}
+	}
 
+	if resp.Error.Code != 0 {
+		return fmt.Errorf("[ERROR] read key pairs failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
+	}
+	d.SetId("")
 	return nil
 }
 
 func resourceJDCloudKeyPairsDelete(d *schema.ResourceData, meta interface{}) error {
 
 	config := meta.(*JDCloudConfig)
-
 	keyName := d.Get("key_name").(string)
 
 	vmClient := client.NewVmClient(config.Credential)
 	req := apis.NewDeleteKeypairRequest(config.Region, keyName)
 	resp, err := vmClient.DeleteKeypair(req)
-	if err != nil {
-		log.Printf("[DEBUG]  delete key pairs failed %s", err.Error())
-		return err
-	}
 
+	if err != nil {
+		return fmt.Errorf("[DEBUG]  delete key pairs failed %s", err.Error())
+	}
 	if resp.Error.Code != 0 {
-		log.Printf("[DEBUG] delete key pairs failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
-		return errors.New(resp.Error.Message)
+		return fmt.Errorf("[DEBUG] delete key pairs failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
 
 	return nil

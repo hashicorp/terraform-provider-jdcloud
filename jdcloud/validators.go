@@ -3,6 +3,7 @@ package jdcloud
 import (
 	"fmt"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/satori/go.uuid"
 	"strings"
 )
 
@@ -33,4 +34,16 @@ func validateStringNoEmpty(v interface{}, k string) (s []string, errs []error) {
 	}
 
 	return
+}
+
+func diskClientTokenDefault() string {
+	var clientToken string
+	nonce, _ := uuid.NewV4()
+	clientToken = nonce.String()
+	clientToken = strings.Replace(clientToken, "-", "", -1)
+
+	if len(clientToken) > 20 {
+		clientToken = string([]byte(clientToken)[:20])
+	}
+	return clientToken
 }

@@ -1,14 +1,14 @@
 package jdcloud
 
 import (
-	"errors"
+	"fmt"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/apis"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/client"
-	"log"
 )
 
 func resourceJDCloudNetworkInterface() *schema.Resource {
+
 	return &schema.Resource{
 		Create: resourceJDCloudNetworkInterfaceCreate,
 		Read:   resourceJDCloudNetworkInterfaceRead,
@@ -20,15 +20,15 @@ func resourceJDCloudNetworkInterface() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
+			"network_interface_name": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+			},
 			"description": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 			"az": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-			"network_interface_name": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 			},
@@ -39,6 +39,7 @@ func resourceJDCloudNetworkInterface() *schema.Resource {
 			"sanity_check": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
+				Default:  1,
 			},
 			"secondary_ip_addresses": &schema.Schema{
 				Type:     schema.TypeList,
@@ -52,8 +53,11 @@ func resourceJDCloudNetworkInterface() *schema.Resource {
 				Optional: true,
 			},
 			"security_groups": &schema.Schema{
-				Type:     schema.TypeList,
+				Type: schema.TypeList,
+				// Optional : Can be provided by user
+				// Computed : Can be provided by computed
 				Optional: true,
+				Computed: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
@@ -70,105 +74,147 @@ func resourceJDCloudNetworkInterface() *schema.Resource {
 func resourceJDCloudNetworkInterfaceCreate(d *schema.ResourceData, meta interface{}) error {
 
 	config := meta.(*JDCloudConfig)
-
 	subnetID := d.Get("subnet_id").(string)
 
-	vpcClient := client.NewVpcClient(config.Credential)
+	req := apis.NewCreateNetworkInterfaceRequest(config.Region, subnetID)
+	networkInterfaceName := d.Get("network_interface_name").(string)
+	req.NetworkInterfaceName = &networkInterfaceName
 
-	rq := apis.NewCreateNetworkInterfaceRequest(config.Region, subnetID)
-
-	if avalidZoneInterface, ok := d.GetOk("az"); ok {
-		avalidZone := avalidZoneInterface.(string)
-		rq.Az = &avalidZone
+	if _, ok := d.GetOk("az"); ok {
+		req.Az = GetStringAddr(d, "az")
 	}
 
-	if descriptionInterface, ok := d.GetOk("description"); ok {
-		description := descriptionInterface.(string)
-		rq.Description = &description
+	if _, ok := d.GetOk("description"); ok {
+		req.Description = GetStringAddr(d, "description")
 	}
 
-	if networkInterfaceNameInterface, ok := d.GetOk("network_interface_name"); ok {
-		networkInterfaceName := networkInterfaceNameInterface.(string)
-		rq.NetworkInterfaceName = &networkInterfaceName
-	}
-
-	if sanityCheckInterface, ok := d.GetOk("sanity_check"); ok {
-		sanityCheck := sanityCheckInterface.(int)
-		rq.SanityCheck = &sanityCheck
+	if _, ok := d.GetOk("sanity_check"); ok {
+		req.SanityCheck = GetIntAddr(d, "sanity_check")
 	}
 
 	if v, ok := d.GetOk("secondary_ip_addresses"); ok {
-
 		for _, vv := range v.([]interface{}) {
-
 			secondaryIpAddress := vv.(string)
-			rq.SecondaryIpAddresses = append(rq.SecondaryIpAddresses, secondaryIpAddress)
+			req.SecondaryIpAddresses = append(req.SecondaryIpAddresses, secondaryIpAddress)
 		}
 	}
 
 	if secondaryIpCountInterface, ok := d.GetOk("secondary_ip_count"); ok {
 		secondaryIpCount := secondaryIpCountInterface.(int)
-		rq.SecondaryIpCount = &secondaryIpCount
+		req.SecondaryIpCount = &secondaryIpCount
 	}
 
-	if v, ok := d.GetOk("security_groups"); ok {
-
-		for _, vv := range v.([]interface{}) {
-
-			securityGroup := vv.(string)
-			rq.SecurityGroups = append(rq.SecurityGroups, securityGroup)
+	setDefaultSecurityGroup := true
+	if sgArray, ok := d.GetOk("security_groups"); ok {
+		setDefaultSecurityGroup = false
+		for _, sg := range sgArray.([]interface{}) {
+			req.SecurityGroups = append(req.SecurityGroups, sg.(string))
 		}
 	}
 
-	resp, err := vpcClient.CreateNetworkInterface(rq)
+	vpcClient := client.NewVpcClient(config.Credential)
+	resp, err := vpcClient.CreateNetworkInterface(req)
 
 	if err != nil {
-		log.Printf("[DEBUG] resourceJDCloudNetworkInterfaceCreate failed %s ", err.Error())
-		return err
+		return fmt.Errorf("[ERROR] resourceJDCloudNetworkInterfaceCreate failed %s ", err.Error())
 	}
 
 	if resp.Error.Code != 0 {
-		log.Printf("[DEBUG] resourceJDCloudNetworkInterfaceCreate failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
-		return errors.New(resp.Error.Message)
+		return fmt.Errorf("[ERROR] resourceJDCloudNetworkInterfaceCreate failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
 
 	d.SetId(resp.Result.NetworkInterfaceId)
 	d.Set("network_interface_id", resp.Result.NetworkInterfaceId)
 
-	return nil
+	// Default sgID is set and retrieved via "READ"
+	if setDefaultSecurityGroup {
+		resourceJDCloudNetworkInterfaceRead(d, meta)
+	}
 
+	return nil
 }
 
 func resourceJDCloudNetworkInterfaceRead(d *schema.ResourceData, meta interface{}) error {
-	return nil
-}
-func resourceJDCloudNetworkInterfaceUpdate(d *schema.ResourceData, meta interface{}) error {
-	return nil
-}
-func resourceJDCloudNetworkInterfaceDelete(d *schema.ResourceData, meta interface{}) error {
 
 	config := meta.(*JDCloudConfig)
+	networkInterfaceClient := client.NewVpcClient(config.Credential)
 
-	networkInterfaceId := d.Get("network_interface_id").(string)
-
-	vpcClient := client.NewVpcClient(config.Credential)
-
-	//构造请求
-	rq := apis.NewDeleteNetworkInterfaceRequest(config.Region, networkInterfaceId)
-
-	//发送请求
-	resp, err := vpcClient.DeleteNetworkInterface(rq)
+	req := apis.NewDescribeNetworkInterfaceRequest(config.Region, d.Id())
+	resp, err := networkInterfaceClient.DescribeNetworkInterface(req)
 
 	if err != nil {
-
-		log.Printf("[DEBUG] resourceJDCloudNetworkInterfaceDelete failed %s ", err.Error())
 		return err
 	}
 
 	if resp.Error.Code != 0 {
-		log.Printf("[DEBUG] resourceJDCloudNetworkInterfaceDelete failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
-		return errors.New(resp.Error.Message)
+		return fmt.Errorf("[ERROR] resourceJDCloudNetworkInterfaceRead failed error code:%d, message:%s", resp.Error.Code, resp.Error.Message)
 	}
 
+	if resp.Result.NetworkInterface.Az != "" {
+		d.Set("az", resp.Result.NetworkInterface.Az)
+	}
+
+	if resp.Result.NetworkInterface.Description != "" {
+		d.Set("description", resp.Result.NetworkInterface.Description)
+	}
+
+	if resp.Result.NetworkInterface.NetworkInterfaceName != "" {
+		d.Set("network_interface_name", resp.Result.NetworkInterface.NetworkInterfaceName)
+	}
+
+	if resp.Result.NetworkInterface.SanityCheck != 0 {
+		d.Set("sanity_check", resp.Result.NetworkInterface.SanityCheck)
+	}
+
+	if resp.Result.NetworkInterface.PrimaryIp.ElasticIpAddress != "" {
+		d.Set("primary_ip_address", resp.Result.NetworkInterface.PrimaryIp.ElasticIpAddress)
+	}
+
+	if len(resp.Result.NetworkInterface.SecondaryIps) != 0 {
+		d.Set("secondary_ip_addresses", resp.Result.NetworkInterface.SecondaryIps)
+	}
+
+	if len(resp.Result.NetworkInterface.NetworkSecurityGroupIds) != 0 {
+		d.Set("security_groups", resp.Result.NetworkInterface.NetworkSecurityGroupIds)
+	}
+
+	return nil
+}
+func resourceJDCloudNetworkInterfaceUpdate(d *schema.ResourceData, meta interface{}) error {
+	return nil
+	config := meta.(*JDCloudConfig)
+	vpcClient := client.NewVpcClient(config.Credential)
+
+	sg := InterfaceToStringArray(d.Get("security_groups").([]interface{}))
+	req := apis.NewModifyNetworkInterfaceRequestWithAllParams(config.Region, d.Id(), GetStringAddr(d, "network_interface_name"), GetStringAddr(d, "description"), sg)
+	resp, err := vpcClient.ModifyNetworkInterface(req)
+
+	if err != nil {
+		return fmt.Errorf("[ERROR] resourceJDCloudNetworkInterfaceUpdate failed %s ", err.Error())
+	}
+
+	if resp.Error.Code != 0 {
+		return fmt.Errorf("[ERROR] resourceJDCloudNetworkInterfaceUpdate failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
+	}
+	return nil
+}
+
+func resourceJDCloudNetworkInterfaceDelete(d *schema.ResourceData, meta interface{}) error {
+
+	config := meta.(*JDCloudConfig)
+	networkInterfaceId := d.Get("network_interface_id").(string)
+	rq := apis.NewDeleteNetworkInterfaceRequest(config.Region, networkInterfaceId)
+
+	vpcClient := client.NewVpcClient(config.Credential)
+	resp, err := vpcClient.DeleteNetworkInterface(rq)
+
+	if err != nil {
+		return fmt.Errorf("[ERROR] resourceJDCloudNetworkInterfaceDelete failed %s ", err.Error())
+	}
+
+	if resp.Error.Code != 0 {
+		return fmt.Errorf("[ERROR] resourceJDCloudNetworkInterfaceDelete failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
+	}
+	d.SetId("")
 	return nil
 }

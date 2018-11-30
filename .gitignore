@@ -16,3 +16,4 @@ tags
 terraform.tfstate
 terraform.tfstate.backup
 crash.log
+test.sh
