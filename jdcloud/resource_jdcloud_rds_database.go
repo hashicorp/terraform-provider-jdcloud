@@ -37,9 +37,6 @@ func resourceJDCloudRDSDatabaseCreate(d *schema.ResourceData,meta interface{}) e
 	config := meta.(*JDCloudConfig)
 	rdsClient := client.NewRdsClient(config.Credential)
 
-	logger := vmLogger{}
-	rdsClient.SetLogger(logger)
-
 	req := apis.NewCreateDatabaseRequest(config.Region,d.Get("instance_id").(string),d.Get("db_name").(string),d.Get("character_set").(string))
 	resp,err := rdsClient.CreateDatabase(req)
 

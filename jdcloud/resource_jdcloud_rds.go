@@ -21,6 +21,7 @@ Parameter Description
 const (
 	RDSTimeout = 300
 	RDSReady = "RUNNING"
+	RDSDeleted = "DELETED"
 	Tolerance = 3
 )
 
@@ -150,7 +151,7 @@ func resourceJDCloudRDSCreate(d *schema.ResourceData, meta interface{}) error {
 	d.SetId(resp.Result.InstanceId)
 	d.Set("rds_id",d.Id())
 
-	if rdsReady := waitForRDS(d,meta,RDSReady);rdsReady!=nil {
+	if rdsReady := waitForRDS(d,meta,d.Id(),RDSReady);rdsReady!=nil {
 		return rdsReady
 	}
 
@@ -230,10 +231,10 @@ func resourceJDCloudRDSUpdate(d *schema.ResourceData, meta interface{}) error {
 func resourceJDCloudRDSDelete(d *schema.ResourceData, meta interface{}) error {
 
 	config := meta.(*JDCloudConfig)
-	req := apis.NewDeleteInstanceRequest(config.Region, d.Id())
-
 	rdsClient := client.NewRdsClient(config.Credential)
-	resp, err := rdsClient.DeleteInstance(req)
+
+	req := apis.NewDeleteInstanceRequest(config.Region, d.Id())
+	resp,err := rdsClient.DeleteInstance(req)
 
 	if err != nil {
 		return fmt.Errorf("[ERROR] resourceJDCloudRDSDelete failed %s ", err.Error())
@@ -243,16 +244,17 @@ func resourceJDCloudRDSDelete(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("[ERROR] resourceJDCloudRDSDelete failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
 
+	id := d.Id()
 	d.SetId("")
-	return nil
+	return waitForRDS(d,meta,id,RDSDeleted)
 }
 
-func waitForRDS(d *schema.ResourceData, meta interface{},expectedStatus string) error {
+func waitForRDS(d *schema.ResourceData, meta interface{},id string,expectedStatus string) error {
 
 	currentTime := int(time.Now().Unix())
 	config := meta.(*JDCloudConfig)
 	rdsClient := client.NewRdsClient(config.Credential)
-	req := apis.NewDescribeInstanceAttributesRequest(config.Region,d.Id())
+	req := apis.NewDescribeInstanceAttributesRequest(config.Region,id)
 
 	connectFailedCount := 0
 
@@ -260,7 +262,7 @@ func waitForRDS(d *schema.ResourceData, meta interface{},expectedStatus string) 
 		time.Sleep(time.Second*10)
 
 		resp,err := rdsClient.DescribeInstanceAttributes(req)
-
+		currentStatus := resp.Result.DbInstanceAttributes.InstanceStatus
 
 		if err != nil {
 
@@ -282,7 +284,7 @@ func waitForRDS(d *schema.ResourceData, meta interface{},expectedStatus string) 
 			return fmt.Errorf("[ERROR] resourceJDCloudRDS WAIT failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 		}
 
-		if resp.Result.DbInstanceAttributes.InstanceStatus == expectedStatus {
+		if currentStatus == expectedStatus{
 			break
 		}
 
