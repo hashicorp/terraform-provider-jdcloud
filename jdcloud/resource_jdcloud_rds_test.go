@@ -114,8 +114,8 @@ func testAccRDSInstanceDestroy(resourceId *string) resource.TestCheckFunc {
 		if err != nil {
 			return err
 		}
-		// TODO GET STATUS IN DELETING
-		if resp.Result.DbInstanceAttributes.InstanceStatus != RDSDeleted {
+
+		if resp.Result.DbInstanceAttributes.InstanceStatus != "" {
 			return fmt.Errorf("[ERROR] resource still exists,check position-4")
 		}
 

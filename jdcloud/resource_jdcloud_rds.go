@@ -21,7 +21,7 @@ Parameter Description
 const (
 	RDSTimeout = 300
 	RDSReady = "RUNNING"
-	RDSDelete = "DELETING"
+	RDSDeleted = ""
 	Tolerance = 3
 )
 
@@ -246,7 +246,7 @@ func resourceJDCloudRDSDelete(d *schema.ResourceData, meta interface{}) error {
 
 	id := d.Id()
 	d.SetId("")
-	return waitForRDS(id,meta,"")
+	return waitForRDS(id,meta,RDSDeleted)
 }
 
 func waitForRDS(id string, meta interface{},expectedStatus string) error {
