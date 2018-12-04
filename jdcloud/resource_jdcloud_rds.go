@@ -21,7 +21,7 @@ Parameter Description
 const (
 	RDSTimeout = 300
 	RDSReady = "RUNNING"
-	RDSDeleted = "DELETED"
+	RDSDelete = "DELETING"
 	Tolerance = 3
 )
 
@@ -151,7 +151,7 @@ func resourceJDCloudRDSCreate(d *schema.ResourceData, meta interface{}) error {
 	d.SetId(resp.Result.InstanceId)
 	d.Set("rds_id",d.Id())
 
-	if rdsReady := waitForRDS(d,meta,d.Id(),RDSReady);rdsReady!=nil {
+	if rdsReady := waitForRDS(d.Id(),meta,RDSReady);rdsReady!=nil {
 		return rdsReady
 	}
 
@@ -171,7 +171,7 @@ func resourceJDCloudRDSRead(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("[ERROR] resourceJDCloudRDSRead failed %s ", err.Error())
 	}
 
-	if resp.Error.Code == 404 {
+	if resp.Error.Code == 404 || resp.Error.Code == 400{
 		return nil
 	}
 
@@ -246,10 +246,10 @@ func resourceJDCloudRDSDelete(d *schema.ResourceData, meta interface{}) error {
 
 	id := d.Id()
 	d.SetId("")
-	return waitForRDS(d,meta,id,RDSDeleted)
+	return waitForRDS(id,meta,"")
 }
 
-func waitForRDS(d *schema.ResourceData, meta interface{},id string,expectedStatus string) error {
+func waitForRDS(id string, meta interface{},expectedStatus string) error {
 
 	currentTime := int(time.Now().Unix())
 	config := meta.(*JDCloudConfig)
@@ -260,36 +260,24 @@ func waitForRDS(d *schema.ResourceData, meta interface{},id string,expectedStatu
 
 	for{
 		time.Sleep(time.Second*10)
-
 		resp,err := rdsClient.DescribeInstanceAttributes(req)
-		currentStatus := resp.Result.DbInstanceAttributes.InstanceStatus
+
+		if resp.Result.DbInstanceAttributes.InstanceStatus == expectedStatus{
+			return nil
+		}
+
+		if int(time.Now().Unix()) - currentTime > RDSTimeout {
+			return fmt.Errorf("[ERROR] resourceJDCloudRDSCreate failed, timeout")
+		}
 
 		if err != nil {
-
 			if connectFailedCount>Tolerance {
 				return fmt.Errorf("[ERROR] resourceJDCloudRDSWait, Tolerrance Exceeded failed %s ", err.Error())
 			}
 			connectFailedCount++
 			continue
-
 		} else {
 			connectFailedCount = 0
-		}
-
-		if resp.Error.Code == 400 || resp.Error.Code == 500{
-			continue
-		}
-
-		if resp.Error.Code != 0 {
-			return fmt.Errorf("[ERROR] resourceJDCloudRDS WAIT failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
-		}
-
-		if currentStatus == expectedStatus{
-			break
-		}
-
-		if int(time.Now().Unix()) - currentTime > RDSTimeout {
-			return fmt.Errorf("[ERROR] resourceJDCloudRDSCreate failed, timeout")
 		}
 
 	}

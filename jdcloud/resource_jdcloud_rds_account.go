@@ -39,9 +39,6 @@ func resourceJDCloudRDSAccountCreate(d *schema.ResourceData,meta interface{}) er
 	config := meta.(*JDCloudConfig)
 	rdsClient := client.NewRdsClient(config.Credential)
 
-	logger := vmLogger{}
-	rdsClient.SetLogger(logger)
-
 	req := apis.NewCreateAccountRequest(config.Region,d.Get("instance_id").(string),d.Get("username").(string),d.Get("password").(string))
 	resp,err := rdsClient.CreateAccount(req)
 
