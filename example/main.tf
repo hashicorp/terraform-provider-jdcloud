@@ -132,7 +132,7 @@ resource "jdcloud_key_pairs" "keypairs_2" {
 // RDS-Example
 
 // Instance
-resource "jdcloud_rds" "rds-test"{
+resource "jdcloud_rds_instance" "rds-test"{
   instance_name = "test"
   engine = "MySQL"
   engine_version = "5.7"
