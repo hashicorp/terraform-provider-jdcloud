@@ -16,7 +16,7 @@ import (
 func resourceJDCloudNetworkInterfaceAttach() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceJDCloudNetworkInterfaceAttachCreate,
-		Read: resourceJDCloudNetworkInterfaceAttachRead,
+		Read:   resourceJDCloudNetworkInterfaceAttachRead,
 		Delete: resourceJDCloudNetworkInterfaceAttachDelete,
 
 		Schema: map[string]*schema.Schema{

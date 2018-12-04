@@ -4,12 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"github.com/hashicorp/terraform/helper/schema"
+	commonModels "github.com/jdcloud-api/jdcloud-sdk-go/services/common/models"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vm/apis"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vm/client"
 	"io/ioutil"
-	"os"
-	commonModels "github.com/jdcloud-api/jdcloud-sdk-go/services/common/models"
 	"log"
+	"os"
 )
 
 func resourceJDCloudKeyPairs() *schema.Resource {
