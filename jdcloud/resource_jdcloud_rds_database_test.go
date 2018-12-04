@@ -59,7 +59,7 @@ func testAccIfRDSDatabaseExists(resourceName string) resource.TestCheckFunc {
 		if err != nil {
 			return err
 		}
-		if resp.Error.Code == 404 {
+		if resp.Error.Code !=0 {
 			return fmt.Errorf("[ERROR] Test failed ,Code:%d, Status:%s ,Message :%s",resp.Error.Code,resp.Error.Status,resp.Error.Message)
 		}
 
@@ -83,7 +83,7 @@ func testAccRDSDatabaseDestroy(resourceName string) resource.TestCheckFunc {
 		if err != nil {
 			return err
 		}
-		if resp.Error.Code == 0 {
+		if len(resp.Result.Databases) != 0 {
 			return fmt.Errorf("[ERROR] Test failed, resource still exists ,Code:%d, Status:%s ,Message :%s",resp.Error.Code,resp.Error.Status,resp.Error.Message)
 		}
 
