@@ -31,10 +31,10 @@ $ cd $GOPATH/src/github.com/jdclouddevelopers/terraform-provider-jdcloud
 $ make build
 ```
 
-___
+
 # Tutorial
 
-## Provide access key and secret key
+### Provide access key and secret key
 
 JDCloud resources was managed through a configuration namely "jdcloud.tf" placed in the same directory as Terraform
 This tutorial gives you an **idea on how to edit this configuration file and how this plugin works**.
@@ -42,13 +42,13 @@ Before everything starts you have to provide a pair of [access key](https://docs
 
 ```bash
 provider "jdcloud" {
-  access_key = "E1AD46FF7994BC3DF"
-  secret_key = "B527396D788ABCDEF"
+  access_key = "EXAMPLEACCESSKEY"
+  secret_key = "EXAMPLESECRETKEY"
   region = "cn-north-1"
 }
 ```
 
-## Create a VPC resource through Terraform
+### Create a VPC resource through Terraform
 VPC resource can be created by specifying the name of this VPC resource and the CIDR block. Meanwhile description on this resource is optional. Edit jdcloud.tf and then execute terraform apply. Resource on the cloud will be modified
 ```bash
 resource "jdcloud_vpc" "vpc-1" {
@@ -57,7 +57,7 @@ resource "jdcloud_vpc" "vpc-1" {
   description = "example"
 }
 ```
-## Modify resource attributes through Terraform
+### Modify resource attributes through Terraform
  Just like creating them through console on web page. You can modify some attributes of resource after it has been created. Execute terraform applyafter it has been modified
 ```bash
 resource "jdcloud_vpc" "vpc-1" {
@@ -70,8 +70,11 @@ ___
 # More
 
 **More example** on how to create a resource can be found [here](https://github.com/XiaohanLiang/terraform-provider-jdcloud/blob/master/example/main.tf).
+
 **Restrictions** on creating/updating a resource can be found [here](https://docs.jdcloud.com/cn/).
+
 **Terraform official** web page can be found [here](https://www.terraform.io/intro/index.html).
+
 **Contact us JDCloud-Team** <ark@jd.com>
 
 ## License
