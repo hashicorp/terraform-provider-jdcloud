@@ -1,4 +1,5 @@
 package jdcloud
+
 import (
 	"fmt"
 	"github.com/hashicorp/terraform/helper/resource"
@@ -7,6 +8,7 @@ import (
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/rds/client"
 	"testing"
 )
+
 const TestAccRDSInstanceConfig = `
 resource "jdcloud_rds_instance" "rds-test-2"{
   instance_name = "xiaohantesting"
@@ -22,6 +24,7 @@ resource "jdcloud_rds_instance" "rds-test-2"{
   charge_duration = "1"
 }
 `
+
 func TestAccJDCloudRDSInstance_basic(t *testing.T) {
 	var rdsId string
 	resource.Test(t, resource.TestCase{
@@ -51,30 +54,30 @@ func testAccIfRDSInstanceExists(resourceName string, resourceId *string) resourc
 		idStoredLocally := resourceStoredLocally.Primary.ID
 		// STEP-2 : Check if RouteTable resource has been created remotely
 		config := testAccProvider.Meta().(*JDCloudConfig)
-		req := apis.NewDescribeInstanceAttributesRequest(config.Region,idStoredLocally)
+		req := apis.NewDescribeInstanceAttributesRequest(config.Region, idStoredLocally)
 		rdsClient := client.NewRdsClient(config.Credential)
-		resp,err := rdsClient.DescribeInstanceAttributes(req)
+		resp, err := rdsClient.DescribeInstanceAttributes(req)
 		if err != nil {
 			return err
 		}
 		if resp.Error.Code != 0 {
-			return fmt.Errorf("[ERROR] Test failed ,Code:%d, Status:%s ,Message :%s",resp.Error.Code,resp.Error.Status,resp.Error.Message)
+			return fmt.Errorf("[ERROR] Test failed ,Code:%d, Status:%s ,Message :%s", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 		}
 		localInfo := resourceStoredLocally.Primary.Attributes
 		remoteInfo := resp.Result.DbInstanceAttributes
-		if localInfo["instance_name"] != remoteInfo.InstanceName{
+		if localInfo["instance_name"] != remoteInfo.InstanceName {
 			return fmt.Errorf("instance_name")
 		}
-		if localInfo["instance_class"] != remoteInfo.InstanceClass{
+		if localInfo["instance_class"] != remoteInfo.InstanceClass {
 			return fmt.Errorf("instance_class")
 		}
-		if localInfo["internal_domain_name"] != remoteInfo.InternalDomainName{
+		if localInfo["internal_domain_name"] != remoteInfo.InternalDomainName {
 			return fmt.Errorf("internal_domain_name")
 		}
-		if localInfo["public_domain_name"] != remoteInfo.PublicDomainName{
+		if localInfo["public_domain_name"] != remoteInfo.PublicDomainName {
 			return fmt.Errorf("public_domain_name")
 		}
-		if localInfo["instance_port"] != remoteInfo.InstancePort{
+		if localInfo["instance_port"] != remoteInfo.InstancePort {
 			return fmt.Errorf("instance_port")
 		}
 		*resourceId = idStoredLocally
@@ -87,9 +90,9 @@ func testAccRDSInstanceDestroy(resourceId *string) resource.TestCheckFunc {
 			return fmt.Errorf("resource Id appears to be empty")
 		}
 		config := testAccProvider.Meta().(*JDCloudConfig)
-		req := apis.NewDescribeInstanceAttributesRequest(config.Region,*resourceId)
+		req := apis.NewDescribeInstanceAttributesRequest(config.Region, *resourceId)
 		rdsClient := client.NewRdsClient(config.Credential)
-		resp,err := rdsClient.DescribeInstanceAttributes(req)
+		resp, err := rdsClient.DescribeInstanceAttributes(req)
 		if err != nil {
 			return err
 		}

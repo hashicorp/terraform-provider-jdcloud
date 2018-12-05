@@ -32,13 +32,13 @@ func resourceJDCloudRDSDatabase() *schema.Resource {
 	}
 }
 
-func resourceJDCloudRDSDatabaseCreate(d *schema.ResourceData,meta interface{}) error {
+func resourceJDCloudRDSDatabaseCreate(d *schema.ResourceData, meta interface{}) error {
 
 	config := meta.(*JDCloudConfig)
 	rdsClient := client.NewRdsClient(config.Credential)
 
-	req := apis.NewCreateDatabaseRequest(config.Region,d.Get("instance_id").(string),d.Get("db_name").(string),d.Get("character_set").(string))
-	resp,err := rdsClient.CreateDatabase(req)
+	req := apis.NewCreateDatabaseRequest(config.Region, d.Get("instance_id").(string), d.Get("db_name").(string), d.Get("character_set").(string))
+	resp, err := rdsClient.CreateDatabase(req)
 
 	if err != nil {
 		return fmt.Errorf("[ERROR] resourceJDCloudRDSDatabaseCreate failed %s ", err.Error())
@@ -57,14 +57,13 @@ func resourceJDCloudRDSDatabaseCreate(d *schema.ResourceData,meta interface{}) e
 	return nil
 }
 
-
-func resourceJDCloudRDSDatabaseRead(d *schema.ResourceData,meta interface{}) error {
+func resourceJDCloudRDSDatabaseRead(d *schema.ResourceData, meta interface{}) error {
 
 	config := meta.(*JDCloudConfig)
 	rdsClient := client.NewRdsClient(config.Credential)
 
-	req := apis.NewDescribeDatabasesRequest(config.Region,d.Get("instance_id").(string))
-	resp,err := rdsClient.DescribeDatabases(req)
+	req := apis.NewDescribeDatabasesRequest(config.Region, d.Get("instance_id").(string))
+	resp, err := rdsClient.DescribeDatabases(req)
 
 	if err != nil {
 		return fmt.Errorf("[ERROR] resourceJDCloudRDSDatabaseRead failed %s ", err.Error())
@@ -79,7 +78,7 @@ func resourceJDCloudRDSDatabaseRead(d *schema.ResourceData,meta interface{}) err
 		return fmt.Errorf("[ERROR] resourceJDCloudRDSDatabaseRead failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
 
-	for _,db := range resp.Result.Databases {
+	for _, db := range resp.Result.Databases {
 		if d.Get("db_name").(string) == db.DbName {
 			return nil
 		}
@@ -89,27 +88,27 @@ func resourceJDCloudRDSDatabaseRead(d *schema.ResourceData,meta interface{}) err
 	return nil
 }
 
-func resourceJDCloudRDSDatabaseUpdate(d *schema.ResourceData,meta interface{}) error {
+func resourceJDCloudRDSDatabaseUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	if d.HasChange("instance_id") || d.HasChange("db_name") || d.HasChange("character_set") {
 		originId, _ := d.GetChange("instance_id")
 		originDb, _ := d.GetChange("db_name")
 		originSet, _ := d.GetChange("character_set")
-		d.Set("instance_id",originId)
-		d.Set("db_name",originDb)
-		d.Set("character_set",originSet)
+		d.Set("instance_id", originId)
+		d.Set("db_name", originDb)
+		d.Set("character_set", originSet)
 		return fmt.Errorf("[ERROR] resourceJDCloudRDSDatabaseUpdate failed,Attributes cannot be modified")
 	}
 	return nil
 }
 
-func resourceJDCloudRDSDatabaseDelete(d *schema.ResourceData,meta interface{}) error {
+func resourceJDCloudRDSDatabaseDelete(d *schema.ResourceData, meta interface{}) error {
 
 	config := meta.(*JDCloudConfig)
 	rdsClient := client.NewRdsClient(config.Credential)
 
-	req := apis.NewDeleteDatabaseRequest(config.Region,d.Get("instance_id").(string),d.Get("db_name").(string))
-	resp,err := rdsClient.DeleteDatabase(req)
+	req := apis.NewDeleteDatabaseRequest(config.Region, d.Get("instance_id").(string), d.Get("db_name").(string))
+	resp, err := rdsClient.DeleteDatabase(req)
 
 	if err != nil {
 		return fmt.Errorf("[ERROR] resourceJDCloudRDSDatabaseDelete failed %s ", err.Error())

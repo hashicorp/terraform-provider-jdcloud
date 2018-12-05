@@ -1,11 +1,11 @@
 package jdcloud
 
 import (
-"fmt"
-"github.com/hashicorp/terraform/helper/resource"
-"github.com/hashicorp/terraform/terraform"
-"github.com/jdcloud-api/jdcloud-sdk-go/services/rds/apis"
-"github.com/jdcloud-api/jdcloud-sdk-go/services/rds/client"
+	"fmt"
+	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/terraform"
+	"github.com/jdcloud-api/jdcloud-sdk-go/services/rds/apis"
+	"github.com/jdcloud-api/jdcloud-sdk-go/services/rds/client"
 	"strconv"
 	"testing"
 )
@@ -54,23 +54,23 @@ func testAccIfRDSPrivilegeExists(resourceName string) resource.TestCheckFunc {
 
 		instanceId := resourceStoredLocally.Primary.Attributes["instance_id"]
 		userName := resourceStoredLocally.Primary.Attributes["username"]
-		privLength,_ := strconv.Atoi(resourceStoredLocally.Primary.Attributes["account_privilege.#"])
+		privLength, _ := strconv.Atoi(resourceStoredLocally.Primary.Attributes["account_privilege.#"])
 
 		config := testAccProvider.Meta().(*JDCloudConfig)
 		rdsClient := client.NewRdsClient(config.Credential)
 
-		req := apis.NewDescribeAccountsRequest(config.Region,instanceId)
-		resp,err := rdsClient.DescribeAccounts(req)
+		req := apis.NewDescribeAccountsRequest(config.Region, instanceId)
+		resp, err := rdsClient.DescribeAccounts(req)
 
 		if err != nil {
 			return err
 		}
-		if resp.Error.Code !=0 {
-			return fmt.Errorf("[ERROR] Test failed ,Code:%d, Status:%s ,Message :%s",resp.Error.Code,resp.Error.Status,resp.Error.Message)
+		if resp.Error.Code != 0 {
+			return fmt.Errorf("[ERROR] Test failed ,Code:%d, Status:%s ,Message :%s", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 		}
 
-		for _,acc := range resp.Result.Accounts {
-			if userName == acc.AccountName && privLength == len(acc.AccountPrivileges){
+		for _, acc := range resp.Result.Accounts {
+			if userName == acc.AccountName && privLength == len(acc.AccountPrivileges) {
 				return nil
 			}
 		}
@@ -90,18 +90,18 @@ func testAccRDSPrivilegeDestroy(resourceName string) resource.TestCheckFunc {
 		config := testAccProvider.Meta().(*JDCloudConfig)
 		rdsClient := client.NewRdsClient(config.Credential)
 
-		req := apis.NewDescribeAccountsRequest(config.Region,instanceId)
-		resp,err := rdsClient.DescribeAccounts(req)
+		req := apis.NewDescribeAccountsRequest(config.Region, instanceId)
+		resp, err := rdsClient.DescribeAccounts(req)
 
 		if err != nil {
 			return err
 		}
-		if resp.Error.Code !=0 {
-			return fmt.Errorf("[ERROR] Test failed ,Code:%d, Status:%s ,Message :%s",resp.Error.Code,resp.Error.Status,resp.Error.Message)
+		if resp.Error.Code != 0 {
+			return fmt.Errorf("[ERROR] Test failed ,Code:%d, Status:%s ,Message :%s", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 		}
 
-		for _,acc := range resp.Result.Accounts {
-			if userName == acc.AccountName && len(acc.AccountPrivileges) != 0{
+		for _, acc := range resp.Result.Accounts {
+			if userName == acc.AccountName && len(acc.AccountPrivileges) != 0 {
 				return fmt.Errorf("[ERROR] Test failed ,certain resource still exists")
 			}
 		}
@@ -109,4 +109,3 @@ func testAccRDSPrivilegeDestroy(resourceName string) resource.TestCheckFunc {
 		return nil
 	}
 }
-

@@ -34,13 +34,13 @@ func resourceJDCloudRDSAccount() *schema.Resource {
 	}
 }
 
-func resourceJDCloudRDSAccountCreate(d *schema.ResourceData,meta interface{}) error {
+func resourceJDCloudRDSAccountCreate(d *schema.ResourceData, meta interface{}) error {
 
 	config := meta.(*JDCloudConfig)
 	rdsClient := client.NewRdsClient(config.Credential)
 
-	req := apis.NewCreateAccountRequest(config.Region,d.Get("instance_id").(string),d.Get("username").(string),d.Get("password").(string))
-	resp,err := rdsClient.CreateAccount(req)
+	req := apis.NewCreateAccountRequest(config.Region, d.Get("instance_id").(string), d.Get("username").(string), d.Get("password").(string))
+	resp, err := rdsClient.CreateAccount(req)
 
 	if err != nil {
 		return fmt.Errorf("[ERROR] resourceJDCloudRDSAccountCreate failed %s ", err.Error())
@@ -54,14 +54,13 @@ func resourceJDCloudRDSAccountCreate(d *schema.ResourceData,meta interface{}) er
 	return nil
 }
 
-
-func resourceJDCloudRDSAccountRead(d *schema.ResourceData,meta interface{}) error {
+func resourceJDCloudRDSAccountRead(d *schema.ResourceData, meta interface{}) error {
 
 	config := meta.(*JDCloudConfig)
 	rdsClient := client.NewRdsClient(config.Credential)
 
-	req := apis.NewDescribeAccountsRequest(config.Region,d.Get("instance_id").(string))
-	resp,err := rdsClient.DescribeAccounts(req)
+	req := apis.NewDescribeAccountsRequest(config.Region, d.Get("instance_id").(string))
+	resp, err := rdsClient.DescribeAccounts(req)
 
 	if err != nil {
 		return fmt.Errorf("[ERROR] resourceJDCloudRDSAccountRead failed %s ", err.Error())
@@ -76,8 +75,8 @@ func resourceJDCloudRDSAccountRead(d *schema.ResourceData,meta interface{}) erro
 		return fmt.Errorf("[ERROR] resourceJDCloudRDSAccountRead failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
 
-	for _,user := range resp.Result.Accounts {
-		if user.AccountName == d.Get("username").(string){
+	for _, user := range resp.Result.Accounts {
+		if user.AccountName == d.Get("username").(string) {
 			return nil
 		}
 	}
@@ -86,13 +85,13 @@ func resourceJDCloudRDSAccountRead(d *schema.ResourceData,meta interface{}) erro
 	return nil
 }
 
-func resourceJDCloudRDSAccountDelete(d *schema.ResourceData,meta interface{}) error {
+func resourceJDCloudRDSAccountDelete(d *schema.ResourceData, meta interface{}) error {
 
 	config := meta.(*JDCloudConfig)
 	rdsClient := client.NewRdsClient(config.Credential)
 
-	req := apis.NewDeleteAccountRequest(config.Region,d.Get("instance_id").(string),d.Get("username").(string))
-	resp,err := rdsClient.DeleteAccount(req)
+	req := apis.NewDeleteAccountRequest(config.Region, d.Get("instance_id").(string), d.Get("username").(string))
+	resp, err := rdsClient.DeleteAccount(req)
 
 	if err != nil {
 		return fmt.Errorf("[ERROR] resourceJDCloudRDSAccountDelete failed %s ", err.Error())

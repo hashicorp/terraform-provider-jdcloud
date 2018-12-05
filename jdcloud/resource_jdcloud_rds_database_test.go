@@ -1,12 +1,12 @@
 package jdcloud
 
 import (
-"fmt"
-"github.com/hashicorp/terraform/helper/resource"
-"github.com/hashicorp/terraform/terraform"
-"github.com/jdcloud-api/jdcloud-sdk-go/services/rds/apis"
-"github.com/jdcloud-api/jdcloud-sdk-go/services/rds/client"
-"testing"
+	"fmt"
+	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/terraform"
+	"github.com/jdcloud-api/jdcloud-sdk-go/services/rds/apis"
+	"github.com/jdcloud-api/jdcloud-sdk-go/services/rds/client"
+	"testing"
 )
 
 const TestAccRDSDatabaseConfig = `
@@ -53,14 +53,14 @@ func testAccIfRDSDatabaseExists(resourceName string) resource.TestCheckFunc {
 		config := testAccProvider.Meta().(*JDCloudConfig)
 		rdsClient := client.NewRdsClient(config.Credential)
 
-		req := apis.NewDescribeDatabasesRequestWithAllParams(config.Region,instanceId,&dbName)
-		resp,err := rdsClient.DescribeDatabases(req)
+		req := apis.NewDescribeDatabasesRequestWithAllParams(config.Region, instanceId, &dbName)
+		resp, err := rdsClient.DescribeDatabases(req)
 
 		if err != nil {
 			return err
 		}
-		if resp.Error.Code !=0 {
-			return fmt.Errorf("[ERROR] Test failed ,Code:%d, Status:%s ,Message :%s",resp.Error.Code,resp.Error.Status,resp.Error.Message)
+		if resp.Error.Code != 0 {
+			return fmt.Errorf("[ERROR] Test failed ,Code:%d, Status:%s ,Message :%s", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 		}
 
 		return nil
@@ -77,14 +77,14 @@ func testAccRDSDatabaseDestroy(resourceName string) resource.TestCheckFunc {
 		config := testAccProvider.Meta().(*JDCloudConfig)
 		rdsClient := client.NewRdsClient(config.Credential)
 
-		req := apis.NewDescribeDatabasesRequestWithAllParams(config.Region,instanceId,&dbName)
-		resp,err := rdsClient.DescribeDatabases(req)
+		req := apis.NewDescribeDatabasesRequestWithAllParams(config.Region, instanceId, &dbName)
+		resp, err := rdsClient.DescribeDatabases(req)
 
 		if err != nil {
 			return err
 		}
 		if len(resp.Result.Databases) != 0 {
-			return fmt.Errorf("[ERROR] Test failed, resource still exists ,Code:%d, Status:%s ,Message :%s",resp.Error.Code,resp.Error.Status,resp.Error.Message)
+			return fmt.Errorf("[ERROR] Test failed, resource still exists ,Code:%d, Status:%s ,Message :%s", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 		}
 
 		return nil
