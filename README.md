@@ -8,15 +8,17 @@ Terraform Provider for JDCloud
 
 Terraform will **create/read/update/delete** resource on JDCloud for you automatically. Following guides
 show you how to install Terraform together with JDCloud plugin. Commands are given under **Ubuntu**
+<br>
 
-## Build from binary
+### Build from binary
 
 Download the Terraform binary, make sure Terraform binary is available in your `PATH`.
 Download JDCloud plugin into the same directory as Terraform. Detailed instruction can be found in [release page](https://github.com/XiaohanLiang/terraform-provider-jdcloud/releases/edit/v0.1-beta)
+<br>
 
-## Build from source code (Recommended for developers)
+### Build from source code (Recommended for developers)
 
-### Clone this repository
+**Clone this repository**
 
 ```sh
 $ mkdir -p $GOPATH/src/github.com/terraform-providers
@@ -24,13 +26,13 @@ $ cd $GOPATH/src/github.com/terraform-providers
 $ git clone git@github.com:jdclouddevelopers/terraform-provider-jdcloud
 ```
 
-### Enter the provider directory and build the provider
+**Enter the provider directory and build the provider**
 
 ```sh
 $ cd $GOPATH/src/github.com/jdclouddevelopers/terraform-provider-jdcloud
 $ make build
 ```
-
+<br>
 
 # Tutorial
 
@@ -47,6 +49,7 @@ provider "jdcloud" {
   region = "cn-north-1"
 }
 ```
+<br>
 
 ### Create a VPC resource through Terraform
 VPC resource can be created by specifying the name of this VPC resource and the CIDR block. Meanwhile description on this resource is optional. Edit jdcloud.tf and then execute terraform apply. Resource on the cloud will be modified
@@ -57,8 +60,10 @@ resource "jdcloud_vpc" "vpc-1" {
   description = "example"
 }
 ```
+<br>
+
 ### Modify resource attributes through Terraform
- Just like creating them through console on web page. You can modify some attributes of resource after it has been created. Execute terraform applyafter it has been modified
+Just like creating them through console on web page. You can modify some attributes of resource after it has been created. Execute terraform applyafter it has been modified
 ```bash
 resource "jdcloud_vpc" "vpc-1" {
   vpc_name = "my-vpc-1"
@@ -66,9 +71,11 @@ resource "jdcloud_vpc" "vpc-1" {
   description = "new and modified description"
 }
 ```
-___
-# More
+<br>
 
+
+
+# More
 **More example** on how to create a resource can be found [here](https://github.com/XiaohanLiang/terraform-provider-jdcloud/blob/master/example/main.tf).  
 **Restrictions** on creating/updating a resource can be found [here](https://docs.jdcloud.com/cn/).  
 **Terraform official** web page can be found [here](https://www.terraform.io/intro/index.html).  
@@ -79,7 +86,8 @@ ___
 Apache License Version 2
 
 
-___
+<br>
+
 # Finished Resource:
 
 Terraform-JDCloud plugin is currently under developing, available resources are listed
