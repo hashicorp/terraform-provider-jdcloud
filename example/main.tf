@@ -129,5 +129,52 @@ resource "jdcloud_key_pairs" "keypairs_2" {
   key_file = "private.ppk"
 }
 
+// RDS-Example
 
+// Instance
+resource "jdcloud_rds_instance" "rds-test"{
+  instance_name = "test"
+  engine = "MySQL"
+  engine_version = "5.7"
+  instance_class = "db.mysql.s1.micro"
+  instance_storage_gb = "20"
+  az = "cn-north-1a"
+  vpc_id = "vpc-npvvk4wr5j"
+  subnet_id = "subnet-j8jrei2981"
+  charge_mode = "postpaid_by_usage"
+}
 
+// User Account
+resource "jdcloud_rds_account" "rds-test1"{
+  instance_id = "mysql-g0afoqpl6y"
+  username = "xiaohanliang"
+  password = "XIAOhan123"
+}
+
+// Database
+resource "jdcloud_rds_database" "db-TEST"{
+  instance_id = "mysql-g0afoqpl6y"
+  db_name = "chenyao6"
+  character_set = "utf8"
+}
+resource "jdcloud_rds_database" "db-TEST-2"{
+  instance_id = "mysql-g0afoqpl6y"
+  db_name = "chenyao7"
+  character_set = "utf8"
+}
+resource "jdcloud_rds_database" "db-TEST-3"{
+  instance_id = "mysql-g0afoqpl6y"
+  db_name = "chenyao8"
+  character_set = "utf8"
+}
+
+// Grant Privilege
+resource "jdcloud_rds_privilege" "pri-test" {
+  instance_id = "mysql-g0afoqpl6y"
+  username = "xiaohanliang"
+  account_privilege = [
+    {db_name = "chenyao6",privilege = "rw"},
+    {db_name = "chenyao7",privilege = "rw"},
+    {db_name = "chenyao8",privilege = "rw"},
+  ]
+}
