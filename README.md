@@ -38,9 +38,9 @@ $ make build
 
 ### Provide access key and secret key
 
-JDCloud resources was managed through a configuration namely "jdcloud.tf" placed in the same directory as Terraform
+JDCloud resources were managed through a configuration file namely "jdcloud.tf", placed in the same directory as Terraform.
 This tutorial gives you an **idea on how to edit this configuration file and how this plugin works**.
-Before everything starts you have to provide a pair of [access key](https://docs.jdcloud.com/cn/account-management/accesskey-management).
+Before everything starts you have to provide [access key and secret key](https://docs.jdcloud.com/cn/account-management/accesskey-management).
 
 ```bash
 provider "jdcloud" {
@@ -52,7 +52,7 @@ provider "jdcloud" {
 <br>
 
 ### Create a VPC resource through Terraform
-VPC resource can be created by specifying the name of this VPC resource and the CIDR block. Meanwhile description on this resource is optional. Edit jdcloud.tf and then execute terraform apply. Resource on the cloud will be modified
+VPC resource can be created by specifying the name of this VPC resource and the CIDR block. Meanwhile description on this resource is optional. Edit `jdcloud.tf` and then execute `terraform apply`. Resource on the cloud will be modified consequently.
 ```bash
 resource "jdcloud_vpc" "vpc-1" {
   vpc_name = "my-vpc-1"
