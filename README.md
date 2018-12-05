@@ -69,9 +69,9 @@ resource "jdcloud_vpc" "vpc-1" {
 ___
 # More
 
-**More example** on how to create a resource can be found [here](https://github.com/XiaohanLiang/terraform-provider-jdcloud/blob/master/example/main.tf).
-**Restrictions** on creating/updating a resource can be found [here](https://docs.jdcloud.com/cn/).
-**Terraform official** web page can be found [here](https://www.terraform.io/intro/index.html).
+**More example** on how to create a resource can be found [here](https://github.com/XiaohanLiang/terraform-provider-jdcloud/blob/master/example/main.tf).  
+**Restrictions** on creating/updating a resource can be found [here](https://docs.jdcloud.com/cn/).  
+**Terraform official** web page can be found [here](https://www.terraform.io/intro/index.html).  
 **Contact us JDCloud-Team** <ark@jd.com>
 
 ## License
