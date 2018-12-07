@@ -177,7 +177,7 @@ resource "jdcloud_rds_privilege" "pri-test" {
 
 // Creating OSS
 resource "jdcloud_oss_bucket" "jd-bucket-1" {
-  bucket = "tf-test-b1"
+  bucket_name = "tf-test-b1"
   acl = "private"
 }
 
