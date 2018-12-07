@@ -22,7 +22,7 @@ func resourceJDCloudOssBucket() *schema.Resource {
 		Delete: resourceJDCloudOssBucketDelete,
 
 		Schema: map[string]*schema.Schema{
-			"bucket": &schema.Schema{
+			"bucket_name": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 			},
@@ -31,40 +31,37 @@ func resourceJDCloudOssBucket() *schema.Resource {
 				Optional: true,
 				Default:  "private",
 			},
+			"grant_full_control": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 		},
 	}
 }
 
-func getOssClient(m interface{}) *s3.S3 {
-	config := m.(*JDCloudConfig)
-	endpoint := fmt.Sprintf(jdcloudOssEndpoint, config.Region)
-	sess := session.Must(session.NewSessionWithOptions(session.Options{
-		Config: aws.Config{
-			Credentials: credentials.NewStaticCredentials(config.AccessKey, config.SecretKey, ""),
-			Region:      aws.String(config.Region),
-			Endpoint:    aws.String(endpoint),
-		},
-	}))
-	return s3.New(sess)
-}
-
+// Plan
+// Currently not being able to create with privilege
 func resourceJDCloudOssBucketCreate(d *schema.ResourceData, m interface{}) error {
-	bucket := d.Get("bucket").(string)
+	bucket := d.Get("bucket_name").(string)
 	client := getOssClient(m)
 	s3Input := &s3.CreateBucketInput{
-		Bucket: aws.String(bucket),
-		ACL:    aws.String(d.Get("acl").(string)),
+		Bucket:           aws.String(bucket),
+		ACL:              aws.String(d.Get("acl").(string)),
+		GrantFullControl: aws.String(d.Get("grant_full_control").(string)),
 	}
 
 	_, err := client.CreateBucket(s3Input)
-	if err == nil {
-		d.SetId(bucket)
+
+	if err != nil {
+		return fmt.Errorf("[ERROR] resourceJDCloudOssBucketCreate failed,Error message:%s", err.Error())
 	}
+
+	d.SetId(bucket)
 	return err
 }
 
 func resourceJDCloudOssBucketRead(d *schema.ResourceData, m interface{}) error {
-	bucket := d.Get("bucket").(string)
+	bucket := d.Get("bucket_name").(string)
 	client := getOssClient(m)
 	s3Input := &s3.HeadBucketInput{
 		Bucket: aws.String(bucket),
@@ -84,7 +81,7 @@ func resourceJDCloudOssBucketUpdate(d *schema.ResourceData, m interface{}) error
 	d.Partial(true)
 
 	if d.HasChange("acl") {
-		bucket := d.Get("bucket").(string)
+		bucket := d.Get("bucket_name").(string)
 		client := getOssClient(m)
 		s3Input := &s3.PutBucketAclInput{
 			Bucket: aws.String(bucket),
@@ -103,7 +100,7 @@ func resourceJDCloudOssBucketUpdate(d *schema.ResourceData, m interface{}) error
 }
 
 func resourceJDCloudOssBucketDelete(d *schema.ResourceData, m interface{}) error {
-	bucket := d.Get("bucket").(string)
+	bucket := d.Get("bucket_name").(string)
 	client := getOssClient(m)
 	s3Input := &s3.DeleteBucketInput{
 		Bucket: aws.String(bucket),
@@ -115,4 +112,17 @@ func resourceJDCloudOssBucketDelete(d *schema.ResourceData, m interface{}) error
 
 	d.SetId("")
 	return nil
+}
+
+func getOssClient(m interface{}) *s3.S3 {
+	config := m.(*JDCloudConfig)
+	endpoint := fmt.Sprintf(jdcloudOssEndpoint, config.Region)
+	sess := session.Must(session.NewSessionWithOptions(session.Options{
+		Config: aws.Config{
+			Credentials: credentials.NewStaticCredentials(config.AccessKey, config.SecretKey, ""),
+			Region:      aws.String(config.Region),
+			Endpoint:    aws.String(endpoint),
+		},
+	}))
+	return s3.New(sess)
 }

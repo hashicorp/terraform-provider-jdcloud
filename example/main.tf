@@ -4,10 +4,6 @@ provider "jdcloud" {
   region = "${var.region}"
 }
 
-resource "jdcloud_oss_bucket" "jd-bucket-1" {
-  bucket = "tf-test-b1"
-  acl = "public-read"
-}
 
 resource "jdcloud_oss_bucket" "jd-bucket-2" {
   bucket = "tf-test-b2"
@@ -147,34 +143,46 @@ resource "jdcloud_rds_instance" "rds-test"{
 // User Account
 resource "jdcloud_rds_account" "rds-test1"{
   instance_id = "mysql-g0afoqpl6y"
-  username = "xiaohanliang"
-  password = "XIAOhan123"
+  username = "DevOps"
+  password = "JDCloud123"
 }
 
 // Database
 resource "jdcloud_rds_database" "db-TEST"{
   instance_id = "mysql-g0afoqpl6y"
-  db_name = "chenyao6"
+  db_name = "cloudb1"
   character_set = "utf8"
 }
 resource "jdcloud_rds_database" "db-TEST-2"{
   instance_id = "mysql-g0afoqpl6y"
-  db_name = "chenyao7"
+  db_name = "cloudb2"
   character_set = "utf8"
 }
 resource "jdcloud_rds_database" "db-TEST-3"{
   instance_id = "mysql-g0afoqpl6y"
-  db_name = "chenyao8"
+  db_name = "cloudb3"
   character_set = "utf8"
 }
 
 // Grant Privilege
 resource "jdcloud_rds_privilege" "pri-test" {
   instance_id = "mysql-g0afoqpl6y"
-  username = "xiaohanliang"
+  username = "DevOps"
   account_privilege = [
-    {db_name = "chenyao6",privilege = "rw"},
-    {db_name = "chenyao7",privilege = "rw"},
-    {db_name = "chenyao8",privilege = "rw"},
+    {db_name = "cloudb1",privilege = "ro"},
+    {db_name = "cloudb2",privilege = "rw"},
+    {db_name = "cloudb3",privilege = "ro"},
   ]
+}
+
+// Creating OSS
+resource "jdcloud_oss_bucket" "jd-bucket-1" {
+  bucket = "tf-test-b1"
+  acl = "private"
+}
+
+// Uploading a file
+resource "jdcloud_oss_bucket_upload" "devops" {
+  bucket_name = "tf-test-b1"
+  file_name = "/home/devopsteam/hello.txt"
 }
