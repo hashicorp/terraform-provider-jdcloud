@@ -9,6 +9,7 @@ func Provider() *schema.Provider {
 		ResourcesMap: map[string]*schema.Resource{
 			"jdcloud_disk":                         resourceJDCloudDisk(),
 			"jdcloud_oss_bucket":                   resourceJDCloudOssBucket(),
+			"jdcloud_oss_bucket_upload":            resourceJDCloudOssBucketUpload(),
 			"jdcloud_instance":                     resourceJDCloudInstance(),
 			"jdcloud_key_pairs":                    resourceJDCloudKeyPairs(),
 			"jdcloud_network_security_group":       resourceJDCloudNetworkSecurityGroup(),
