@@ -3,10 +3,10 @@ package jdcloud
 import (
 	"fmt"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/satori/go.uuid"
-	"strings"
 	vpcApis "github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/apis"
 	vpcClient "github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/client"
+	"github.com/satori/go.uuid"
+	"strings"
 )
 
 func validateStringInSlice(validSlice []string, ignoreCase bool) schema.SchemaValidateFunc {
@@ -50,7 +50,7 @@ func diskClientTokenDefault() string {
 	return clientToken
 }
 
-func verifyVPC(d *schema.ResourceData, m interface{},vpc,subnet string) error {
+func verifyVPC(d *schema.ResourceData, m interface{}, vpc, subnet string) error {
 
 	config := m.(*JDCloudConfig)
 	subnetClient := vpcClient.NewVpcClient(config.Credential)
@@ -66,8 +66,8 @@ func verifyVPC(d *schema.ResourceData, m interface{},vpc,subnet string) error {
 		return fmt.Errorf("[ERROR] verifyVPC Failed, when creating RDS  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
 
-	if resp.Result.Subnet.VpcId!=vpc {
-		return fmt.Errorf("[ERROR] verifyVPC Failed, vpc ID does not match" )
+	if resp.Result.Subnet.VpcId != vpc {
+		return fmt.Errorf("[ERROR] verifyVPC Failed, vpc ID does not match")
 	}
 	return nil
 }

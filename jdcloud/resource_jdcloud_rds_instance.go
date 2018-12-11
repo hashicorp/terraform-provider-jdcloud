@@ -127,7 +127,7 @@ func resourceJDCloudRDSInstanceCreate(d *schema.ResourceData, meta interface{}) 
 		},
 	)
 
-	if validateVPC:= verifyVPC(d,meta,d.Get("vpc_id").(string),d.Get("subnet_id").(string)) ; validateVPC!=nil{
+	if validateVPC := verifyVPC(d, meta, d.Get("vpc_id").(string), d.Get("subnet_id").(string)); validateVPC != nil {
 		return validateVPC
 	}
 
