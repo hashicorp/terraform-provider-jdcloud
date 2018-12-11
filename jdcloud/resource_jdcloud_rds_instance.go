@@ -126,6 +126,11 @@ func resourceJDCloudRDSInstanceCreate(d *schema.ResourceData, meta interface{}) 
 			chargeSpec,
 		},
 	)
+
+	if validateVPC := verifyVPC(d, meta, d.Get("vpc_id").(string), d.Get("subnet_id").(string)); validateVPC != nil {
+		return validateVPC
+	}
+
 	rdsClient := client.NewRdsClient(config.Credential)
 	resp, err := rdsClient.CreateInstance(req)
 	if err != nil {
