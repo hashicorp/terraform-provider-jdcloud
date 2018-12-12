@@ -59,7 +59,7 @@ func testAccIfEIPExists(resourceName string) resource.TestCheckFunc {
 		resp, err := vpcClient.DescribeElasticIp(req)
 
 		if err != nil || resp.Error.Code != 0 {
-			return fmt.Errorf("Error.Code = %d,Error.Message=%s,err.Error()", resp.Error.Code, resp.Error.Message, err.Error())
+			return fmt.Errorf("Error.Code = %d,Error.Message=%s,err.Error()=%s", resp.Error.Code, resp.Error.Message, err.Error())
 		}
 
 		bandWidthInt, _ := strconv.Atoi(bandWidth)

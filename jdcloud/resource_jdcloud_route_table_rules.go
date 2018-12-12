@@ -7,6 +7,7 @@ import (
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/apis"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/client"
 	vpc "github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/models"
+	"log"
 	"strconv"
 )
 
@@ -82,7 +83,12 @@ func resourceRouteTableRulesCreate(d *schema.ResourceData, meta interface{}) err
 	}
 
 	//Rule id can only be retrieved via "read"
-	resourceRouteTableRulesRead(d, meta)
+	errUpdateInfo := resourceRouteTableRulesRead(d, meta)
+	if errUpdateInfo != nil {
+		log.Printf("[WARN] RouteTableRules has been created but resource information mismatch")
+		log.Printf("[WARN] Command 'Terraform refresh to update your local resource info'")
+	}
+
 	d.SetId(routeTableId)
 	return nil
 }
@@ -146,11 +152,11 @@ func resourceRouteTableRulesUpdate(d *schema.ResourceData, meta interface{}) err
 		for i := 0; i < arrayLength; i++ {
 
 			rule := vpc.ModifyRouteTableRules{
-				d.Get("route_table_rule_specs." + strconv.Itoa(i) + ".rule_id").(string),
-				GetIntAddr(d, "route_table_rule_specs."+strconv.Itoa(i)+".priority"),
-				GetStringAddr(d, "route_table_rule_specs."+strconv.Itoa(i)+".next_hop_type"),
-				GetStringAddr(d, "route_table_rule_specs."+strconv.Itoa(i)+".next_hop_id"),
-				GetStringAddr(d, "route_table_rule_specs."+strconv.Itoa(i)+".address_prefix"),
+				RuleId:        d.Get("route_table_rule_specs." + strconv.Itoa(i) + ".rule_id").(string),
+				Priority:      GetIntAddr(d, "route_table_rule_specs."+strconv.Itoa(i)+".priority"),
+				NextHopType:   GetStringAddr(d, "route_table_rule_specs."+strconv.Itoa(i)+".next_hop_type"),
+				NextHopId:     GetStringAddr(d, "route_table_rule_specs."+strconv.Itoa(i)+".next_hop_id"),
+				AddressPrefix: GetStringAddr(d, "route_table_rule_specs."+strconv.Itoa(i)+".address_prefix"),
 			}
 
 			modifyRouteTableRuleSpecs = append(modifyRouteTableRuleSpecs, rule)

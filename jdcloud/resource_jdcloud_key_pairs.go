@@ -88,8 +88,16 @@ func resourceJDCloudKeyPairsCreate(d *schema.ResourceData, meta interface{}) err
 		d.Set("private_key", resp.Result.PrivateKey)
 
 		if file, ok := d.GetOk("key_file"); ok {
-			ioutil.WriteFile(file.(string), []byte(resp.Result.PrivateKey), 0600)
-			os.Chmod(file.(string), 0400)
+
+			errIO := ioutil.WriteFile(file.(string), []byte(resp.Result.PrivateKey), 0600)
+			if errIO != nil {
+				return fmt.Errorf("[ERROR] resourceJDCloudKeyPairsCreate failed with error message:%s", errIO.Error())
+			}
+
+			errChmod := os.Chmod(file.(string), 0400)
+			if errChmod != nil {
+				return fmt.Errorf("[ERROR] resourceJDCloudKeyPairsCreate failed with error message:%s", errChmod.Error())
+			}
 		}
 
 	}
@@ -134,17 +142,18 @@ func resourceJDCloudKeyPairsRead(d *schema.ResourceData, meta interface{}) error
 
 	return nil
 
-	for _, key := range resp.Result.Keypairs {
-		if key.KeyName == keyName {
-			return nil
-		}
-	}
-
-	if resp.Error.Code != 0 {
-		return fmt.Errorf("[ERROR] read key pairs failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
-	}
-	d.SetId("")
-	return nil
+	//
+	//for _, key := range resp.Result.Keypairs {
+	//	if key.KeyName == keyName {
+	//		return nil
+	//	}
+	//}
+	//
+	//if resp.Error.Code != 0 {
+	//	return fmt.Errorf("[ERROR] read key pairs failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
+	//}
+	//d.SetId("")
+	//return nil
 }
 
 func resourceJDCloudKeyPairsDelete(d *schema.ResourceData, meta interface{}) error {

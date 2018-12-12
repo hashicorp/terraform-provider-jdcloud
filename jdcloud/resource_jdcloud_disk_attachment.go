@@ -112,7 +112,7 @@ func resourceJDCloudDiskAttachmentUpdate(d *schema.ResourceData, meta interface{
 		autoDelete := d.Get("auto_delete").(bool)
 		instanceID := d.Get("instance_id").(string)
 
-		diskAttributeArray := []vm.InstanceDiskAttribute{vm.InstanceDiskAttribute{diskID, &autoDelete}}
+		diskAttributeArray := []vm.InstanceDiskAttribute{{DiskId: diskID, AutoDelete: &autoDelete}}
 		req := apis.NewModifyInstanceDiskAttributeRequestWithAllParams(regionID, instanceID, diskAttributeArray)
 		vmClient := client.NewVmClient(config.Credential)
 		resp, err := vmClient.ModifyInstanceDiskAttribute(req)

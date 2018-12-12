@@ -130,7 +130,7 @@ func testAccDiskInstanceDestroy(resourceName string) resource.TestCheckFunc {
 		}
 
 		if resp.Error.Code == 0 {
-			return fmt.Errorf("failed in deleting certain resources position-11 ,%s", resp.Error)
+			return fmt.Errorf("failed in deleting certain resources position-11 ,code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 		}
 
 		return nil

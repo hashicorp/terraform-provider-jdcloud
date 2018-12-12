@@ -76,7 +76,8 @@ func testAccIfNetworkInterfaceExists(networkInterfaceName string, networkInterfa
 			return err
 		}
 		if responseOnNetworkInterface.Error.Code != 0 {
-			return fmt.Errorf("resources created locally but not remotely: %s", responseOnNetworkInterface.Error)
+			return fmt.Errorf("resources created locally but not remotely: code:%d staus:%s message:%s ",
+				responseOnNetworkInterface.Error.Code, responseOnNetworkInterface.Error.Status, responseOnNetworkInterface.Error.Message)
 		}
 
 		// STEP-3-Verification on SECONDARY-IP-ADDRESSES

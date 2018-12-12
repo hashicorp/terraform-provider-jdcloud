@@ -247,7 +247,7 @@ func DeleteVmInstance(d *schema.ResourceData, m interface{}) (*apis.DeleteInstan
 type vmLogger struct{ core.Logger }
 
 func (l vmLogger) Log(level int, message ...interface{}) {
-	log.Printf("[VM]", message...)
+	log.Print(message...)
 }
 
 func resourceJDCloudInstanceCreate(d *schema.ResourceData, m interface{}) error {
@@ -337,7 +337,7 @@ func resourceJDCloudInstanceCreate(d *schema.ResourceData, m interface{}) error 
 	if err != nil {
 		return err
 	} else if resp.Error.Code != 0 {
-		return fmt.Errorf("Create vm instance failed: %s", resp.Error)
+		return fmt.Errorf("[ERROR] resourceJDCloudInstanceCreate failed  code:%d staus:%s message:%s", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
 
 	d.SetId(resp.Result.InstanceIds[0])

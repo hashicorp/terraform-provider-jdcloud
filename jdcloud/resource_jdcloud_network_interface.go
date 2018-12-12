@@ -5,6 +5,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/apis"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/client"
+	"log"
 )
 
 func resourceJDCloudNetworkInterface() *schema.Resource {
@@ -128,7 +129,11 @@ func resourceJDCloudNetworkInterfaceCreate(d *schema.ResourceData, meta interfac
 
 	// Default sgID is set and retrieved via "READ"
 	if setDefaultSecurityGroup {
-		resourceJDCloudNetworkInterfaceRead(d, meta)
+		errNIRead := resourceJDCloudNetworkInterfaceRead(d, meta)
+		if errNIRead != nil {
+			log.Printf("[WARN] NI has been created but failed to update info, commmand 'Terraform refresh'")
+			log.Printf("[WARN] to update your local info again'")
+		}
 	}
 
 	return nil
@@ -174,28 +179,37 @@ func resourceJDCloudNetworkInterfaceRead(d *schema.ResourceData, meta interface{
 		d.Set("secondary_ip_addresses", resp.Result.NetworkInterface.SecondaryIps)
 	}
 
-	if len(resp.Result.NetworkInterface.NetworkSecurityGroupIds) != 0 {
+	sgRemote := resp.Result.NetworkInterface.NetworkSecurityGroupIds
+	sgLocal := InterfaceToStringArray(d.Get("security_groups").([]interface{}))
+
+	if len(sgRemote) != 0 && equalSliceString(sgRemote, sgLocal) == false {
 		d.Set("security_groups", resp.Result.NetworkInterface.NetworkSecurityGroupIds)
 	}
 
 	return nil
 }
+
 func resourceJDCloudNetworkInterfaceUpdate(d *schema.ResourceData, meta interface{}) error {
-	return nil
-	config := meta.(*JDCloudConfig)
-	vpcClient := client.NewVpcClient(config.Credential)
 
-	sg := InterfaceToStringArray(d.Get("security_groups").([]interface{}))
-	req := apis.NewModifyNetworkInterfaceRequestWithAllParams(config.Region, d.Id(), GetStringAddr(d, "network_interface_name"), GetStringAddr(d, "description"), sg)
-	resp, err := vpcClient.ModifyNetworkInterface(req)
+	if d.HasChange("network_interface_name") || d.HasChange("secondary_ip_addresses") || d.HasChange("security_groups") {
 
-	if err != nil {
-		return fmt.Errorf("[ERROR] resourceJDCloudNetworkInterfaceUpdate failed %s ", err.Error())
+		config := meta.(*JDCloudConfig)
+		vpcClient := client.NewVpcClient(config.Credential)
+
+		sg := InterfaceToStringArray(d.Get("security_groups").([]interface{}))
+		req := apis.NewModifyNetworkInterfaceRequestWithAllParams(config.Region, d.Id(), GetStringAddr(d, "network_interface_name"), GetStringAddr(d, "description"), sg)
+		resp, err := vpcClient.ModifyNetworkInterface(req)
+
+		if err != nil {
+			return fmt.Errorf("[ERROR] resourceJDCloudNetworkInterfaceUpdate failed %s ", err.Error())
+		}
+
+		if resp.Error.Code != 0 {
+			return fmt.Errorf("[ERROR] resourceJDCloudNetworkInterfaceUpdate failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
+		}
+
 	}
 
-	if resp.Error.Code != 0 {
-		return fmt.Errorf("[ERROR] resourceJDCloudNetworkInterfaceUpdate failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
-	}
 	return nil
 }
 

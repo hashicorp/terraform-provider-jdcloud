@@ -6,6 +6,7 @@ import (
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/apis"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/client"
 	vpc "github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/models"
+	"log"
 	"strconv"
 )
 
@@ -109,7 +110,11 @@ func resourceJDCloudNetworkSecurityGroupRulesCreate(d *schema.ResourceData, meta
 	}
 
 	// This step is set since rule ID can not be retrieved via "create"
-	resourceJDCloudNetworkSecurityGroupRulesRead(d, meta)
+	errUpdateInfo := resourceJDCloudNetworkSecurityGroupRulesRead(d, meta)
+	if errUpdateInfo != nil {
+		log.Printf("[WARN] SgRules has been created but resource information mismatch")
+		log.Printf("[WARN] Command 'Terraform refresh to update your local resource info'")
+	}
 
 	d.SetId(networkSecurityGroupID)
 	return nil
@@ -168,12 +173,12 @@ func resourceJDCloudNetworkSecurityGroupRulesUpdate(d *schema.ResourceData, meta
 		for i := 0; i < sgRuleLength; i++ {
 
 			sgRule := vpc.ModifySecurityGroupRules{
-				d.Get("add_security_group_rules." + strconv.Itoa(i) + ".rule_id").(string),
-				GetIntAddr(d, "add_security_group_rules."+strconv.Itoa(i)+".protocol"),
-				GetIntAddr(d, "add_security_group_rules."+strconv.Itoa(i)+".from_port"),
-				GetIntAddr(d, "add_security_group_rules."+strconv.Itoa(i)+".to_port"),
-				GetStringAddr(d, "add_security_group_rules."+strconv.Itoa(i)+".address_prefix"),
-				GetStringAddr(d, "add_security_group_rules."+strconv.Itoa(i)+".description"),
+				RuleId:        d.Get("add_security_group_rules." + strconv.Itoa(i) + ".rule_id").(string),
+				Protocol:      GetIntAddr(d, "add_security_group_rules."+strconv.Itoa(i)+".protocol"),
+				FromPort:      GetIntAddr(d, "add_security_group_rules."+strconv.Itoa(i)+".from_port"),
+				ToPort:        GetIntAddr(d, "add_security_group_rules."+strconv.Itoa(i)+".to_port"),
+				AddressPrefix: GetStringAddr(d, "add_security_group_rules."+strconv.Itoa(i)+".address_prefix"),
+				Description:   GetStringAddr(d, "add_security_group_rules."+strconv.Itoa(i)+".description"),
 			}
 
 			modifySecurityGroupRuleSpecs = append(modifySecurityGroupRuleSpecs, sgRule)

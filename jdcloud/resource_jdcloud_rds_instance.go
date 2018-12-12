@@ -108,22 +108,22 @@ func resourceJDCloudRDSInstanceCreate(d *schema.ResourceData, meta interface{}) 
 		if _, ok := d.GetOk("charge_duration"); !ok {
 			return fmt.Errorf("[ERROR] resourceJDCloudRDSCreate failed in chargeDuration parameter")
 		}
-		chargeSpec = &models.ChargeSpec{&chargeMode, GetStringAddr(d, "charge_unit"), GetIntAddr(d, "charge_duration")}
+		chargeSpec = &models.ChargeSpec{ChargeMode: &chargeMode, ChargeUnit: GetStringAddr(d, "charge_unit"), ChargeDuration: GetIntAddr(d, "charge_duration")}
 	} else {
-		chargeSpec = &models.ChargeSpec{&chargeMode, nil, nil}
+		chargeSpec = &models.ChargeSpec{ChargeMode: &chargeMode}
 	}
 	req := apis.NewCreateInstanceRequest(
 		config.Region,
 		&rds.DBInstanceSpec{
-			GetStringAddr(d, "instance_name"),
-			d.Get("engine").(string),
-			d.Get("engine_version").(string),
-			d.Get("instance_class").(string),
-			d.Get("instance_storage_gb").(int),
-			[]string{d.Get("az").(string)},
-			d.Get("vpc_id").(string),
-			d.Get("subnet_id").(string),
-			chargeSpec,
+			InstanceName:      GetStringAddr(d, "instance_name"),
+			Engine:            d.Get("engine").(string),
+			EngineVersion:     d.Get("engine_version").(string),
+			InstanceClass:     d.Get("instance_class").(string),
+			InstanceStorageGB: d.Get("instance_storage_gb").(int),
+			AzId:              []string{d.Get("az").(string)},
+			VpcId:             d.Get("vpc_id").(string),
+			SubnetId:          d.Get("subnet_id").(string),
+			ChargeSpec:        chargeSpec,
 		},
 	)
 
@@ -236,8 +236,8 @@ func waitForRDS(id string, meta interface{}, expectedStatus string) error {
 			connectFailedCount = 0
 		}
 	}
-	return nil
 }
+
 func noOtherAttributesModified(d *schema.ResourceData) error {
 	remainingAttr := []string{"charge_duration", "charge_unit", "charge_mode", "connection_mode",
 		"internal_domain_name", "rds_id", "subnet_id", "vpc_id", "az", "instance_name",

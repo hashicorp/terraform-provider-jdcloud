@@ -89,7 +89,6 @@ func testAccIfDiskExists(diskName string, diskId *string) resource.TestCheckFunc
 func testAccCheckDiskDestroy(diskId *string) resource.TestCheckFunc {
 
 	return func(stateInfo *terraform.State) error {
-		return nil
 
 		if *diskId == "" {
 			return errors.New("subnetID is empty")

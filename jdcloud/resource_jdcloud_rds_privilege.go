@@ -60,8 +60,8 @@ func resourceJDCloudRDSPrivilegeCreate(d *schema.ResourceData, meta interface{})
 	for _, item := range d.Get("account_privilege").([]interface{}) {
 		itemMap := item.(map[string]interface{})
 		accountPrivileges = append(accountPrivileges, models.AccountPrivilege{
-			stringAddr(itemMap["db_name"]),
-			stringAddr(itemMap["privilege"]),
+			DbName:    stringAddr(itemMap["db_name"]),
+			Privilege: stringAddr(itemMap["privilege"]),
 		})
 	}
 

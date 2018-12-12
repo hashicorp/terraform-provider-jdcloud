@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/hashicorp/terraform/helper/schema"
+	"log"
 	"os"
 	"path/filepath"
 )
@@ -59,7 +60,10 @@ func resourceJDCloudOssBucketUploadCreate(d *schema.ResourceData, meta interface
 	if err != nil {
 		return fmt.Errorf("[ERROR] Failed to open file namely %s, Error message-%s", fileName, err)
 	}
-	defer file.Close()
+	errFileClose := file.Close()
+	if errFileClose != nil {
+		log.Printf("Here may have some problem since we cannot close this file")
+	}
 
 	uploader := getUploader(meta)
 	respUpload, errUpload := uploader.Upload(&s3manager.UploadInput{
@@ -68,7 +72,7 @@ func resourceJDCloudOssBucketUploadCreate(d *schema.ResourceData, meta interface
 		Body:   file,
 	})
 	if errUpload != nil || respUpload.Location == "" {
-		return fmt.Errorf("[ERROR] Failed to upload file", errUpload)
+		return fmt.Errorf("[ERROR] Failed to upload file: %s", errUpload.Error())
 	}
 
 	d.Set("remote_location", respUpload.Location)

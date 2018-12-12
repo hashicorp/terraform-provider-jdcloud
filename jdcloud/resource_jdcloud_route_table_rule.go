@@ -64,10 +64,7 @@ func resourceJDCloudRouteTableRuleCreate(d *schema.ResourceData, meta interface{
 
 	routeTableRuleSpecs = append(routeTableRuleSpecs, routeTableRuleSpec)
 
-	//构造请求
 	rq := apis.NewAddRouteTableRulesRequest(config.Region, routeTableID, routeTableRuleSpecs)
-
-	//发送请求
 	resp, err := vpcClient.AddRouteTableRules(rq)
 
 	if err != nil {
@@ -79,9 +76,7 @@ func resourceJDCloudRouteTableRuleCreate(d *schema.ResourceData, meta interface{
 		return errors.New(resp.Error.Message)
 	}
 
-	//没有规则id返回，暂时是无法删除的
 	d.SetId(resp.RequestID)
-
 	return nil
 }
 func resourceJDCloudRouteTableRuleRead(d *schema.ResourceData, meta interface{}) error {

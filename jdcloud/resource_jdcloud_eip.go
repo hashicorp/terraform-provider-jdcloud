@@ -42,9 +42,9 @@ func resourceJDCloudEIPCreate(d *schema.ResourceData, meta interface{}) error {
 
 	config := meta.(*JDCloudConfig)
 	elasticIpSpec := vpcModels.ElasticIpSpec{
-		d.Get("bandwidth_mbps").(int),
-		d.Get("eip_provider").(string),
-		&models.ChargeSpec{},
+		BandwidthMbps: d.Get("bandwidth_mbps").(int),
+		Provider:      d.Get("eip_provider").(string),
+		ChargeSpec:    &models.ChargeSpec{},
 	}
 	req := apis.NewCreateElasticIpsRequest(config.Region, maxEIPCount, &elasticIpSpec)
 	if _, ok := d.GetOk("elastic_ip_address"); ok {

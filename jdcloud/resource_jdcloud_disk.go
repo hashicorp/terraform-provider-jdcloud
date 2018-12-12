@@ -200,7 +200,7 @@ func resourceJDCloudDiskDelete(d *schema.ResourceData, meta interface{}) error {
 			continue
 		}
 		if resp.Error.Code != 0 || err != nil {
-			return fmt.Errorf("[ERROR] failed in resourceJDCloudDiskUpdate code:%d message:%s error:", resp.Error.Code, resp.Error.Message, err.Error())
+			return fmt.Errorf("[ERROR] failed in resourceJDCloudDiskUpdate code:%d message:%s error:%s", resp.Error.Code, resp.Error.Message, err.Error())
 		}
 	}
 
