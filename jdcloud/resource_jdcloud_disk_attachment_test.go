@@ -12,8 +12,8 @@ import (
 
 const TestAccDiskAttachmentConfig = `
 resource "jdcloud_disk_attachment" "disk-attachment-TEST-1"{
-	instance_id = "i-96ef5rv62n" 
-	disk_id = "vol-39dmz9csj6"
+	instance_id = "i-77kettd7jf" 
+	disk_id = "vol-b16dbj2opo"
 }
 `
 
@@ -93,10 +93,11 @@ func testAccDiskAttachmentDestroy(resourceId *string, diskId *string) resource.T
 			return err
 		}
 
-		if resp.Result.Instance.DataDisks[0].Status == "detached" || resp.Result.Instance.DataDisks[0].Status == "detaching" {
-			return nil
+		for _, disk := range resp.Result.Instance.DataDisks {
+			if *diskId == disk.CloudDisk.DiskId && disk.Status!=DISK_DETACHED{
+				return fmt.Errorf("data disk failed in detatching")
+			}
 		}
-
-		return fmt.Errorf("data disk failed in detatching ")
+		return nil
 	}
 }

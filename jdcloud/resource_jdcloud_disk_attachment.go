@@ -6,6 +6,7 @@ import (
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vm/apis"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vm/client"
 	vm "github.com/jdcloud-api/jdcloud-sdk-go/services/vm/models"
+	"time"
 )
 
 func resourceJDCloudDiskAttachment() *schema.Resource {
@@ -48,7 +49,7 @@ func resourceJDCloudDiskAttachment() *schema.Resource {
 }
 
 func resourceJDCloudDiskAttachmentCreate(d *schema.ResourceData, meta interface{}) error {
-
+	d.Partial(true)
 	config := meta.(*JDCloudConfig)
 	instanceID := d.Get("instance_id").(string)
 	diskID := d.Get("disk_id").(string)
@@ -68,18 +69,25 @@ func resourceJDCloudDiskAttachmentCreate(d *schema.ResourceData, meta interface{
 	if err != nil {
 		return fmt.Errorf("[ERROR] resourceJDCloudDiskAttachmentCreate failed %s ", err.Error())
 	}
-	if resp.Error.Code != 0 {
+	if resp.Error.Code != REQUEST_COMPLETED {
 		return fmt.Errorf("[ERROR] resourceJDCloudDiskAttachmentCreate  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
+	if errAttaching := waitForDiskAttaching(d, meta, instanceID ,diskID, DISK_ATTACHED); errAttaching != nil {
+		return fmt.Errorf("[ERROR] failed in attaching disk,reasons: %s", errAttaching.Error())
+	}
 
+	d.SetPartial("disk_id")
+	d.SetPartial("instance_id")
+	d.SetPartial("device_name")
+	d.SetPartial("auto_delete")
+
+	d.Partial(false)
 	d.SetId(resp.RequestID)
 	return nil
 }
 
 func resourceJDCloudDiskAttachmentRead(d *schema.ResourceData, meta interface{}) error {
 
-	// If disk has been found detached from instance
-	// Remove this resource locally
 	config := meta.(*JDCloudConfig)
 	instanceID := d.Get("instance_id").(string)
 	diskID := d.Get("disk_id").(string)
@@ -91,6 +99,17 @@ func resourceJDCloudDiskAttachmentRead(d *schema.ResourceData, meta interface{})
 	if err != nil {
 		return err
 	}
+
+	// If the instance has been deleted already, remove attachment info from local state
+	if resp.Error.Code == RESOURCE_NOT_FOUND {
+		d.SetId("")
+		return nil
+	}
+
+	if resp.Error.Code != REQUEST_COMPLETED {
+		return fmt.Errorf("[ERROR] resourceJDCloudDiskAttachmentRead  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
+	}
+
 	for _, disk := range resp.Result.Instance.DataDisks {
 		if diskID == disk.CloudDisk.DiskId {
 			d.Set("auto_delete", disk.AutoDelete)
@@ -98,6 +117,8 @@ func resourceJDCloudDiskAttachmentRead(d *schema.ResourceData, meta interface{})
 		}
 	}
 
+	// If this disk is not found attaching on this Instance
+	// It is supposed to be detached already.Remove it from local state.
 	d.SetId("")
 	return nil
 }
@@ -120,7 +141,7 @@ func resourceJDCloudDiskAttachmentUpdate(d *schema.ResourceData, meta interface{
 		if err != nil {
 			return fmt.Errorf("[ERROR] Failed in resourceJDCloudDiskAttachmentCreate failed %s ", err.Error())
 		}
-		if resp.Error.Code != 0 {
+		if resp.Error.Code != REQUEST_COMPLETED {
 			return fmt.Errorf("[ERROR] Failed in resourceJDCloudDiskAttachmentUpdate,Error code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 		}
 	}
@@ -129,6 +150,7 @@ func resourceJDCloudDiskAttachmentUpdate(d *schema.ResourceData, meta interface{
 }
 
 func resourceJDCloudDiskAttachmentDelete(d *schema.ResourceData, meta interface{}) error {
+	d.Partial(true)
 
 	config := meta.(*JDCloudConfig)
 	instanceID := d.Get("instance_id").(string)
@@ -145,9 +167,60 @@ func resourceJDCloudDiskAttachmentDelete(d *schema.ResourceData, meta interface{
 	if err != nil {
 		return fmt.Errorf("[ERROR] Failed in resourceJDCloudDiskAttachmentDelete failed %s ", err.Error())
 	}
-	if resp.Error.Code != 0 {
+	if resp.Error.Code != REQUEST_COMPLETED {
 		return fmt.Errorf("[ERROR] Failed in resourceJDCloudDiskAttachmentDelete,Error code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
 
+	if errDetaching := waitForDiskAttaching(d, meta, instanceID ,diskID, DISK_DETACHED); errDetaching != nil {
+		return fmt.Errorf("[ERROR] Faield in removing resource, reasons are following :%s", errDetaching.Error())
+	}
+
+	d.SetPartial("disk_id")
+	d.SetPartial("instance_id")
+	d.SetPartial("device_name")
+	d.SetPartial("auto_delete")
+
+	d.Partial(false)
+	d.SetId("")
 	return nil
+}
+
+func waitForDiskAttaching(d *schema.ResourceData, meta interface{},instanceId, diskId string, expectedStatus string) error {
+
+	currentTime := int(time.Now().Unix())
+	config := meta.(*JDCloudConfig)
+	vmClient := client.NewVmClient(config.Credential)
+	req := apis.NewDescribeInstanceRequest(config.Region, instanceId)
+	reconnectCount := 0
+
+	for {
+
+		time.Sleep(3 * time.Second)
+		resp, err := vmClient.DescribeInstance(req)
+
+		for _, disk := range resp.Result.Instance.DataDisks {
+			if diskId == disk.CloudDisk.DiskId {
+				if disk.Status == expectedStatus {
+					return nil
+				}
+				break // Jump out to Position-A
+			}
+		}
+		// Position-A
+
+		if int(time.Now().Unix())-currentTime > DISK_ATTACHMENT_TIMEOUT {
+			return fmt.Errorf("[ERROR] resourceJDCloudDiskAttachment failed, timeout")
+		}
+
+		if err != nil {
+			if reconnectCount > MAX_RECONNECT_COUNT {
+				return fmt.Errorf("[ERROR] resourceJDCloudDiskAttachment, MAX_RECONNECT_COUNT Exceeded failed %s ", err.Error())
+			}
+			reconnectCount++
+			continue
+		} else {
+			reconnectCount = 0
+		}
+
+	}
 }

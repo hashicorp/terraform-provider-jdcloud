@@ -38,9 +38,12 @@ const (
 )
 
 const (
-	DISK_AVAILABLE = "available"
-	DISK_DELETED   = "deleted"
-	DISK_TIMEOUT   = 60
+	DISK_AVAILABLE          = "available"
+	DISK_DELETED            = "deleted"
+	DISK_TIMEOUT            = 60
+	DISK_ATTACHMENT_TIMEOUT = 60
+	DISK_ATTACHED           = "attached"
+	DISK_DETACHED           = "detached"
 )
 
 const (
