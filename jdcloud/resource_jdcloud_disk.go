@@ -278,13 +278,10 @@ func waitForDisk(d *schema.ResourceData, meta interface{}, id string, expectedSt
 
 //   Important LOGS on DefaultFunc()
 //
-//   1. Once you've set some attr with a default function
-//      Where this default function returns a random value
+//	 Default function is supposed to return a fixed value rather than generating a random value
+//   For a random value generating, integrate it into your code. Once you have used a DefaultFunc,
+//   make sure they give same answer each time.
 //
-//   2. Now, each time tf will verify that if the value stored locally has changed
-//      It did so by checking each fields again.
+//   Each time when TERRAFORM PLAN is applied, terraform will check if value stored in "State"
+//   Matches with DefaultFunc, which returns a different value, this may lead to acc_test fail
 //
-//   3. "terraform apply"    RANDOM() ->  123  -> attr = 123
-//     "terraform plan!"     RANDOM() ->  456  -> TF: attr has changed, now lets update
-//
-//   4. Way of dealing with this
