@@ -24,8 +24,24 @@ var (
 	}
 )
 
-const DefaultTimeout = 600
-const DefaultSecurityGroupsMax = 5
+const (
+	DefaultTimeout           = 600
+	DefaultSecurityGroupsMax = 5
+	MAX_DISK_COUNT           = 1
+	MAX_RECONNECT_COUNT      = 3
+
+	REQUEST_COMPLETED  = 0
+	RESOURCE_NOT_FOUND = 404
+	REQUEST_INVALID    = 400
+
+	MAX_RETRY_COUNT = 3
+)
+
+const (
+	DISK_AVAILABLE = "available"
+	DISK_DELETED   = "deleted"
+	DISK_TIMEOUT   = 60
+)
 
 const (
 	VM_PENDING    = "pending"

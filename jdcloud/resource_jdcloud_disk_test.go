@@ -9,7 +9,6 @@ import (
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/disk/client"
 	"strconv"
 	"testing"
-	"time"
 )
 
 const TestAccDiskConfig = `
@@ -17,8 +16,8 @@ resource "jdcloud_disk" "disk_test_1" {
   az           = "cn-north-1a"
   name         = "test_disk"
   description  = "test"
-  disk_type    = "premium-hdd"
-  disk_size_gb = 50
+  disk_type    = "ssd"
+  disk_size_gb = 20
 }
 `
 
@@ -35,13 +34,11 @@ func TestAccJDCloudDisk_basic(t *testing.T) {
 				Config: TestAccDiskConfig,
 				Check: resource.ComposeTestCheckFunc(
 
-					// SUBNET_ID verification
 					testAccIfDiskExists("jdcloud_disk.disk_test_1", &diskId),
 				),
 			},
 		},
 	})
-
 }
 
 func testAccIfDiskExists(diskName string, diskId *string) resource.TestCheckFunc {
@@ -98,24 +95,15 @@ func testAccCheckDiskDestroy(diskId *string) resource.TestCheckFunc {
 		diskClient := client.NewDiskClient(diskConfig.Credential)
 
 		req := apis.NewDescribeDiskRequest(diskConfig.Region, *diskId)
-
-		retryCount := 0
-	retryTag:
 		resp, err := diskClient.DescribeDisk(req)
 
 		if err != nil {
 			return err
 		}
-
-		if resp.Result.Disk.Status == "deleting" && retryCount < 3 {
-			retryCount++
-			time.Sleep(time.Second * 3)
-			goto retryTag
-		}
-
 		if resp.Result.Disk.Status != "deleted" {
 			return fmt.Errorf("resource still exists %s,%s", *diskId, resp.Result.Disk.Status)
 		}
+
 		return nil
 	}
 }
