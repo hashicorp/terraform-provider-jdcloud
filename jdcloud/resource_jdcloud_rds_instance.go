@@ -162,11 +162,11 @@ func resourceJDCloudRDSInstanceCreate(d *schema.ResourceData, meta interface{}) 
 	d.SetPartial("charge_duration")
 
 	// This step is added since "domain_name" is needed but only available through reading
-	if err:= resourceJDCloudRDSInstanceRead(d, meta);err ==nil {
+	if err := resourceJDCloudRDSInstanceRead(d, meta); err == nil {
 		d.SetPartial("internal_domain_name")
 		d.SetPartial("public_domain_name")
-	}else{
-		log.Printf("Resource Created but failed to load its name,reasons: %s",err.Error())
+	} else {
+		log.Printf("Resource Created but failed to load its name,reasons: %s", err.Error())
 	}
 
 	d.Partial(false)

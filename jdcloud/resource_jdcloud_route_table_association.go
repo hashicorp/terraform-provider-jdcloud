@@ -17,7 +17,7 @@ func resourceJDCloudRouteTableAssociation() *schema.Resource {
 		Update: resourceRouteTableAssociationUpdate,
 		Delete: resourceRouteTableAssociationDelete,
 
-		Schema: map[string]*schema.Schema {
+		Schema: map[string]*schema.Schema{
 
 			"route_table_id": {
 				Type:     schema.TypeString,
@@ -82,8 +82,8 @@ func resourceRouteTableAssociationRead(d *schema.ResourceData, meta interface{})
 		return fmt.Errorf("[ERROR] resourceRouteTableAssociationRead failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
 
-	if err:= d.Set("subnet_id", resp.Result.RouteTable.SubnetIds);err!=nil{
-		return fmt.Errorf("[ERROR] Failed in resourceRouteTableAssociationRead,reasons: %s",err.Error())
+	if err := d.Set("subnet_id", resp.Result.RouteTable.SubnetIds); err != nil {
+		return fmt.Errorf("[ERROR] Failed in resourceRouteTableAssociationRead,reasons: %s", err.Error())
 	}
 
 	return nil
@@ -91,24 +91,24 @@ func resourceRouteTableAssociationRead(d *schema.ResourceData, meta interface{})
 
 func resourceRouteTableAssociationUpdate(d *schema.ResourceData, m interface{}) error {
 
-	if d.HasChange("subnet_id"){
+	if d.HasChange("subnet_id") {
 
-		pInterface,cInterface := d.GetChange("subnet_id")
-		p:= pInterface.(*schema.Set)
-		c:= cInterface.(*schema.Set)
+		pInterface, cInterface := d.GetChange("subnet_id")
+		p := pInterface.(*schema.Set)
+		c := cInterface.(*schema.Set)
 		i := p.Intersection(c)
 
 		detachList := typeSetToStringArray(p.Difference(i))
 		attachList := typeSetToStringArray(c.Difference(i))
 
-		if result:= performSubnetDetach(d,m,detachList) && performSubnetAttach(d,m,attachList);result==false{
+		if result := performSubnetDetach(d, m, detachList) && performSubnetAttach(d, m, attachList); result == false {
 			return fmt.Errorf("[ERROR] resourceRouteTableAssociationUpdate failed")
 		}
 
-		d.Set("subnet_id",cInterface)
+		d.Set("subnet_id", cInterface)
 	}
 
-	return nil
+	return resourceRouteTableAssociationRead(d, m)
 }
 
 func resourceRouteTableAssociationDelete(d *schema.ResourceData, meta interface{}) error {
@@ -136,16 +136,16 @@ func resourceRouteTableAssociationDelete(d *schema.ResourceData, meta interface{
 	return nil
 }
 
-func typeSetToStringArray(set *schema.Set) []string{
+func typeSetToStringArray(set *schema.Set) []string {
 
 	ret := []string{}
-	for _,item := range set.List() {
-		ret = append(ret,item.(string))
+	for _, item := range set.List() {
+		ret = append(ret, item.(string))
 	}
 	return ret
 }
 
-func performSubnetAttach(d *schema.ResourceData, meta interface{},attachList []string) bool {
+func performSubnetAttach(d *schema.ResourceData, meta interface{}, attachList []string) bool {
 
 	performSuccess := true
 	config := meta.(*JDCloudConfig)
@@ -153,14 +153,14 @@ func performSubnetAttach(d *schema.ResourceData, meta interface{},attachList []s
 
 	req := apis.NewAssociateRouteTableRequest(config.Region, d.Get("route_table_id").(string), attachList)
 	resp, err := disassociationClient.AssociateRouteTable(req)
-	if err != nil || resp.Error.Code != REQUEST_COMPLETED{
-			performSuccess = false
+	if err != nil || resp.Error.Code != REQUEST_COMPLETED {
+		performSuccess = false
 	}
 
-	return len(attachList)==RESOURCE_EMPTY || performSuccess
+	return len(attachList) == RESOURCE_EMPTY || performSuccess
 }
 
-func performSubnetDetach(d *schema.ResourceData, meta interface{},detachList []string) bool {
+func performSubnetDetach(d *schema.ResourceData, meta interface{}, detachList []string) bool {
 
 	performSuccess := true
 	config := meta.(*JDCloudConfig)
@@ -171,7 +171,7 @@ func performSubnetDetach(d *schema.ResourceData, meta interface{},detachList []s
 
 		req := apis.NewDisassociateRouteTableRequest(config.Region, routeTableId, id)
 		resp, err := disassociationClient.DisassociateRouteTable(req)
-		if err != nil || resp.Error.Code != REQUEST_COMPLETED{
+		if err != nil || resp.Error.Code != REQUEST_COMPLETED {
 			performSuccess = false
 		}
 	}

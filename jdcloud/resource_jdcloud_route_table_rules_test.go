@@ -13,7 +13,7 @@ import (
 const TestAccRouteTableRulesConfig = `
 resource "jdcloud_route_table_rules" "rule-TEST-1"{
   route_table_id = "rtb-jgso5x1ein"
-  route_table_rule_specs = [{
+  rule_specs = [{
     next_hop_type = "internet"
     next_hop_id   = "internet"
     address_prefix= "10.0.0.0/16"

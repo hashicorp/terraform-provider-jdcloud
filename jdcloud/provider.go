@@ -24,7 +24,6 @@ func Provider() *schema.Provider {
 			"jdcloud_eip_association":              resourceJDCloudAssociateElasticIp(),
 			"jdcloud_route_table_rules":            resourceJDCloudRouteTableRules(),
 			"jdcloud_network_interface_attachment": resourceJDCloudNetworkInterfaceAttach(),
-			"jdcloud_route_table_rule":             resourceJDCloudRouteTableRule(),
 			"jdcloud_rds_instance":                 resourceJDCloudRDSInstance(),
 			"jdcloud_rds_account":                  resourceJDCloudRDSAccount(),
 			"jdcloud_rds_database":                 resourceJDCloudRDSDatabase(),

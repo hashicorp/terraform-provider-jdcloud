@@ -114,8 +114,8 @@ func resourceJDCloudRDSPrivilegeRead(d *schema.ResourceData, meta interface{}) e
 				latestPrivileges = append(latestPrivileges, latestPrivilege)
 			}
 
-			if err := d.Set("account_privilege", latestPrivileges);err!=nil{
-				return fmt.Errorf("[ERROR] Failed in resourceJDCloudRDSPrivilegeRead,reasons:%s",err.Error())
+			if err := d.Set("account_privilege", latestPrivileges); err != nil {
+				return fmt.Errorf("[ERROR] Failed in resourceJDCloudRDSPrivilegeRead,reasons:%s", err.Error())
 			}
 			return nil
 

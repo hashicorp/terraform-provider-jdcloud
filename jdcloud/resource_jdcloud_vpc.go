@@ -40,9 +40,8 @@ func resourceJDCloudVpc() *schema.Resource {
 func resourceVpcCreate(d *schema.ResourceData, m interface{}) error {
 
 	config := m.(*JDCloudConfig)
-	regionID := config.Region
-	vpcName := d.Get("vpc_name").(string)
-	req := apis.NewCreateVpcRequest(regionID, vpcName)
+	req := apis.NewCreateVpcRequest(config.Region, d.Get("vpc_name").(string))
+
 	if _, ok := d.GetOk("cidr_block"); ok {
 		req.AddressPrefix = GetStringAddr(d, "cidr_block")
 	}
@@ -57,7 +56,7 @@ func resourceVpcCreate(d *schema.ResourceData, m interface{}) error {
 		return fmt.Errorf("[ERROR] resourceVpcCreate failed %s ", err.Error())
 	}
 
-	if resp.Error.Code != 0 {
+	if resp.Error.Code != REQUEST_COMPLETED {
 		return fmt.Errorf("[ERROR] resourceVpcCreate failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
 
@@ -77,12 +76,12 @@ func resourceVpcRead(d *schema.ResourceData, m interface{}) error {
 		return fmt.Errorf("[ERROR] resourceVpcRead failed %s ", err.Error())
 	}
 
-	if resp.Error.Code == 404 {
+	if resp.Error.Code == RESOURCE_NOT_FOUND {
 		d.SetId("")
 		return nil
 	}
 
-	if resp.Error.Code != 0 {
+	if resp.Error.Code != REQUEST_COMPLETED {
 		return fmt.Errorf("[ERROR] resourceVpcRead failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
 
@@ -110,7 +109,7 @@ func resourceVpcUpdate(d *schema.ResourceData, m interface{}) error {
 			return fmt.Errorf("[ERROR] resourceVpcUpdate failed %s ", err.Error())
 		}
 
-		if resp.Error.Code != 0 {
+		if resp.Error.Code != REQUEST_COMPLETED {
 			return fmt.Errorf("[ERROR] resourceVpcUpdate failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 		}
 
@@ -120,6 +119,7 @@ func resourceVpcUpdate(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceVpcDelete(d *schema.ResourceData, m interface{}) error {
+	
 	config := m.(*JDCloudConfig)
 	vpcClient := client.NewVpcClient(config.Credential)
 
@@ -130,7 +130,7 @@ func resourceVpcDelete(d *schema.ResourceData, m interface{}) error {
 		return fmt.Errorf("[ERROR] resourceVpcDelete failed %s ", err.Error())
 	}
 
-	if resp.Error.Code != 0 {
+	if resp.Error.Code != REQUEST_COMPLETED {
 		return fmt.Errorf("[ERROR] resourceVpcDelete failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
 
