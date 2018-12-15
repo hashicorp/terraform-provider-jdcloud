@@ -29,7 +29,6 @@ func TestAccJDCloudKeyPairs_basic(t *testing.T) {
 				Config: TestAccKeyPairsConfig,
 				Check: resource.ComposeTestCheckFunc(
 
-					// VPC_ID validation
 					testAccIfKeyPairsExists("jdcloud_key_pairs.keypairs_1", &keyName),
 				),
 			},
@@ -61,7 +60,7 @@ func testAccIfKeyPairsExists(name string, id *string) resource.TestCheckFunc {
 		if err != nil {
 			return err
 		}
-		if resp.Error.Code != 0 {
+		if resp.Error.Code != REQUEST_COMPLETED {
 			return fmt.Errorf("invalid region id")
 		}
 

@@ -66,7 +66,7 @@ func resourceJDCloudNetworkSecurityGroupRules() *schema.Resource {
 }
 
 func resourceJDCloudNetworkSecurityGroupRulesCreate(d *schema.ResourceData, meta interface{}) error {
-
+	d.Partial(true)
 	config := meta.(*JDCloudConfig)
 	networkSecurityGroupID := d.Get("network_security_group_id").(string)
 	vpcClient := client.NewVpcClient(config.Credential)
@@ -105,17 +105,21 @@ func resourceJDCloudNetworkSecurityGroupRulesCreate(d *schema.ResourceData, meta
 	if err != nil {
 		return fmt.Errorf("[ERROR] resourceJDCloudNetworkSecurityGroupRulesCreate failed %s ", err.Error())
 	}
-	if resp.Error.Code != 0 {
+	if resp.Error.Code != REQUEST_COMPLETED {
 		return fmt.Errorf("[ERROR] resourceJDCloudNetworkSecurityGroupRulesCreate failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
+	d.SetPartial("add_security_group_rules")
+	d.SetPartial("network_security_group_id")
 
 	// This step is set since rule ID can not be retrieved via "create"
 	errUpdateInfo := resourceJDCloudNetworkSecurityGroupRulesRead(d, meta)
-	if errUpdateInfo != nil {
+	if errUpdateInfo == nil {
+	} else {
 		log.Printf("[WARN] SgRules has been created but resource information mismatch")
 		log.Printf("[WARN] Command 'Terraform refresh to update your local resource info'")
 	}
 
+	d.Partial(false)
 	d.SetId(networkSecurityGroupID)
 	return nil
 }
@@ -131,11 +135,11 @@ func resourceJDCloudNetworkSecurityGroupRulesRead(d *schema.ResourceData, meta i
 	if err != nil {
 		return fmt.Errorf("[ERROR] resourceJDCloudNetworkSecurityGroupRulesRead failed %s ", err.Error())
 	}
-	if resp.Error.Code == 404 {
+	if resp.Error.Code == RESOURCE_NOT_FOUND {
 		d.SetId("")
 		return nil
 	}
-	if resp.Error.Code != 0 {
+	if resp.Error.Code != REQUEST_COMPLETED {
 		return fmt.Errorf("[ERROR] resourceJDCloudNetworkSecurityGroupRulesRead failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
 
@@ -156,7 +160,10 @@ func resourceJDCloudNetworkSecurityGroupRulesRead(d *schema.ResourceData, meta i
 
 		sgRuleArray = append(sgRuleArray, sgRule)
 	}
-	d.Set("add_security_group_rules", sgRuleArray)
+
+	if err := d.Set("add_security_group_rules", sgRuleArray); err != nil {
+		return fmt.Errorf("[ERROR] Failed in resourceJDCloudNetworkSecurityGroupRulesRead,reasons:%s", err.Error())
+	}
 	return nil
 }
 
@@ -190,7 +197,7 @@ func resourceJDCloudNetworkSecurityGroupRulesUpdate(d *schema.ResourceData, meta
 			return fmt.Errorf("[ERROR] resourceJDCloudNetworkSecurityGroupRulesUpdate failed %s ", err.Error())
 		}
 
-		if resp.Error.Code != 0 {
+		if resp.Error.Code != REQUEST_COMPLETED {
 			return fmt.Errorf("[ERROR] resourceJDCloudNetworkSecurityGroupRulesUpdate failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 		}
 	}
@@ -218,54 +225,10 @@ func resourceJDCloudNetworkSecurityGroupRulesDelete(d *schema.ResourceData, meta
 		return fmt.Errorf("[ERROR] resourceJDCloudNetworkSecurityGroupRulesDelete failed %s ", err.Error())
 	}
 
-	if resp.Error.Code != 0 {
+	if resp.Error.Code != REQUEST_COMPLETED {
 		return fmt.Errorf("[ERROR] resourceJDCloudNetworkSecurityGroupRulesDelete failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
 
 	d.SetId("")
 	return nil
-}
-
-func getSgRuleSpecs(d *schema.ResourceData, m interface{}) ([]vpc.SecurityGroupRule, []string, error) {
-
-	config := m.(*JDCloudConfig)
-	sgClient := client.NewVpcClient(config.Credential)
-
-	regionId := config.Region
-	sgId := d.Get("network_security_group_id").(string)
-
-	req := apis.NewDescribeNetworkSecurityGroupRequest(regionId, sgId)
-	resp, err := sgClient.DescribeNetworkSecurityGroup(req)
-
-	if err != nil {
-		return nil, nil, err
-	}
-
-	sgRulesList := resp.Result.NetworkSecurityGroup.SecurityGroupRules
-	sgRuleIdList := make([]string, 0, len(sgRulesList))
-	for _, item := range sgRulesList {
-		sgRuleIdList = append(sgRuleIdList, item.RuleId)
-	}
-
-	return sgRulesList, sgRuleIdList, nil
-}
-
-func getIdList(previous []string, latest []string) []string {
-
-	IdList := make([]string, 0, len(latest)-len(previous))
-	for _, latestItem := range latest {
-
-		flag := false
-		for _, previousItem := range previous {
-
-			if latestItem == previousItem {
-
-				flag = true
-			}
-		}
-		if !flag {
-			IdList = append(IdList, latestItem)
-		}
-	}
-	return IdList
 }

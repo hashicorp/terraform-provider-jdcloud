@@ -94,7 +94,7 @@ func testAccDiskAttachmentDestroy(resourceId *string, diskId *string) resource.T
 		}
 
 		for _, disk := range resp.Result.Instance.DataDisks {
-			if *diskId == disk.CloudDisk.DiskId && disk.Status!=DISK_DETACHED{
+			if *diskId == disk.CloudDisk.DiskId && disk.Status != DISK_DETACHED {
 				return fmt.Errorf("data disk failed in detatching")
 			}
 		}

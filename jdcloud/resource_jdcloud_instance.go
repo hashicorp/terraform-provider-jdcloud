@@ -15,7 +15,7 @@ import (
 )
 
 /*
-  Reminder:
+  TODO Add these as reminder in webite
   1.Currently, the only way you can use cloud disk as [System Disk] is to
 	select your region as "cn-east-2". Usually when you set your region as
 	"cn-north-1", you can only use [local] disk instead,and the volume will
@@ -26,49 +26,64 @@ import (
   3. set no device as false to set up your data disk
 */
 
+/* 排除设备，使用此参数noDevice配合deviceName一起使用。
+创建-整机-镜像：如deviceName:vdb、noDevice:true，则表示云主机中的数据盘vdb不参与创建镜像。
+创建模板：如deviceName:vdb、noDevice:true，则表示镜像中的数据盘vdb不参与创建主机。
+创建主机：如deviceName:vdb、noDevice:true，则表示镜像中的数据盘vdb，或者模板(使用模板创建主机)中的数据盘vdb不参与创建主机。
+(Optional) */
+
 func resourceJDCloudInstance() *schema.Resource {
 	diskSchema := &schema.Resource{
 		Schema: map[string]*schema.Schema{
 			"disk_category": {
 				Type:     schema.TypeString,
 				Optional: true,
+				ForceNew: true,
 			},
 			"auto_delete": {
 				Type:     schema.TypeBool,
 				Optional: true,
+				ForceNew: true,
 			},
 			"device_name": {
 				Type:     schema.TypeString,
 				Optional: true,
+				ForceNew: true,
 			},
 			"no_device": {
 				Type:     schema.TypeBool,
 				Optional: true,
+				ForceNew: true,
 			},
-
 			"az": {
 				Type:     schema.TypeString,
 				Optional: true,
+				ForceNew: true,
 			},
 			"disk_name": {
 				Type:     schema.TypeString,
 				Optional: true,
+				ForceNew: true,
 			},
 			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
+				ForceNew: true,
 			},
 			"disk_type": {
 				Type:     schema.TypeString,
 				Optional: true,
+				ForceNew: true,
 			},
 			"disk_size_gb": {
 				Type:     schema.TypeInt,
 				Optional: true,
+				ForceNew: true,
 			},
 			"snapshot_id": {
 				Type:     schema.TypeString,
 				Optional: true,
+				ForceNew: true,
 			},
 		},
 	}
@@ -88,7 +103,6 @@ func resourceJDCloudInstance() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-
 			"instance_type": {
 				Type:     schema.TypeString,
 				Required: true,
@@ -162,6 +176,7 @@ func resourceJDCloudInstance() *schema.Resource {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem:     diskSchema,
+				ForceNew: true,
 			},
 			"data_disk": {
 				Type:     schema.TypeList,
@@ -170,6 +185,16 @@ func resourceJDCloudInstance() *schema.Resource {
 			},
 		},
 	}
+}
+
+func stringAddr(v interface{}) *string {
+	r := v.(string)
+	return &r
+}
+
+func boolAddr(v interface{}) *bool {
+	r := v.(bool)
+	return &r
 }
 
 func GetStringAddr(d *schema.ResourceData, key string) *string {
@@ -194,7 +219,7 @@ func waitForInstance(d *schema.ResourceData, m interface{}, vmStatus string) err
 	currentTime := int(time.Now().Unix())
 
 	for {
-		if int(time.Now().Unix())-currentTime >= DefaultTimeout {
+		if int(time.Now().Unix())-currentTime >= VM_TIMEOUT {
 			return errors.New("create vm instance timeout")
 		}
 		vmInstanceDetail, err := QueryInstanceDetail(d, m)
@@ -207,6 +232,50 @@ func waitForInstance(d *schema.ResourceData, m interface{}, vmStatus string) err
 
 		return nil
 	}
+}
+
+func newDiskSpecFromSchema(m map[string]interface{}) *vm.InstanceDiskAttachmentSpec {
+	spec := &vm.InstanceDiskAttachmentSpec{}
+	if v, ok := m["disk_category"]; ok {
+		spec.DiskCategory = stringAddr(v)
+	}
+	if v, ok := m["auto_delete"]; ok {
+		spec.AutoDelete = boolAddr(v)
+	}
+	if v, ok := m["device_name"]; ok {
+		spec.DeviceName = stringAddr(v)
+	}
+	if v, ok := m["no_device"]; ok {
+		spec.NoDevice = boolAddr(v)
+	}
+
+	cloudDiskScheme := []string{"az", "disk_name", "description", "disk_type", "disk_size_gb", "snapshot_id"}
+	for _, v := range cloudDiskScheme {
+		_, ok := m[v]
+		if ok && spec.CloudDiskSpec == nil {
+			spec.CloudDiskSpec = &disk.DiskSpec{}
+		}
+	}
+
+	if v, ok := m["az"]; ok {
+		spec.CloudDiskSpec.Az = v.(string)
+	}
+	if v, ok := m["disk_name"]; ok {
+		spec.CloudDiskSpec.Name = v.(string)
+	}
+	if v, ok := m["description"]; ok {
+		spec.CloudDiskSpec.Description = stringAddr(v)
+	}
+	if v, ok := m["disk_type"]; ok {
+		spec.CloudDiskSpec.DiskType = v.(string)
+	}
+	if v, ok := m["disk_size_gb"]; ok {
+		spec.CloudDiskSpec.DiskSizeGB = v.(int)
+	}
+	if v, ok := m["snapshot_id"]; ok {
+		spec.CloudDiskSpec.SnapshotId = stringAddr(v)
+	}
+	return spec
 }
 
 func QueryInstanceDetail(d *schema.ResourceData, m interface{}) (*apis.DescribeInstanceResponse, error) {
@@ -251,6 +320,7 @@ func (l vmLogger) Log(level int, message ...interface{}) {
 }
 
 func resourceJDCloudInstanceCreate(d *schema.ResourceData, m interface{}) error {
+	d.Partial(true)
 	config := m.(*JDCloudConfig)
 	vmClient := client.NewVmClient(config.Credential)
 	logger := vmLogger{}
@@ -277,6 +347,11 @@ func resourceJDCloudInstanceCreate(d *schema.ResourceData, m interface{}) error 
 		dataDisk := []vm.InstanceDiskAttachmentSpec{}
 		for _, v := range v.([]interface{}) {
 			spec := newDiskSpecFromSchema(v.(map[string]interface{}))
+
+			// This step is set since,only cloud disk that can be set as data disk
+			diskTypeCloud := DISKTYPE_CLOUD
+			spec.DiskCategory = &diskTypeCloud
+
 			dataDisk = append(dataDisk, *spec)
 		}
 		spec.DataDisks = dataDisk
@@ -311,8 +386,8 @@ func resourceJDCloudInstanceCreate(d *schema.ResourceData, m interface{}) error 
 	}
 	if v, ok := d.GetOk("security_group_ids"); ok {
 		sgList := InterfaceToStringArray(v.([]interface{}))
-		if len(sgList) > DefaultSecurityGroupsMax {
-			return fmt.Errorf("the maximum allowed number of security_group_ids is %d", DefaultSecurityGroupsMax)
+		if len(sgList) > MAX_SECURITY_GROUP_COUNT {
+			return fmt.Errorf("[ERROR] The maximum allowed number of security_group_ids is %d", MAX_SECURITY_GROUP_COUNT)
 		}
 		spec.PrimaryNetworkInterface.NetworkInterface.SecurityGroups = sgList
 	}
@@ -331,27 +406,39 @@ func resourceJDCloudInstanceCreate(d *schema.ResourceData, m interface{}) error 
 	}
 
 	req := apis.NewCreateInstancesRequest(config.Region, &spec)
-	req.SetMaxCount(1)
+	req.SetMaxCount(MAX_VM_COUNT)
 
 	resp, err := vmClient.CreateInstances(req)
+
 	if err != nil {
-		return err
-	} else if resp.Error.Code != 0 {
+		return fmt.Errorf("[ERROR] Failed in resourceJDCloudInstanceCreate,reasons are as follows: %s", err.Error())
+	}
+
+	if resp.Error.Code != REQUEST_COMPLETED {
 		return fmt.Errorf("[ERROR] resourceJDCloudInstanceCreate failed  code:%d staus:%s message:%s", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
 
 	d.SetId(resp.Result.InstanceIds[0])
-	return waitForInstance(d, m, VM_RUNNING)
+	errCreating := waitForInstance(d, m, VM_RUNNING)
+	if errCreating != nil {
+		d.SetId("")
+		return fmt.Errorf("[ERROR] Failed in resourceJDCloudInstanceCreate,reasons are as follows: %s", errCreating.Error())
+	}
+
+	d.Partial(false)
+	return nil
 }
 
 func resourceJDCloudInstanceRead(d *schema.ResourceData, m interface{}) error {
+	d.Partial(true)
 	vmInstanceDetail, err := QueryInstanceDetail(d, m)
+
 	if err != nil {
-		if vmInstanceDetail.Result.Instance.Status == VM_DELETED {
-			d.SetId("")
-			return nil
-		}
 		return fmt.Errorf("query vm instance fail: %s", err)
+	}
+	if vmInstanceDetail.Result.Instance.Status == VM_DELETED || vmInstanceDetail.Error.Code == RESOURCE_NOT_FOUND {
+		d.SetId("")
+		return nil
 	}
 
 	d.Set("instance_name", vmInstanceDetail.Result.Instance.InstanceName)
@@ -363,13 +450,21 @@ func resourceJDCloudInstanceRead(d *schema.ResourceData, m interface{}) error {
 	d.Set("primary_ip", vmInstanceDetail.Result.Instance.PrimaryNetworkInterface.NetworkInterface.PrimaryIp)
 	d.Set("elastic_ip", vmInstanceDetail.Result.Instance.ElasticIpAddress)
 	d.Set("key_names", vmInstanceDetail.Result.Instance.KeyNames)
-	d.Set("security_group_ids", vmInstanceDetail.Result.Instance.PrimaryNetworkInterface.NetworkInterface.SecurityGroups)
+
+	if errSet := d.Set("security_group_ids", vmInstanceDetail.Result.Instance.PrimaryNetworkInterface.NetworkInterface.SecurityGroups); err != nil {
+		return fmt.Errorf("[ERROR] Failed in setting Sg Id LIST, reasons:%s", errSet.Error())
+	}
+
+	if errSet := d.Set("secondary_ips", vmInstanceDetail.Result.Instance.PrimaryNetworkInterface.NetworkInterface.SecondaryIps); err != nil {
+		return fmt.Errorf("[ERROR] Failed in setting secondary ip LIST, reasons:%s", errSet.Error())
+	}
+
+	d.Partial(false)
 	return nil
 }
 
 func resourceJDCloudInstanceUpdate(d *schema.ResourceData, m interface{}) error {
 	d.Partial(true)
-
 	config := m.(*JDCloudConfig)
 	vmClient := client.NewVmClient(config.Credential)
 
@@ -433,7 +528,6 @@ func resourceJDCloudInstanceUpdate(d *schema.ResourceData, m interface{}) error 
 }
 
 func resourceJDCloudInstanceDelete(d *schema.ResourceData, m interface{}) error {
-
 	vmInstanceDetail, err := QueryInstanceDetail(d, m)
 	if err != nil {
 		return fmt.Errorf("query instance fail: %s", err)
@@ -457,60 +551,5 @@ func resourceJDCloudInstanceDelete(d *schema.ResourceData, m interface{}) error 
 	}
 
 	d.SetId("")
-
 	return nil
-}
-
-func stringAddr(v interface{}) *string {
-	r := v.(string)
-	return &r
-}
-
-func boolAddr(v interface{}) *bool {
-	r := v.(bool)
-	return &r
-}
-
-func newDiskSpecFromSchema(m map[string]interface{}) *vm.InstanceDiskAttachmentSpec {
-	spec := &vm.InstanceDiskAttachmentSpec{}
-	if v, ok := m["disk_category"]; ok {
-		spec.DiskCategory = stringAddr(v)
-	}
-	if v, ok := m["auto_delete"]; ok {
-		spec.AutoDelete = boolAddr(v)
-	}
-	if v, ok := m["device_name"]; ok {
-		spec.DeviceName = stringAddr(v)
-	}
-	if v, ok := m["no_device"]; ok {
-		spec.NoDevice = boolAddr(v)
-	}
-
-	cloudDiskScheme := []string{"az", "disk_name", "description", "disk_type", "disk_size_gb", "snapshot_id"}
-	for _, v := range cloudDiskScheme {
-		_, ok := m[v]
-		if ok && spec.CloudDiskSpec == nil {
-			spec.CloudDiskSpec = &disk.DiskSpec{}
-		}
-	}
-
-	if v, ok := m["az"]; ok {
-		spec.CloudDiskSpec.Az = v.(string)
-	}
-	if v, ok := m["disk_name"]; ok {
-		spec.CloudDiskSpec.Name = v.(string)
-	}
-	if v, ok := m["description"]; ok {
-		spec.CloudDiskSpec.Description = stringAddr(v)
-	}
-	if v, ok := m["disk_type"]; ok {
-		spec.CloudDiskSpec.DiskType = v.(string)
-	}
-	if v, ok := m["disk_size_gb"]; ok {
-		spec.CloudDiskSpec.DiskSizeGB = v.(int)
-	}
-	if v, ok := m["snapshot_id"]; ok {
-		spec.CloudDiskSpec.SnapshotId = stringAddr(v)
-	}
-	return spec
 }

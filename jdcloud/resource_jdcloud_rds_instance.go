@@ -20,7 +20,6 @@ const (
 	RDSTimeout = 300
 	RDSReady   = "RUNNING"
 	RDSDeleted = ""
-	Tolerance  = 3
 )
 
 func resourceJDCloudRDSInstance() *schema.Resource {
@@ -227,7 +226,7 @@ func waitForRDS(id string, meta interface{}, expectedStatus string) error {
 			return fmt.Errorf("[ERROR] resourceJDCloudRDSCreate failed, timeout")
 		}
 		if err != nil {
-			if connectFailedCount > Tolerance {
+			if connectFailedCount > MAX_RECONNECT_COUNT {
 				return fmt.Errorf("[ERROR] resourceJDCloudRDSWait, Tolerrance Exceeded failed %s ", err.Error())
 			}
 			connectFailedCount++

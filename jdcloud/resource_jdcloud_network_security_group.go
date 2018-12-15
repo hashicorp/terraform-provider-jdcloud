@@ -51,7 +51,7 @@ func resourceJDCloudNetworkSecurityGroupCreate(d *schema.ResourceData, meta inte
 		return fmt.Errorf("[ERROR] resourceJDCloudNetworkSecurityGroupCreate failed %s ", err.Error())
 	}
 
-	if resp.Error.Code != 0 {
+	if resp.Error.Code != REQUEST_COMPLETED {
 		return fmt.Errorf("[ERROR] resourceJDCloudNetworkSecurityGroupCreate failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
 
@@ -63,23 +63,19 @@ func resourceJDCloudNetworkSecurityGroupRead(d *schema.ResourceData, meta interf
 
 	config := meta.(*JDCloudConfig)
 	sgClient := client.NewVpcClient(config.Credential)
-
-	regionId := config.Region
-	sgId := d.Id()
-
-	req := apis.NewDescribeNetworkSecurityGroupRequest(regionId, sgId)
+	req := apis.NewDescribeNetworkSecurityGroupRequest(config.Region, d.Id())
 	resp, err := sgClient.DescribeNetworkSecurityGroup(req)
 
 	if err != nil {
 		return fmt.Errorf("[ERROR] resourceJDCloudNetworkSecurityGroupRead failed %s ", err.Error())
 	}
 
-	if resp.Error.Code == 404 {
+	if resp.Error.Code == RESOURCE_NOT_FOUND {
 		d.SetId("")
 		return nil
 	}
 
-	if resp.Error.Code != 0 {
+	if resp.Error.Code != REQUEST_COMPLETED {
 		return fmt.Errorf("[ERROR] resourceJDCloudNetworkSecurityGroupRead failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
 
@@ -101,7 +97,7 @@ func resourceJDCloudNetworkSecurityGroupUpdate(d *schema.ResourceData, meta inte
 		if err != nil {
 			return fmt.Errorf("[ERROR] resourceJDCloudNetworkSecurityGroupUpdate failed %s ", err.Error())
 		}
-		if resp.Error.Code != 0 {
+		if resp.Error.Code != REQUEST_COMPLETED {
 			return fmt.Errorf("[ERROR] resourceJDCloudNetworkSecurityGroupUpdate failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 		}
 	}
@@ -111,17 +107,15 @@ func resourceJDCloudNetworkSecurityGroupUpdate(d *schema.ResourceData, meta inte
 func resourceJDCloudNetworkSecurityGroupDelete(d *schema.ResourceData, meta interface{}) error {
 
 	config := meta.(*JDCloudConfig)
-	networkSecurityGroupId := d.Id()
 	vpcClient := client.NewVpcClient(config.Credential)
-
-	rq := apis.NewDeleteNetworkSecurityGroupRequest(config.Region, networkSecurityGroupId)
+	rq := apis.NewDeleteNetworkSecurityGroupRequest(config.Region, d.Id())
 	resp, err := vpcClient.DeleteNetworkSecurityGroup(rq)
 
 	if err != nil {
 		return fmt.Errorf("[ERROR] resourceJDCloudNetworkSecurityGroupDelete failed %s ", err.Error())
 	}
 
-	if resp.Error.Code != 0 {
+	if resp.Error.Code != REQUEST_COMPLETED {
 		return fmt.Errorf("[ERROR] resourceJDCloudNetworkSecurityGroupDelete failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
 	d.SetId("")

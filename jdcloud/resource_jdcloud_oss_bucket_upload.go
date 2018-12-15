@@ -8,7 +8,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/hashicorp/terraform/helper/schema"
-	"log"
 	"os"
 	"path/filepath"
 )
@@ -60,9 +59,8 @@ func resourceJDCloudOssBucketUploadCreate(d *schema.ResourceData, meta interface
 	if err != nil {
 		return fmt.Errorf("[ERROR] Failed to open file namely %s, Error message-%s", fileName, err)
 	}
-	errFileClose := file.Close()
-	if errFileClose != nil {
-		log.Printf("Here may have some problem since we cannot close this file")
+	if errFileClose := file.Close(); errFileClose != nil {
+		return fmt.Errorf("Here may have some problem since we cannot close this file")
 	}
 
 	uploader := getUploader(meta)
@@ -81,6 +79,23 @@ func resourceJDCloudOssBucketUploadCreate(d *schema.ResourceData, meta interface
 }
 
 func resourceJDCloudOssBucketUploadRead(d *schema.ResourceData, meta interface{}) error {
+
+	svc := getOssClient(meta)
+	bucketName := d.Get("bucket_name").(string)
+	fileName := d.Get("file_name").(string)
+	resp, err := svc.ListObjects(&s3.ListObjectsInput{Bucket: aws.String(bucketName)})
+
+	if err != nil {
+		return fmt.Errorf("[ERROR] Failed in resourceJDCloudOssBucketUploadRead,reasons:%s", err.Error())
+	}
+
+	for _, item := range resp.Contents {
+		if fileName == *item.Key {
+			return nil
+		}
+	}
+
+	d.SetId("")
 	return nil
 }
 

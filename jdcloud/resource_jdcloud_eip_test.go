@@ -58,7 +58,7 @@ func testAccIfEIPExists(resourceName string) resource.TestCheckFunc {
 		req := apis.NewDescribeElasticIpRequest(config.Region, eipId)
 		resp, err := vpcClient.DescribeElasticIp(req)
 
-		if err != nil || resp.Error.Code != 0 {
+		if err != nil || resp.Error.Code != REQUEST_COMPLETED {
 			return fmt.Errorf("Error.Code = %d,Error.Message=%s,err.Error()=%s", resp.Error.Code, resp.Error.Message, err.Error())
 		}
 
@@ -88,7 +88,7 @@ func testAccEIPDestroy(resourceName string) resource.TestCheckFunc {
 			return err
 		}
 
-		if resp.Error.Code == 0 {
+		if resp.Error.Code == RESOURCE_EXISTS {
 			return fmt.Errorf("failed in deleting resources")
 		}
 

@@ -60,7 +60,7 @@ func testAccIfEIPAssociationExists(resourceName string) resource.TestCheckFunc {
 			return err
 		}
 
-		if resp.Error.Code != 0 || resp.Result.ElasticIp.InstanceId != instanceId {
+		if resp.Error.Code != REQUEST_COMPLETED || resp.Result.ElasticIp.InstanceId != instanceId {
 			return fmt.Errorf("cannot create certain resource")
 		}
 

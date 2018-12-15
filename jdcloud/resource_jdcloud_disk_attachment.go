@@ -72,7 +72,7 @@ func resourceJDCloudDiskAttachmentCreate(d *schema.ResourceData, meta interface{
 	if resp.Error.Code != REQUEST_COMPLETED {
 		return fmt.Errorf("[ERROR] resourceJDCloudDiskAttachmentCreate  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
-	if errAttaching := waitForDiskAttaching(d, meta, instanceID ,diskID, DISK_ATTACHED); errAttaching != nil {
+	if errAttaching := waitForDiskAttaching(d, meta, instanceID, diskID, DISK_ATTACHED); errAttaching != nil {
 		return fmt.Errorf("[ERROR] failed in attaching disk,reasons: %s", errAttaching.Error())
 	}
 
@@ -171,7 +171,7 @@ func resourceJDCloudDiskAttachmentDelete(d *schema.ResourceData, meta interface{
 		return fmt.Errorf("[ERROR] Failed in resourceJDCloudDiskAttachmentDelete,Error code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
 
-	if errDetaching := waitForDiskAttaching(d, meta, instanceID ,diskID, DISK_DETACHED); errDetaching != nil {
+	if errDetaching := waitForDiskAttaching(d, meta, instanceID, diskID, DISK_DETACHED); errDetaching != nil {
 		return fmt.Errorf("[ERROR] Faield in removing resource, reasons are following :%s", errDetaching.Error())
 	}
 
@@ -185,7 +185,7 @@ func resourceJDCloudDiskAttachmentDelete(d *schema.ResourceData, meta interface{
 	return nil
 }
 
-func waitForDiskAttaching(d *schema.ResourceData, meta interface{},instanceId, diskId string, expectedStatus string) error {
+func waitForDiskAttaching(d *schema.ResourceData, meta interface{}, instanceId, diskId string, expectedStatus string) error {
 
 	currentTime := int(time.Now().Unix())
 	config := meta.(*JDCloudConfig)

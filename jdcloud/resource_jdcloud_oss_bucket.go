@@ -14,6 +14,9 @@ const (
 	jdcloudOssEndpoint = "s3.%s.jcloudcs.com"
 )
 
+// TODO
+// Priviledge problem
+
 func resourceJDCloudOssBucket() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceJDCloudOssBucketCreate,
@@ -39,8 +42,6 @@ func resourceJDCloudOssBucket() *schema.Resource {
 	}
 }
 
-// Plan
-// Currently not being able to create with privilege
 func resourceJDCloudOssBucketCreate(d *schema.ResourceData, m interface{}) error {
 	bucket := d.Get("bucket_name").(string)
 	client := getOssClient(m)

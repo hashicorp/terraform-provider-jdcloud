@@ -9,9 +9,6 @@ import (
 	vpcModels "github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/models"
 )
 
-// Only one EIP is allowed to create in each resource
-const maxEIPCount = 1
-
 func resourceJDCloudEIP() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceJDCloudEIPCreate,
@@ -46,7 +43,7 @@ func resourceJDCloudEIPCreate(d *schema.ResourceData, meta interface{}) error {
 		Provider:      d.Get("eip_provider").(string),
 		ChargeSpec:    &models.ChargeSpec{},
 	}
-	req := apis.NewCreateElasticIpsRequest(config.Region, maxEIPCount, &elasticIpSpec)
+	req := apis.NewCreateElasticIpsRequest(config.Region, MAX_EIP_COUNT, &elasticIpSpec)
 	if _, ok := d.GetOk("elastic_ip_address"); ok {
 		req.ElasticIpAddress = GetStringAddr(d, "elastic_ip_address")
 	}
@@ -57,7 +54,7 @@ func resourceJDCloudEIPCreate(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return fmt.Errorf("[ERROR] resourceJDCloudEIPCreate failed %s ", err.Error())
 	}
-	if resp.Error.Code != 0 {
+	if resp.Error.Code != REQUEST_COMPLETED {
 		return fmt.Errorf("[ERROR] resourceJDCloudEIPCreate failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
 
@@ -76,12 +73,12 @@ func resourceJDCloudEIPRead(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("[ERROR] resourceJDCloudEIPRead failed %s ", err.Error())
 	}
 
-	if resp.Error.Code == 404 {
+	if resp.Error.Code == RESOURCE_NOT_FOUND {
 		d.SetId("")
 		return nil
 	}
 
-	if resp.Error.Code != 0 {
+	if resp.Error.Code != REQUEST_COMPLETED {
 		return fmt.Errorf("[ERROR] resourceJDCloudEIPRead failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
 
@@ -100,7 +97,7 @@ func resourceJDCloudEIPDelete(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("[ERROR] resourceJDCloudEIPDelete failed %s ", err.Error())
 	}
 
-	if resp.Error.Code != 0 {
+	if resp.Error.Code != REQUEST_COMPLETED {
 		return fmt.Errorf("[ERROR] resourceJDCloudEIPDelete failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
 

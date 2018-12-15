@@ -43,7 +43,7 @@ func resourceAssociateElasticIpCreate(d *schema.ResourceData, meta interface{}) 
 	if err != nil {
 		return fmt.Errorf("[ERROR] resourceAssociateElasticIpCreate failed %s ", err.Error())
 	}
-	if resp.Error.Code != 0 {
+	if resp.Error.Code != REQUEST_COMPLETED {
 		return fmt.Errorf("[ERROR] resourceAssociateElasticIpCreate code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
 
@@ -84,7 +84,7 @@ func resourceAssociateElasticIpDelete(d *schema.ResourceData, meta interface{}) 
 	if err != nil {
 		return fmt.Errorf("[DEBUG] resourceAssociateElasticIpDelete failed %s ", err.Error())
 	}
-	if resp.Error.Code != 0 {
+	if resp.Error.Code != REQUEST_COMPLETED {
 		return fmt.Errorf("[DEBUG] resourceAssociateElasticIpDelete  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
 

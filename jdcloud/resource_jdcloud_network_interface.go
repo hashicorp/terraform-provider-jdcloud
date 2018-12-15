@@ -62,7 +62,7 @@ func resourceJDCloudNetworkInterface() *schema.Resource {
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
-				MaxItems: DefaultSecurityGroupsMax,
+				MaxItems: MAX_SECURITY_GROUP_COUNT,
 			},
 			"network_interface_id": &schema.Schema{
 				Type:     schema.TypeString,
@@ -73,7 +73,7 @@ func resourceJDCloudNetworkInterface() *schema.Resource {
 }
 
 func resourceJDCloudNetworkInterfaceCreate(d *schema.ResourceData, meta interface{}) error {
-
+	d.Partial(true)
 	config := meta.(*JDCloudConfig)
 	subnetID := d.Get("subnet_id").(string)
 
@@ -120,12 +120,22 @@ func resourceJDCloudNetworkInterfaceCreate(d *schema.ResourceData, meta interfac
 		return fmt.Errorf("[ERROR] resourceJDCloudNetworkInterfaceCreate failed %s ", err.Error())
 	}
 
-	if resp.Error.Code != 0 {
+	if resp.Error.Code != REQUEST_COMPLETED {
 		return fmt.Errorf("[ERROR] resourceJDCloudNetworkInterfaceCreate failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
 
 	d.SetId(resp.Result.NetworkInterfaceId)
 	d.Set("network_interface_id", resp.Result.NetworkInterfaceId)
+
+	d.SetPartial("az")
+	d.SetPartial("subnet_id")
+	d.SetPartial("description")
+	d.SetPartial("sanity_check")
+	d.SetPartial("primary_ip_address")
+	d.SetPartial("secondary_ip_count")
+	d.SetPartial("network_interface_id")
+	d.SetPartial("network_interface_name")
+	d.SetPartial("secondary_ip_addresses")
 
 	// Default sgID is set and retrieved via "READ"
 	if setDefaultSecurityGroup {
@@ -134,8 +144,10 @@ func resourceJDCloudNetworkInterfaceCreate(d *schema.ResourceData, meta interfac
 			log.Printf("[WARN] NI has been created but failed to update info, commmand 'Terraform refresh'")
 			log.Printf("[WARN] to update your local info again'")
 		}
+		d.SetPartial("security_groups")
 	}
 
+	d.Partial(false)
 	return nil
 }
 
@@ -151,7 +163,13 @@ func resourceJDCloudNetworkInterfaceRead(d *schema.ResourceData, meta interface{
 		return err
 	}
 
-	if resp.Error.Code != 0 {
+	if resp.Error.Code == RESOURCE_NOT_FOUND {
+		log.Printf("Resource not found, probably have been deleted")
+		d.SetId("")
+		return nil
+	}
+
+	if resp.Error.Code != REQUEST_COMPLETED {
 		return fmt.Errorf("[ERROR] resourceJDCloudNetworkInterfaceRead failed error code:%d, message:%s", resp.Error.Code, resp.Error.Message)
 	}
 
@@ -167,7 +185,7 @@ func resourceJDCloudNetworkInterfaceRead(d *schema.ResourceData, meta interface{
 		d.Set("network_interface_name", resp.Result.NetworkInterface.NetworkInterfaceName)
 	}
 
-	if resp.Result.NetworkInterface.SanityCheck != 0 {
+	if resp.Result.NetworkInterface.SanityCheck != REQUEST_COMPLETED {
 		d.Set("sanity_check", resp.Result.NetworkInterface.SanityCheck)
 	}
 
@@ -175,15 +193,19 @@ func resourceJDCloudNetworkInterfaceRead(d *schema.ResourceData, meta interface{
 		d.Set("primary_ip_address", resp.Result.NetworkInterface.PrimaryIp.ElasticIpAddress)
 	}
 
-	if len(resp.Result.NetworkInterface.SecondaryIps) != 0 {
-		d.Set("secondary_ip_addresses", resp.Result.NetworkInterface.SecondaryIps)
+	if len(resp.Result.NetworkInterface.SecondaryIps) != RESOURCE_EMPTY {
+		if errSetIp := d.Set("secondary_ip_addresses", resp.Result.NetworkInterface.SecondaryIps); errSetIp != nil {
+			return fmt.Errorf("[ERROR] resourceJDCloudNetworkInterfaceRead Failed in setting secondary ips,reasons: %s", errSetIp.Error())
+		}
 	}
 
 	sgRemote := resp.Result.NetworkInterface.NetworkSecurityGroupIds
 	sgLocal := InterfaceToStringArray(d.Get("security_groups").([]interface{}))
 
-	if len(sgRemote) != 0 && equalSliceString(sgRemote, sgLocal) == false {
-		d.Set("security_groups", resp.Result.NetworkInterface.NetworkSecurityGroupIds)
+	if len(sgRemote) != RESOURCE_EMPTY && equalSliceString(sgRemote, sgLocal) == false {
+		if errSetSg := d.Set("security_groups", resp.Result.NetworkInterface.NetworkSecurityGroupIds); errSetSg != nil {
+			return fmt.Errorf("[ERROR] resourceJDCloudNetworkInterfaceRead Failed in setting sg,reasons: %s", errSetSg.Error())
+		}
 	}
 
 	return nil
@@ -204,7 +226,7 @@ func resourceJDCloudNetworkInterfaceUpdate(d *schema.ResourceData, meta interfac
 			return fmt.Errorf("[ERROR] resourceJDCloudNetworkInterfaceUpdate failed %s ", err.Error())
 		}
 
-		if resp.Error.Code != 0 {
+		if resp.Error.Code != REQUEST_COMPLETED {
 			return fmt.Errorf("[ERROR] resourceJDCloudNetworkInterfaceUpdate failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 		}
 
@@ -226,7 +248,7 @@ func resourceJDCloudNetworkInterfaceDelete(d *schema.ResourceData, meta interfac
 		return fmt.Errorf("[ERROR] resourceJDCloudNetworkInterfaceDelete failed %s ", err.Error())
 	}
 
-	if resp.Error.Code != 0 {
+	if resp.Error.Code != REQUEST_COMPLETED {
 		return fmt.Errorf("[ERROR] resourceJDCloudNetworkInterfaceDelete failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
 	d.SetId("")

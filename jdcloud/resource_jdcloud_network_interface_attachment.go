@@ -7,11 +7,9 @@ import (
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vm/client"
 	vpcApis "github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/apis"
 	vpc "github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/client"
-	"regexp"
+	"log"
 	"time"
 )
-
-// TODO verify&waiting not complete ++ 404 in reading process
 
 func resourceJDCloudNetworkInterfaceAttach() *schema.Resource {
 	return &schema.Resource{
@@ -41,10 +39,6 @@ func resourceJDCloudNetworkInterfaceAttach() *schema.Resource {
 	}
 }
 
-/*
-	Its been proved that the id of both will be set
-	Immediately after the request has been sent
-*/
 func resourceJDCloudNetworkInterfaceAttachCreate(d *schema.ResourceData, meta interface{}) error {
 
 	config := meta.(*JDCloudConfig)
@@ -65,7 +59,7 @@ func resourceJDCloudNetworkInterfaceAttachCreate(d *schema.ResourceData, meta in
 		return fmt.Errorf("[ERROR] resourceJDCloudNetworkInterfaceAttachCreate failed %s ", err.Error())
 	}
 
-	if resp.Error.Code != 0 {
+	if resp.Error.Code != REQUEST_COMPLETED {
 		return fmt.Errorf("[ERROR] resourceJDCloudNetworkInterfaceAttachCreate  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
 	d.SetId(resp.RequestID)
@@ -73,49 +67,94 @@ func resourceJDCloudNetworkInterfaceAttachCreate(d *schema.ResourceData, meta in
 }
 
 func resourceJDCloudNetworkInterfaceAttachRead(d *schema.ResourceData, meta interface{}) error {
+
+	config := meta.(*JDCloudConfig)
+	networkInterfaceId := d.Get("network_interface_id").(string)
+
+	vpcClient := vpc.NewVpcClient(config.Credential)
+	req := vpcApis.NewDescribeNetworkInterfaceRequest(config.Region, networkInterfaceId)
+
+	resp, err := vpcClient.DescribeNetworkInterface(req)
+
+	if err != nil {
+		return fmt.Errorf("[ERROR] resourceJDCloudNetworkInterfaceAttachRead Failed, reasons:%s", err.Error())
+	}
+
+	if resp.Error.Code == RESOURCE_NOT_FOUND {
+		log.Printf("Resource not found, probably have been deleted")
+		d.SetId("")
+		return nil
+	}
+
+	if resp.Error.Code != REQUEST_COMPLETED {
+		return fmt.Errorf("[ERROR] failed in resourceJDCloudNetworkAclRead code:%d message:%s", resp.Error.Code, resp.Error.Message)
+	}
+
 	return nil
 }
 
+// Both of their ids will be attached immediately after the request has been sent.
 func resourceJDCloudNetworkInterfaceAttachDelete(d *schema.ResourceData, meta interface{}) error {
 
+	if err := waitForCreatingComplete(d, meta); err != nil {
+		return err
+	}
+
+	return waitForDetachComplete(d, meta)
+}
+
+func waitForCreatingComplete(d *schema.ResourceData, meta interface{}) error {
+
 	config := meta.(*JDCloudConfig)
-	instanceID := d.Get("instance_id").(string)
+	instanceId := d.Get("instance_id").(string)
 	networkInterfaceId := d.Get("network_interface_id").(string)
+
 	vmClient := client.NewVmClient(config.Credential)
-	rq := apis.NewDetachNetworkInterfaceRequest(config.Region, instanceID, networkInterfaceId)
+	req := apis.NewDetachNetworkInterfaceRequest(config.Region, instanceId, networkInterfaceId)
 
-	vpcClient := vpc.NewVpcClient(config.Credential)
-	reqQuery := vpcApis.NewDescribeNetworkInterfaceRequest(config.Region, networkInterfaceId)
+	for retryCount := 0; retryCount < MAX_RECONNECT_COUNT; retryCount++ {
 
-	for retryCount := 0; retryCount < 3; retryCount++ {
+		resp, err := vmClient.DetachNetworkInterface(req)
 
-		resp, err := vmClient.DetachNetworkInterface(rq)
-		errorMessage := fmt.Sprintf("%s", err)
-		previousTaskNotComplete, _ := regexp.MatchString("Conflict", errorMessage)
-		previousTaskNotComplete = resp.Error.Code == 400 || previousTaskNotComplete
+		if err != nil {
+			return fmt.Errorf("[ERROR] resourceJDCloudNetworkInterfaceAttachDelete Failed, reasons:%s", err.Error())
+		}
 
-		resp2, _ := vpcClient.DescribeNetworkInterface(reqQuery)
-		instanceIdQueried := resp2.Result.NetworkInterface.InstanceId
-		CurrentTaskNotComplete := instanceIdQueried == instanceID
-
-		if CurrentTaskNotComplete || previousTaskNotComplete {
+		if resp.Error.Code == REQUEST_INVALID {
 			time.Sleep(5 * time.Second)
 			continue
 		}
 
-		if err == nil && resp.Error.Code == 0 {
-			d.SetId("")
+		if resp.Error.Code == REQUEST_COMPLETED {
 			return nil
-		}
-
-		if err != nil {
-			return fmt.Errorf("[ERROR] resourceJDCloudNetworkInterfaceAttachDelete failed %s ", err.Error())
-		}
-
-		if resp.Error.Code != 0 {
-			return fmt.Errorf("[ERROR] resourceJDCloudNetworkInterfaceAttachDelete  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 		}
 	}
 
-	return fmt.Errorf("[ERROR] resourceJDCloudNetworkInterfaceAttachDelete")
+	return fmt.Errorf("[ERROR] resourceJDCloudNetworkInterfaceAttachDelete.Tolerance exceeded in waiting to complete")
+}
+
+func waitForDetachComplete(d *schema.ResourceData, meta interface{}) error {
+
+	config := meta.(*JDCloudConfig)
+	networkInterfaceId := d.Get("network_interface_id").(string)
+
+	vpcClient := vpc.NewVpcClient(config.Credential)
+	req := vpcApis.NewDescribeNetworkInterfaceRequest(config.Region, networkInterfaceId)
+
+	for retryCount := 0; retryCount < MAX_RECONNECT_COUNT; retryCount++ {
+
+		resp, err := vpcClient.DescribeNetworkInterface(req)
+
+		if err != nil {
+			return fmt.Errorf("[ERROR] resourceJDCloudNetworkInterfaceAttachDelete Failed, reasons:%s", err.Error())
+		}
+
+		if resp.Result.NetworkInterface.InstanceId == "" {
+			return nil
+		}
+
+		time.Sleep(5 * time.Second)
+	}
+
+	return fmt.Errorf("[ERROR] resourceJDCloudNetworkInterfaceAttachDelete.Tolerance exceeded in detach")
 }

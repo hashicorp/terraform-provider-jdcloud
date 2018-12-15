@@ -75,7 +75,7 @@ func testAccIfNetworkInterfaceExists(networkInterfaceName string, networkInterfa
 		if err != nil {
 			return err
 		}
-		if responseOnNetworkInterface.Error.Code != 0 {
+		if responseOnNetworkInterface.Error.Code != REQUEST_COMPLETED {
 			return fmt.Errorf("resources created locally but not remotely: code:%d staus:%s message:%s ",
 				responseOnNetworkInterface.Error.Code, responseOnNetworkInterface.Error.Status, responseOnNetworkInterface.Error.Message)
 		}
@@ -142,7 +142,7 @@ func testAccCheckNetworkInterfaceDestroy(networkInterfaceId *string) resource.Te
 		if err != nil {
 			return err
 		}
-		if responseOnNetworkInterface.Error.Code != 404 {
+		if responseOnNetworkInterface.Error.Code != RESOURCE_NOT_FOUND {
 			return fmt.Errorf("something wrong happens or resource still exists")
 		}
 		return nil
