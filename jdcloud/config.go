@@ -62,6 +62,10 @@ const (
 
 	KEYPAIRS_PERM = 0600
 	KEYPAIRS_PRIV = 0400
+
+	RDS_TIMEOUT = 300
+	RDS_READY = "RUNNING"
+	RDS_DELETED = ""
 )
 
 func initConfig(d *schema.ResourceData) (interface{}, error) {

@@ -18,10 +18,12 @@ testacc: fmtcheck
 
 #
 # TODO
-# Network Interface updating problem / NI test
-# Chinese comment
-# DiskTest Distroy
-# Modify parameter in test.go to make sure they are definitely available
+#
+# 1. Unless they are computed only, use d.Set() function in any possible fields
+# 2. d.Set for all set/list
+# 3. Once there are more than one API call use partial
+# 4. For all READ check if resource gone first
+# 5. Set ForceNew for unUpdatable source
 #
 
 vet:

@@ -72,7 +72,7 @@ func resourceJDCloudRDSPrivilegeCreate(d *schema.ResourceData, meta interface{})
 		return fmt.Errorf("[ERROR] resourceJDCloudRDSPrivilegeCreate failed %s ", err.Error())
 	}
 
-	if resp.Error.Code != 0 {
+	if resp.Error.Code != REQUEST_COMPLETED {
 		return fmt.Errorf("[ERROR] resourceJDCloudRDSPrivilegeCreate failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
 
@@ -91,18 +91,21 @@ func resourceJDCloudRDSPrivilegeRead(d *schema.ResourceData, meta interface{}) e
 		return fmt.Errorf("[ERROR] resourceJDCloudRDSPrivilegeRead failed %s ", err.Error())
 	}
 
-	if resp.Error.Code == 404 {
+	if resp.Error.Code == RESOURCE_NOT_FOUND {
 		d.SetId("")
 		return nil
 	}
 
-	if resp.Error.Code != 0 {
+	if resp.Error.Code != REQUEST_COMPLETED {
 		return fmt.Errorf("[ERROR] resourceJDCloudRDSPrivilegeRead failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
 
 	for _, user := range resp.Result.Accounts {
+
 		if user.AccountName == d.Get("username").(string) {
+
 			latestPrivileges := make([]map[string]string, 0, len(user.AccountPrivileges))
+
 			for _, privilege := range user.AccountPrivileges {
 				latestPrivilege := map[string]string{
 					"db_name":   *privilege.DbName,
@@ -110,8 +113,12 @@ func resourceJDCloudRDSPrivilegeRead(d *schema.ResourceData, meta interface{}) e
 				}
 				latestPrivileges = append(latestPrivileges, latestPrivilege)
 			}
-			d.Set("account_privilege", latestPrivileges)
+
+			if err := d.Set("account_privilege", latestPrivileges);err!=nil{
+				return fmt.Errorf("[ERROR] Failed in resourceJDCloudRDSPrivilegeRead,reasons:%s",err.Error())
+			}
 			return nil
+
 		}
 	}
 
@@ -139,7 +146,7 @@ func resourceJDCloudRDSPrivilegeDelete(d *schema.ResourceData, meta interface{})
 		return fmt.Errorf("[ERROR] resourceJDCloudRDSPrivilegeDelete failed %s ", err.Error())
 	}
 
-	if resp.Error.Code != 0 {
+	if resp.Error.Code != REQUEST_COMPLETED {
 		return fmt.Errorf("[ERROR] resourceJDCloudRDSPrivilegeDelete failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
 

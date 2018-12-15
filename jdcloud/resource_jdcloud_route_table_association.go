@@ -5,6 +5,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/apis"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/client"
+	"log"
 )
 
 func resourceJDCloudRouteTableAssociation() *schema.Resource {
@@ -16,7 +17,7 @@ func resourceJDCloudRouteTableAssociation() *schema.Resource {
 		Update: resourceRouteTableAssociationUpdate,
 		Delete: resourceRouteTableAssociationDelete,
 
-		Schema: map[string]*schema.Schema{
+		Schema: map[string]*schema.Schema {
 
 			"route_table_id": {
 				Type:     schema.TypeString,
@@ -25,16 +26,11 @@ func resourceJDCloudRouteTableAssociation() *schema.Resource {
 			},
 
 			"subnet_id": {
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Required: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
-			},
-
-			"description": {
-				Type:     schema.TypeString,
-				Optional: true,
 			},
 		},
 	}
@@ -46,10 +42,9 @@ func resourceRouteTableAssociationCreate(d *schema.ResourceData, meta interface{
 	associationClient := client.NewVpcClient(config.Credential)
 
 	regionId := config.Region
-	subnetIdInterface := d.Get("subnet_id").([]interface{})
-	subnetIds := InterfaceToStringArray(subnetIdInterface)
-	routeTableId := d.Get("route_table_id").(string)
+	subnetIds := typeSetToStringArray(d.Get("subnet_id").(*schema.Set))
 
+	routeTableId := d.Get("route_table_id").(string)
 	req := apis.NewAssociateRouteTableRequest(regionId, routeTableId, subnetIds)
 	resp, err := associationClient.AssociateRouteTable(req)
 
@@ -57,7 +52,7 @@ func resourceRouteTableAssociationCreate(d *schema.ResourceData, meta interface{
 		return fmt.Errorf("[ERROR] resourceRouteTableAssociationCreate failed %s ", err.Error())
 	}
 
-	if resp.Error.Code != 0 {
+	if resp.Error.Code != REQUEST_COMPLETED {
 		return fmt.Errorf("[ERROR] resourceRouteTableAssociationCreate failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
 
@@ -77,28 +72,40 @@ func resourceRouteTableAssociationRead(d *schema.ResourceData, meta interface{})
 		return fmt.Errorf("[ERROR] resourceRouteTableAssociationRead failed %s ", err.Error())
 	}
 
-	if resp.Error.Code != 0 {
+	if resp.Error.Code == RESOURCE_NOT_FOUND {
+		log.Printf("Resource not found, probably have been deleted")
+		d.SetId("")
+		return nil
+	}
+
+	if resp.Error.Code != REQUEST_COMPLETED {
 		return fmt.Errorf("[ERROR] resourceRouteTableAssociationRead failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
 
-	d.Set("subnet_id", resp.Result.RouteTable.SubnetIds)
+	if err:= d.Set("subnet_id", resp.Result.RouteTable.SubnetIds);err!=nil{
+		return fmt.Errorf("[ERROR] Failed in resourceRouteTableAssociationRead,reasons: %s",err.Error())
+	}
+
 	return nil
 }
 
-func resourceRouteTableAssociationUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceRouteTableAssociationUpdate(d *schema.ResourceData, m interface{}) error {
 
-	origin, latest := d.GetChange("subnet_id")
+	if d.HasChange("subnet_id"){
 
-	d.Set("subnet_id", origin)
-	err := resourceRouteTableAssociationDelete(d, meta)
-	if err != nil {
-		return fmt.Errorf("[ERROR] resourceRouteTableAssociationUpdate failed %s ", err.Error())
-	}
+		pInterface,cInterface := d.GetChange("subnet_id")
+		p:= pInterface.(*schema.Set)
+		c:= cInterface.(*schema.Set)
+		i := p.Intersection(c)
 
-	d.Set("subnet_id", latest)
-	err = resourceRouteTableAssociationCreate(d, meta)
-	if err != nil {
-		return fmt.Errorf("[ERROR] resourceRouteTableAssociationUpdate failed %s ", err.Error())
+		detachList := typeSetToStringArray(p.Difference(i))
+		attachList := typeSetToStringArray(c.Difference(i))
+
+		if result:= performSubnetDetach(d,m,detachList) && performSubnetAttach(d,m,attachList);result==false{
+			return fmt.Errorf("[ERROR] resourceRouteTableAssociationUpdate failed")
+		}
+
+		d.Set("subnet_id",cInterface)
 	}
 
 	return nil
@@ -109,8 +116,7 @@ func resourceRouteTableAssociationDelete(d *schema.ResourceData, meta interface{
 	config := meta.(*JDCloudConfig)
 	disassociationClient := client.NewVpcClient(config.Credential)
 
-	subnetId := d.Get("subnet_id").([]interface{})
-	subnetIds := InterfaceToStringArray(subnetId)
+	subnetIds := typeSetToStringArray(d.Get("subnet_id").(*schema.Set))
 	routeTableId := d.Get("route_table_id").(string)
 
 	for _, item := range subnetIds {
@@ -121,11 +127,54 @@ func resourceRouteTableAssociationDelete(d *schema.ResourceData, meta interface{
 			return fmt.Errorf("[ERROR] resourceRouteTableAssociationDelete failed %s ", err.Error())
 		}
 
-		if resp.Error.Code != 0 {
+		if resp.Error.Code != REQUEST_COMPLETED {
 			return fmt.Errorf("[ERROR] resourceRouteTableAssociationDelete failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 		}
 	}
 
 	d.SetId("")
 	return nil
+}
+
+func typeSetToStringArray(set *schema.Set) []string{
+
+	ret := []string{}
+	for _,item := range set.List() {
+		ret = append(ret,item.(string))
+	}
+	return ret
+}
+
+func performSubnetAttach(d *schema.ResourceData, meta interface{},attachList []string) bool {
+
+	performSuccess := true
+	config := meta.(*JDCloudConfig)
+	disassociationClient := client.NewVpcClient(config.Credential)
+
+	req := apis.NewAssociateRouteTableRequest(config.Region, d.Get("route_table_id").(string), attachList)
+	resp, err := disassociationClient.AssociateRouteTable(req)
+	if err != nil || resp.Error.Code != REQUEST_COMPLETED{
+			performSuccess = false
+	}
+
+	return len(attachList)==RESOURCE_EMPTY || performSuccess
+}
+
+func performSubnetDetach(d *schema.ResourceData, meta interface{},detachList []string) bool {
+
+	performSuccess := true
+	config := meta.(*JDCloudConfig)
+	disassociationClient := client.NewVpcClient(config.Credential)
+	routeTableId := d.Get("route_table_id").(string)
+
+	for _, id := range detachList {
+
+		req := apis.NewDisassociateRouteTableRequest(config.Region, routeTableId, id)
+		resp, err := disassociationClient.DisassociateRouteTable(req)
+		if err != nil || resp.Error.Code != REQUEST_COMPLETED{
+			performSuccess = false
+		}
+	}
+
+	return performSuccess
 }
