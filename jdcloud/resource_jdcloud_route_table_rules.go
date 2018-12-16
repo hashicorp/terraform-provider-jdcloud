@@ -12,6 +12,10 @@ func getMapIntAddr(i int) *int {
 	return &i
 }
 
+func getMapStrAddr(s string) *string {
+	return &s
+}
+
 func ruleIdList(set *schema.Set) []string {
 
 	idList := []string{}

@@ -119,7 +119,7 @@ func resourceVpcUpdate(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceVpcDelete(d *schema.ResourceData, m interface{}) error {
-	
+
 	config := m.(*JDCloudConfig)
 	vpcClient := client.NewVpcClient(config.Credential)
 

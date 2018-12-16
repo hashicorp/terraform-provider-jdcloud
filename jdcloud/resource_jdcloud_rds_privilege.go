@@ -8,6 +8,65 @@ import (
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/rds/models"
 )
 
+func typeSetToAccountStructList(set *schema.Set)[]models.AccountPrivilege {
+
+	a := []models.AccountPrivilege{}
+	for _,account := range set.List(){
+
+		m := account.(map[string]interface{})
+		a = append(a,models.AccountPrivilege{
+			DbName:    getMapStrAddr(m["db_name"].(string)),
+			Privilege: getMapStrAddr(m["privilege"].(string)),
+		})
+	}
+	return a
+}
+
+func dbNameList(set *schema.Set) []string {
+
+	dbNameList := []string{}
+
+	for _,db := range set.List(){
+		m := db.(map[string]interface{})
+		dbNameList = append(dbNameList,m["db_name"].(string))
+	}
+	return dbNameList
+}
+
+func performDetachDB(d *schema.ResourceData, m interface{},list []string) error {
+
+	config := m.(*JDCloudConfig)
+	rdsClient := client.NewRdsClient(config.Credential)
+	req := apis.NewRevokePrivilegeRequest(config.Region, d.Get("instance_id").(string), d.Get("username").(string), list);
+	resp, err := rdsClient.RevokePrivilege(req)
+
+	if err!=nil{
+		return nil
+	}
+	if resp.Error.Code!=REQUEST_COMPLETED{
+		return fmt.Errorf("[ERROR] performDetachDB failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
+	}
+	return nil
+}
+
+func performAttachDB(d *schema.ResourceData, m interface{},attachSet *schema.Set) error {
+
+	config := m.(*JDCloudConfig)
+	rdsClient := client.NewRdsClient(config.Credential)
+
+	req := apis.NewGrantPrivilegeRequest(config.Region, d.Get("instance_id").(string), d.Get("username").(string), typeSetToAccountStructList(attachSet))
+	resp, err := rdsClient.GrantPrivilege(req)
+
+	if err!=nil{
+		return nil
+	}
+	if resp.Error.Code!=REQUEST_COMPLETED{
+		return fmt.Errorf("[ERROR] performAttachDB failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
+	}
+
+	return nil
+}
+
 func resourceJDCloudRDSPrivilege() *schema.Resource {
 
 	privilegeSchema := &schema.Resource{
@@ -26,6 +85,7 @@ func resourceJDCloudRDSPrivilege() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceJDCloudRDSPrivilegeCreate,
 		Read:   resourceJDCloudRDSPrivilegeRead,
+		Update:resourceJDCloudRDSPrivilegeUpdate,
 		Delete: resourceJDCloudRDSPrivilegeDelete,
 
 		Schema: map[string]*schema.Schema{
@@ -40,43 +100,21 @@ func resourceJDCloudRDSPrivilege() *schema.Resource {
 				ForceNew: true,
 			},
 			"account_privilege": &schema.Schema{
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Required: true,
-				ForceNew: true,
 				Elem:     privilegeSchema,
 			},
 		},
 	}
 }
 
-func resourceJDCloudRDSPrivilegeCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceJDCloudRDSPrivilegeCreate(d *schema.ResourceData, m interface{}) error {
 
-	config := meta.(*JDCloudConfig)
-	rdsClient := client.NewRdsClient(config.Credential)
-
-	instanceId := d.Get("instance_id").(string)
-	userName := d.Get("username").(string)
-	accountPrivileges := []models.AccountPrivilege{}
-	for _, item := range d.Get("account_privilege").([]interface{}) {
-		itemMap := item.(map[string]interface{})
-		accountPrivileges = append(accountPrivileges, models.AccountPrivilege{
-			DbName:    stringAddr(itemMap["db_name"]),
-			Privilege: stringAddr(itemMap["privilege"]),
-		})
+	if err := performAttachDB(d,m,d.Get("account_privilege").(*schema.Set));err!=nil{
+		return err
 	}
 
-	req := apis.NewGrantPrivilegeRequest(config.Region, instanceId, userName, accountPrivileges)
-	resp, err := rdsClient.GrantPrivilege(req)
-
-	if err != nil {
-		return fmt.Errorf("[ERROR] resourceJDCloudRDSPrivilegeCreate failed %s ", err.Error())
-	}
-
-	if resp.Error.Code != REQUEST_COMPLETED {
-		return fmt.Errorf("[ERROR] resourceJDCloudRDSPrivilegeCreate failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
-	}
-
-	d.SetId(userName)
+	d.SetId(d.Get("username").(string))
 	return nil
 }
 
@@ -126,29 +164,30 @@ func resourceJDCloudRDSPrivilegeRead(d *schema.ResourceData, meta interface{}) e
 	return nil
 }
 
-func resourceJDCloudRDSPrivilegeDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceJDCloudRDSPrivilegeUpdate(d *schema.ResourceData, m interface{}) error {
 
-	config := meta.(*JDCloudConfig)
-	rdsClient := client.NewRdsClient(config.Credential)
+	if d.HasChange("account_privilege"){
 
-	instanceId := d.Get("instance_id").(string)
-	userName := d.Get("username").(string)
-	dbNames := []string{}
-	for _, item := range d.Get("account_privilege").([]interface{}) {
-		itemMap := item.(map[string]interface{})
-		dbNames = append(dbNames, itemMap["db_name"].(string))
-	}
+		pInterface, cInterface := d.GetChange("account_privilege")
+		p := pInterface.(*schema.Set)
+		c := cInterface.(*schema.Set)
+		i := p.Intersection(c)
 
-	req := apis.NewRevokePrivilegeRequest(config.Region, instanceId, userName, dbNames)
-	resp, err := rdsClient.RevokePrivilege(req)
+		if err:=performDetachDB(d,m,dbNameList(p.Difference(i)));err!=nil || len(dbNameList(p.Difference(i)))!=0{
+			return err
+		}
+		if err:=performAttachDB(d,m,c.Difference(i));err!=nil || len(dbNameList(c.Difference(i)))!=0{
+			return err
+		}
 
-	if err != nil {
-		return fmt.Errorf("[ERROR] resourceJDCloudRDSPrivilegeDelete failed %s ", err.Error())
-	}
-
-	if resp.Error.Code != REQUEST_COMPLETED {
-		return fmt.Errorf("[ERROR] resourceJDCloudRDSPrivilegeDelete failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
+		d.Set("account_privilege",cInterface)
+		return performAttachDB(d,m,c.Difference(i))
 	}
 
 	return nil
+}
+
+func resourceJDCloudRDSPrivilegeDelete(d *schema.ResourceData, m interface{}) error {
+
+	return performDetachDB(d,m,dbNameList(d.Get("account_privilege").(*schema.Set)))
 }
