@@ -6,9 +6,69 @@ import (
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/apis"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/client"
 	vpc "github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/models"
-	"log"
-	"strconv"
 )
+
+func typeSetToSgRuleList(s *schema.Set) []vpc.AddSecurityGroupRules{
+
+	sgRules := []vpc.AddSecurityGroupRules{}
+
+	for _,i := range s.List() {
+
+		m := i.(map[string]interface{})
+
+		r := vpc.AddSecurityGroupRules{}
+		r.Protocol = m["protocol"].(int)
+		r.Direction=	m["direction"].(int)
+		r.AddressPrefix = m["address_prefix"].(string)
+
+		if _, ok := m["from_port"]; ok {
+			r.FromPort = getMapIntAddr(m["from_port"].(int))
+		}
+		if _, ok := m["to_port"]; ok {
+			r.ToPort = getMapIntAddr(m["to_port"].(int))
+		}
+
+		sgRules = append(sgRules,r)
+	}
+
+	return sgRules
+}
+
+func performSgRuleAttach(d *schema.ResourceData, m interface{},s *schema.Set) error {
+
+	config := m.(*JDCloudConfig)
+	vpcClient := client.NewVpcClient(config.Credential)
+
+	req := apis.NewAddNetworkSecurityGroupRulesRequest(config.Region, d.Get("network_security_group_id").(string), typeSetToSgRuleList(s))
+	resp, err := vpcClient.AddNetworkSecurityGroupRules(req)
+
+	if err != nil {
+		return fmt.Errorf("[ERROR] performSgRuleAttach failed %s ", err.Error())
+	}
+	if resp.Error.Code != REQUEST_COMPLETED {
+		return fmt.Errorf("[ERROR] performSgRuleAttach failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
+	}
+
+	return nil
+}
+
+func performSgRuleDetach(d *schema.ResourceData, m interface{},s *schema.Set) error {
+
+	config := m.(*JDCloudConfig)
+	vpcClient := client.NewVpcClient(config.Credential)
+
+	req := apis.NewRemoveNetworkSecurityGroupRulesRequest(config.Region, d.Get("network_security_group_id").(string), ruleIdList(s))
+	resp, err := vpcClient.RemoveNetworkSecurityGroupRules(req)
+
+	if err != nil {
+		return fmt.Errorf("[ERROR] performSgRuleDetach failed %s ", err.Error())
+	}
+	if resp.Error.Code != REQUEST_COMPLETED {
+		return fmt.Errorf("[ERROR] performSgRuleDetach failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
+	}
+
+	return nil
+}
 
 func resourceJDCloudNetworkSecurityGroupRules() *schema.Resource {
 	return &schema.Resource{
@@ -18,13 +78,13 @@ func resourceJDCloudNetworkSecurityGroupRules() *schema.Resource {
 		Delete: resourceJDCloudNetworkSecurityGroupRulesDelete,
 
 		Schema: map[string]*schema.Schema{
-			"network_security_group_id": &schema.Schema{
+			"security_group_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"add_security_group_rules": &schema.Schema{
-				Type:     schema.TypeList,
+			"security_group_rules": &schema.Schema{
+				Type:     schema.TypeSet,
 				Optional: true,
 				Computed: true,
 				Elem: &schema.Resource{
@@ -65,62 +125,23 @@ func resourceJDCloudNetworkSecurityGroupRules() *schema.Resource {
 	}
 }
 
-func resourceJDCloudNetworkSecurityGroupRulesCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceJDCloudNetworkSecurityGroupRulesCreate(d *schema.ResourceData, m interface{}) error {
+
 	d.Partial(true)
-	config := meta.(*JDCloudConfig)
-	networkSecurityGroupID := d.Get("network_security_group_id").(string)
-	vpcClient := client.NewVpcClient(config.Credential)
-	var networkSecurityGroupRuleSpecs []vpc.AddSecurityGroupRules
 
-	v := d.Get("add_security_group_rules")
-	for _, vv := range v.([]interface{}) {
-
-		ele := vv.(map[string]interface{})
-
-		var addSecurityGroupRules vpc.AddSecurityGroupRules
-
-		addSecurityGroupRules.AddressPrefix = ele["address_prefix"].(string)
-		addSecurityGroupRules.Direction = ele["direction"].(int)
-		addSecurityGroupRules.Protocol = ele["protocol"].(int)
-
-		if fromPortInterface, ok := ele["from_port"]; ok {
-			fromPort := fromPortInterface.(int)
-			addSecurityGroupRules.FromPort = &fromPort
-		}
-
-		if toPortInterface, ok := ele["to_port"]; ok {
-			toPort := toPortInterface.(int)
-			addSecurityGroupRules.ToPort = &toPort
-		}
-
-		if descriptionInterface, ok := ele["description"]; ok {
-			description := descriptionInterface.(string)
-			addSecurityGroupRules.Description = &description
-		}
-		networkSecurityGroupRuleSpecs = append(networkSecurityGroupRuleSpecs, addSecurityGroupRules)
+	if err:=performSgRuleAttach(d,m,d.Get("security_group_rules").(*schema.Set));err!=nil{
+		return err
 	}
-	rq := apis.NewAddNetworkSecurityGroupRulesRequest(config.Region, networkSecurityGroupID, networkSecurityGroupRuleSpecs)
-	resp, err := vpcClient.AddNetworkSecurityGroupRules(rq)
 
-	if err != nil {
-		return fmt.Errorf("[ERROR] resourceJDCloudNetworkSecurityGroupRulesCreate failed %s ", err.Error())
-	}
-	if resp.Error.Code != REQUEST_COMPLETED {
-		return fmt.Errorf("[ERROR] resourceJDCloudNetworkSecurityGroupRulesCreate failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
-	}
-	d.SetPartial("add_security_group_rules")
-	d.SetPartial("network_security_group_id")
+	d.SetPartial("security_group_rules")
+	d.SetPartial("security_group_id")
 
-	// This step is set since rule ID can not be retrieved via "create"
-	errUpdateInfo := resourceJDCloudNetworkSecurityGroupRulesRead(d, meta)
-	if errUpdateInfo == nil {
-	} else {
-		log.Printf("[WARN] SgRules has been created but resource information mismatch")
-		log.Printf("[WARN] Command 'Terraform refresh to update your local resource info'")
+	if err:= resourceJDCloudNetworkSecurityGroupRulesRead(d, m);err!=nil{
+		return err
 	}
 
 	d.Partial(false)
-	d.SetId(networkSecurityGroupID)
+	d.SetId(d.Get("network_security_group_id").(string))
 	return nil
 }
 
@@ -128,8 +149,8 @@ func resourceJDCloudNetworkSecurityGroupRulesRead(d *schema.ResourceData, meta i
 
 	config := meta.(*JDCloudConfig)
 	ruleClient := client.NewVpcClient(config.Credential)
-	networkSecurityGroupID := d.Get("network_security_group_id").(string)
-	req := apis.NewDescribeNetworkSecurityGroupRequest(config.Region, networkSecurityGroupID)
+	sgId := d.Get("security_group_id").(string)
+	req := apis.NewDescribeNetworkSecurityGroupRequest(config.Region, sgId)
 	resp, err := ruleClient.DescribeNetworkSecurityGroup(req)
 
 	if err != nil {
@@ -167,68 +188,36 @@ func resourceJDCloudNetworkSecurityGroupRulesRead(d *schema.ResourceData, meta i
 	return nil
 }
 
-func resourceJDCloudNetworkSecurityGroupRulesUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceJDCloudNetworkSecurityGroupRulesUpdate(d *schema.ResourceData, m interface{}) error {
 
-	if d.HasChange("add_security_group_rules") {
+	if d.HasChange("security_group_rules") {
 
-		config := meta.(*JDCloudConfig)
-		ruleClient := client.NewVpcClient(config.Credential)
+		pInterface, cInterface := d.GetChange("security_group_rules")
+		p := pInterface.(*schema.Set)
+		c := cInterface.(*schema.Set)
+		i := p.Intersection(c)
 
-		sgRuleLength := d.Get("add_security_group_rules.#").(int)
-		modifySecurityGroupRuleSpecs := make([]vpc.ModifySecurityGroupRules, 0, sgRuleLength)
+		detachList := ruleIdList(p.Difference(i))
+		attachList := typeSetToSgRuleList(c.Difference(i))
 
-		for i := 0; i < sgRuleLength; i++ {
-
-			sgRule := vpc.ModifySecurityGroupRules{
-				RuleId:        d.Get("add_security_group_rules." + strconv.Itoa(i) + ".rule_id").(string),
-				Protocol:      GetIntAddr(d, "add_security_group_rules."+strconv.Itoa(i)+".protocol"),
-				FromPort:      GetIntAddr(d, "add_security_group_rules."+strconv.Itoa(i)+".from_port"),
-				ToPort:        GetIntAddr(d, "add_security_group_rules."+strconv.Itoa(i)+".to_port"),
-				AddressPrefix: GetStringAddr(d, "add_security_group_rules."+strconv.Itoa(i)+".address_prefix"),
-				Description:   GetStringAddr(d, "add_security_group_rules."+strconv.Itoa(i)+".description"),
-			}
-
-			modifySecurityGroupRuleSpecs = append(modifySecurityGroupRuleSpecs, sgRule)
+		if err:=performSgRuleDetach(d,m,p.Difference(i));len(detachList)!=0||err!=nil{
+			return err
+		}
+		if err:=performSgRuleAttach(d,m,c.Difference(i));len(attachList)!=0||err!=nil{
+			return err
 		}
 
-		req := apis.NewModifyNetworkSecurityGroupRulesRequest(config.Region, d.Id(), modifySecurityGroupRuleSpecs)
-		resp, err := ruleClient.ModifyNetworkSecurityGroupRules(req)
-		if err != nil {
-			return fmt.Errorf("[ERROR] resourceJDCloudNetworkSecurityGroupRulesUpdate failed %s ", err.Error())
-		}
-
-		if resp.Error.Code != REQUEST_COMPLETED {
-			return fmt.Errorf("[ERROR] resourceJDCloudNetworkSecurityGroupRulesUpdate failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
-		}
+		d.Set("security_group_rules",cInterface)
 	}
 
 	return nil
 }
 
-func resourceJDCloudNetworkSecurityGroupRulesDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceJDCloudNetworkSecurityGroupRulesDelete(d *schema.ResourceData, m interface{}) error {
 
-	config := meta.(*JDCloudConfig)
-	ruleClient := client.NewVpcClient(config.Credential)
-
-	sgRuleLength := d.Get("add_security_group_rules.#").(int)
-	sgRuleIdArray := make([]string, 0, sgRuleLength)
-	for i := 0; i < sgRuleLength; i++ {
-		index := strconv.Itoa(i)
-		ruleId := d.Get("add_security_group_rules." + index + ".rule_id").(string)
-		sgRuleIdArray = append(sgRuleIdArray, ruleId)
+	if err := performSgRuleDetach(d,m,d.Get("security_group_rules").(*schema.Set));err!=nil{
+		return err
 	}
-
-	req := apis.NewRemoveNetworkSecurityGroupRulesRequest(config.Region, d.Id(), sgRuleIdArray)
-	resp, err := ruleClient.RemoveNetworkSecurityGroupRules(req)
-
-	if err != nil {
-		return fmt.Errorf("[ERROR] resourceJDCloudNetworkSecurityGroupRulesDelete failed %s ", err.Error())
-	}
-
-	if resp.Error.Code != REQUEST_COMPLETED {
-		return fmt.Errorf("[ERROR] resourceJDCloudNetworkSecurityGroupRulesDelete failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
-	}
-
 	d.SetId("")
 	return nil
 }

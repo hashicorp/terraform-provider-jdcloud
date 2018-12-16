@@ -189,5 +189,9 @@ func resourceJDCloudRDSPrivilegeUpdate(d *schema.ResourceData, m interface{}) er
 
 func resourceJDCloudRDSPrivilegeDelete(d *schema.ResourceData, m interface{}) error {
 
-	return performDetachDB(d,m,dbNameList(d.Get("account_privilege").(*schema.Set)))
+	if err := performDetachDB(d,m,dbNameList(d.Get("account_privilege").(*schema.Set)));err!=nil{
+		return err
+	}
+	d.SetId("")
+	return nil
 }
