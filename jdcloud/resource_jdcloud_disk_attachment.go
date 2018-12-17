@@ -182,7 +182,6 @@ func resourceJDCloudDiskAttachmentDelete(d *schema.ResourceData, meta interface{
 
 	d.Partial(false)
 	d.SetId("")
-	d.SetId("")
 	return nil
 }
 
