@@ -12,8 +12,8 @@ import (
 
 const TestAccSecurityGroupRuleConfig = `
 resource "jdcloud_network_security_group_rules" "sg-TEST-1" {
-  network_security_group_id = "sg-ym9yp1egi0"
-  add_security_group_rules = [{
+  security_group_id = "sg-ym9yp1egi0"
+  security_group_rules = [{
     address_prefix = "0.0.0.0/0"
     direction      = "0"
     from_port      = "10"
@@ -25,8 +25,6 @@ resource "jdcloud_network_security_group_rules" "sg-TEST-1" {
 
 func TestAccJDCloudSecurityGroupRule_basic(t *testing.T) {
 
-	// This SecurityGroupRule ID is used to create and verify subnet
-	// Currently declared but assigned values later
 	var SecurityGroupRuleId string
 
 	resource.Test(t, resource.TestCase{
@@ -51,17 +49,15 @@ func testAccIfSecurityGroupRuleExists(securityGroupRuleName string, securityGrou
 
 	return func(stateInfo *terraform.State) error {
 
-		//STEP-1 : Check if securityGroup resource has been created locally
 		securityGroupRuleInfoStoredLocally, ok := stateInfo.RootModule().Resources[securityGroupRuleName]
 		if ok == false {
-			return fmt.Errorf("securityGroupRule namely {%s} has not been created", securityGroupRuleName)
+			return fmt.Errorf("[ERROR] testAccIfSecurityGroupRuleExists Failed,securityGroupRule namely {%s} has not been created", securityGroupRuleName)
 		}
 		if securityGroupRuleInfoStoredLocally.Primary.ID == "" {
-			return fmt.Errorf("operation failed, resources created but ID not set")
+			return fmt.Errorf("[ERROR] testAccIfSecurityGroupRuleExists Failed,operation failed, resources created but ID not set")
 		}
 		securityGroupIdStoredLocally := securityGroupRuleInfoStoredLocally.Primary.Attributes["network_security_group_id"]
 
-		//STEP-2 : Check if securityGroup resource has been created remotely
 		securityGroupRuleConfig := testAccProvider.Meta().(*JDCloudConfig)
 		securityGroupRuleClient := client.NewVpcClient(securityGroupRuleConfig.Credential)
 
@@ -86,7 +82,7 @@ func testAccIfSecurityGroupRuleExists(securityGroupRuleName string, securityGrou
 				}
 			}
 			if flag == false {
-				return fmt.Errorf("resource local dues not match remote")
+				return fmt.Errorf("[ERROR] testAccIfSecurityGroupRuleExists Failed,resource local dues not match remote")
 			}
 		}
 

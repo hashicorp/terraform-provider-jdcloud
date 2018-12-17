@@ -5,6 +5,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/apis"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/client"
+	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/models"
 	"log"
 )
 
@@ -191,8 +192,8 @@ func resourceJDCloudNetworkInterfaceRead(d *schema.ResourceData, meta interface{
 		d.Set("primary_ip_address", resp.Result.NetworkInterface.PrimaryIp.ElasticIpAddress)
 	}
 
-	if len(resp.Result.NetworkInterface.SecondaryIps) != RESOURCE_EMPTY {
-		if errSetIp := d.Set("secondary_ip_addresses", resp.Result.NetworkInterface.SecondaryIps); errSetIp != nil {
+	if len(resp.Result.NetworkInterface.SecondaryIps)!=d.Get("secondary_ip_count").(int)+d.Get("secondary_ip_addresses.#").(int)  {
+		if errSetIp := d.Set("secondary_ip_addresses", ipList(resp.Result.NetworkInterface.SecondaryIps)); errSetIp != nil {
 			return fmt.Errorf("[ERROR] resourceJDCloudNetworkInterfaceRead Failed in setting secondary ips,reasons: %s", errSetIp.Error())
 		}
 	}
@@ -314,4 +315,15 @@ func performSecondaryIpAttach(d *schema.ResourceData, m interface{}, set *schema
 		return fmt.Errorf("[ERROR] performSecondaryIpAttach failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
 	return nil
+}
+
+func ipList(v []models.NetworkInterfacePrivateIp) []string{
+
+	ipList := []string{}
+
+	for _,vv := range v{
+
+		ipList = append(ipList, vv.PrivateIpAddress)
+	}
+	return ipList
 }

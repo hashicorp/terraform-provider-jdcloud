@@ -44,10 +44,10 @@ func testAccIfKeyPairsExists(name string, id *string) resource.TestCheckFunc {
 
 		infoStoredLocally, ok := stateInfo.RootModule().Resources[name]
 		if ok == false {
-			return fmt.Errorf("we can not find a resource namely:{%s} in terraform.State", name)
+			return fmt.Errorf("[ERROR] testAccIfKeyPairsExists Failed,we can not find a resource namely:{%s} in terraform.State", name)
 		}
 		if infoStoredLocally.Primary.ID == "" {
-			return fmt.Errorf("operation failed, resource :{%s} is created but ID not set", name)
+			return fmt.Errorf("[ERROR] testAccIfKeyPairsExists Failed,operation failed, resource :{%s} is created but ID not set", name)
 		}
 		idStoredLocally := infoStoredLocally.Primary.Attributes["key_name"]
 
@@ -61,7 +61,7 @@ func testAccIfKeyPairsExists(name string, id *string) resource.TestCheckFunc {
 			return err
 		}
 		if resp.Error.Code != REQUEST_COMPLETED {
-			return fmt.Errorf("invalid region id")
+			return fmt.Errorf("[ERROR] testAccIfKeyPairsExists Failed,invalid region id")
 		}
 
 		keysExists := false
@@ -72,7 +72,7 @@ func testAccIfKeyPairsExists(name string, id *string) resource.TestCheckFunc {
 			}
 		}
 		if keysExists == false {
-			return fmt.Errorf("keys not been created remotely")
+			return fmt.Errorf("[ERROR] testAccIfKeyPairsExists Failed,keys not been created remotely")
 		}
 
 		*id = idStoredLocally
@@ -85,7 +85,7 @@ func testAccKeyPairsDestroy(name *string) resource.TestCheckFunc {
 	return func(stateInfo *terraform.State) error {
 
 		if *name == "" {
-			return fmt.Errorf("name is empty")
+			return fmt.Errorf("[ERROR] testAccKeyPairsDestroy Failed,name is empty")
 		}
 
 		config := testAccProvider.Meta().(*JDCloudConfig)
@@ -105,7 +105,7 @@ func testAccKeyPairsDestroy(name *string) resource.TestCheckFunc {
 			}
 		}
 		if keysExists == true {
-			return fmt.Errorf("keys still exists")
+			return fmt.Errorf("[ERROR] testAccKeyPairsDestroy Failed,keys still exists")
 		}
 		return nil
 	}

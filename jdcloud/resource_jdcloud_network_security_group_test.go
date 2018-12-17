@@ -11,7 +11,7 @@ import (
 )
 
 const TestAccSecurityGroupConfig = `
-resource "jdcloud_network_security_group" "sg-TEST-1"{
+resource "jdcloud_network_security_group" "TF-TEST"{
 	description = "test"
 	network_security_group_name = "test"
 	vpc_id = "vpc-npvvk4wr5j"
@@ -20,8 +20,6 @@ resource "jdcloud_network_security_group" "sg-TEST-1"{
 
 func TestAccJDCloudSecurityGroup_basic(t *testing.T) {
 
-	// This securityGroupId is used to create and verify securityGroup
-	// Currently declared but assigned values later
 	var securityGroupId string
 
 	resource.Test(t, resource.TestCase{
@@ -33,8 +31,7 @@ func TestAccJDCloudSecurityGroup_basic(t *testing.T) {
 				Config: TestAccSecurityGroupConfig,
 				Check: resource.ComposeTestCheckFunc(
 
-					// securityGroupId verification
-					testAccIfSecurityGroupExists("jdcloud_network_security_group.sg-TEST-1", &securityGroupId),
+					testAccIfSecurityGroupExists("jdcloud_network_security_group.TF-TEST", &securityGroupId),
 				),
 			},
 		},
@@ -49,10 +46,10 @@ func testAccIfSecurityGroupExists(securityGroupName string, securityGroupId *str
 		//STEP-1 : Check if securityGroup resource has been created locally
 		securityGroupInfoStoredLocally, ok := stateInfo.RootModule().Resources[securityGroupName]
 		if ok == false {
-			return fmt.Errorf("securityGroup namely {%s} has not been created", securityGroupName)
+			return fmt.Errorf("[ERROR] testAccIfSecurityGroupExists Failed,securityGroup namely {%s} has not been created", securityGroupName)
 		}
 		if securityGroupInfoStoredLocally.Primary.ID == "" {
-			return fmt.Errorf("operation failed, resources created but ID not set")
+			return fmt.Errorf("[ERROR] testAccIfSecurityGroupExists Failed,operation failed, resources created but ID not set")
 		}
 		securityGroupIdStoredLocally := securityGroupInfoStoredLocally.Primary.ID
 
@@ -66,12 +63,10 @@ func testAccIfSecurityGroupExists(securityGroupName string, securityGroupId *str
 		if err != nil {
 			return err
 		}
-		if resp.Error.Code != 0 {
-			return fmt.Errorf("resources created locally but not remotely")
+		if resp.Error.Code != REQUEST_COMPLETED {
+			return fmt.Errorf("[ERROR] testAccIfSecurityGroupExists Failed,resources created locally but not remotely")
 		}
 
-		//  Here securityGroup resources has been validated to be created locally and
-		//  Remotely, next we are going to validate the remaining attributes
 		*securityGroupId = securityGroupIdStoredLocally
 		return nil
 	}
@@ -83,7 +78,7 @@ func testAccCheckSecurityGroupDestroy(securityGroupIdStoredLocally *string) reso
 
 		// securityGroup ID is not supposed to be empty during testing stage
 		if *securityGroupIdStoredLocally == "" {
-			return errors.New("securityGroupId is empty")
+			return errors.New("[ERROR] testAccCheckSecurityGroupDestroy Failed,securityGroupId is empty")
 		}
 
 		securityGroupConfig := testAccProvider.Meta().(*JDCloudConfig)
@@ -97,8 +92,8 @@ func testAccCheckSecurityGroupDestroy(securityGroupIdStoredLocally *string) reso
 		if err != nil {
 			return err
 		}
-		if resp.Error.Code != 404 {
-			return fmt.Errorf("something wrong happens or resource still exists")
+		if resp.Error.Code != RESOURCE_NOT_FOUND {
+			return fmt.Errorf("[ERROR] testAccCheckSecurityGroupDestroy Failed,something wrong happens or resource still exists")
 		}
 		return nil
 	}

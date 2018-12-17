@@ -100,7 +100,6 @@ func resourceJDCloudDiskAttachmentRead(d *schema.ResourceData, meta interface{})
 		return err
 	}
 
-	// If the instance has been deleted already, remove attachment info from local state
 	if resp.Error.Code == RESOURCE_NOT_FOUND {
 		d.SetId("")
 		return nil
@@ -117,8 +116,6 @@ func resourceJDCloudDiskAttachmentRead(d *schema.ResourceData, meta interface{})
 		}
 	}
 
-	// If this disk is not found attaching on this Instance
-	// It is supposed to be detached already.Remove it from local state.
 	d.SetId("")
 	return nil
 }

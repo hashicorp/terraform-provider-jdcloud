@@ -29,155 +29,6 @@ import (
   3. set no device as false to set up your data disk
 */
 
-func resourceJDCloudInstance() *schema.Resource {
-
-	diskSchema := &schema.Resource{
-		Schema: map[string]*schema.Schema{
-
-			"disk_category": {
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-			"auto_delete": {
-				Type:     schema.TypeBool,
-				Optional: true,
-			},
-			"device_name": {
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-			"az": {
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-			"disk_name": {
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-			"description": {
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-			"disk_type": {
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-			"disk_size_gb": {
-				Type:     schema.TypeInt,
-				Optional: true,
-			},
-			"snapshot_id": {
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-			"disk_id": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-		},
-	}
-
-	return &schema.Resource{
-		Create: resourceJDCloudInstanceCreate,
-		Read:   resourceJDCloudInstanceRead,
-		Update: resourceJDCloudInstanceUpdate,
-		Delete: resourceJDCloudInstanceDelete,
-
-		Schema: map[string]*schema.Schema{
-			"az": {
-				Type:     schema.TypeString,
-				Required: true,
-			},
-			"instance_name": {
-				Type:     schema.TypeString,
-				Required: true,
-			},
-			"instance_type": {
-				Type:     schema.TypeString,
-				Required: true,
-			},
-			"image_id": {
-				Type:     schema.TypeString,
-				Required: true,
-			},
-			"subnet_id": {
-				Type:     schema.TypeString,
-				Required: true,
-			},
-			"description": {
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-
-			"password": {
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-
-			"key_names": { //Only one key pair name is supported
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-
-			"primary_ip": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
-			},
-
-			"security_group_ids": {
-				Type:     schema.TypeSet,
-				Optional: true,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
-				MaxItems: MAX_SECURITY_GROUP_COUNT,
-			},
-
-			"network_interface_name": {
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-			"secondary_ips": {
-				Type:     schema.TypeSet,
-				Optional: true,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
-			},
-			"secondary_ip_count": {
-				Type:     schema.TypeInt,
-				Optional: true,
-			},
-			"sanity_check": {
-				Type:     schema.TypeInt,
-				Optional: true,
-			},
-			"elastic_ip_bandwidth_mbps": {
-				Type:     schema.TypeInt,
-				Optional: true,
-			},
-			"elastic_ip_provider": {
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-
-			"system_disk": {
-				Type:     schema.TypeSet,
-				Optional: true,
-				Elem:     diskSchema,
-				MaxItems: MAX_SYSDISK_COUNT,
-				ForceNew: true,
-			},
-			"data_disk": {
-				Type:     schema.TypeSet,
-				Optional: true,
-				Elem:     diskSchema,
-			},
-		},
-	}
-}
-
 //----------------------------------------------------------------------------------- OTHERS
 
 type vmLogger struct{ core.Logger }
@@ -206,8 +57,6 @@ func GetIntAddr(d *schema.ResourceData, key string) *int {
 	return &v
 }
 
-//----------------------------------------------------------------------------------- VM-RELATED
-
 func QueryInstanceDetail(d *schema.ResourceData, m interface{}) (*apis.DescribeInstanceResponse, error) {
 	config := m.(*JDCloudConfig)
 	vmClient := client.NewVmClient(config.Credential)
@@ -218,6 +67,8 @@ func QueryInstanceDetail(d *schema.ResourceData, m interface{}) (*apis.DescribeI
 	}
 	return resp, err
 }
+
+//----------------------------------------------------------------------------------- VM-RELATED
 
 func waitForInstance(d *schema.ResourceData, m interface{}, vmStatus string) error {
 	currentTime := int(time.Now().Unix())
@@ -262,8 +113,6 @@ func DeleteVmInstance(d *schema.ResourceData, m interface{}) (*apis.DeleteInstan
 	return resp, err
 }
 
-//----------------------------------------------------------------------------------- DISK-RELATED
-
 func diskIdList(s *schema.Set) []string {
 
 	i := []string{}
@@ -275,10 +124,12 @@ func diskIdList(s *schema.Set) []string {
 	return i
 }
 
+//----------------------------------------------------------------------------------- DISK-RELATED
+
 func typeSetToDiskList(s *schema.Set) []vm.InstanceDiskAttachmentSpec {
 
 	ds := []vm.InstanceDiskAttachmentSpec{}
-	for _, d := range s.List() {
+	for _, d := range s.List() 	{
 
 		c := dm.DiskSpec{}
 		m := d.(map[string]interface{})
@@ -493,6 +344,155 @@ func performNewDiskAttach(d *schema.ResourceData, m interface{}, ids []string) e
 }
 
 //----------------------------------------------------------------------------------- RESOURCE
+
+func resourceJDCloudInstance() *schema.Resource {
+
+	diskSchema := &schema.Resource{
+		Schema: map[string]*schema.Schema{
+
+			"disk_category": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"auto_delete": {
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+			"device_name": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"az": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"disk_name": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"description": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"disk_type": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"disk_size_gb": {
+				Type:     schema.TypeInt,
+				Optional: true,
+			},
+			"snapshot_id": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"disk_id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+		},
+	}
+
+	return &schema.Resource{
+		Create: resourceJDCloudInstanceCreate,
+		Read:   resourceJDCloudInstanceRead,
+		Update: resourceJDCloudInstanceUpdate,
+		Delete: resourceJDCloudInstanceDelete,
+
+		Schema: map[string]*schema.Schema{
+			"az": {
+				Type:     schema.TypeString,
+				Required: true,
+			},
+			"instance_name": {
+				Type:     schema.TypeString,
+				Required: true,
+			},
+			"instance_type": {
+				Type:     schema.TypeString,
+				Required: true,
+			},
+			"image_id": {
+				Type:     schema.TypeString,
+				Required: true,
+			},
+			"subnet_id": {
+				Type:     schema.TypeString,
+				Required: true,
+			},
+			"description": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
+			"password": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
+			"key_names": { //Only one key pair name is supported
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
+			"primary_ip": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+
+			"security_group_ids": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+				MaxItems: MAX_SECURITY_GROUP_COUNT,
+			},
+
+			"network_interface_name": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"secondary_ips": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
+			"secondary_ip_count": {
+				Type:     schema.TypeInt,
+				Optional: true,
+			},
+			"sanity_check": {
+				Type:     schema.TypeInt,
+				Optional: true,
+			},
+			"elastic_ip_bandwidth_mbps": {
+				Type:     schema.TypeInt,
+				Optional: true,
+			},
+			"elastic_ip_provider": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
+			"system_disk": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem:     diskSchema,
+				MaxItems: MAX_SYSDISK_COUNT,
+				ForceNew: true,
+			},
+			"data_disk": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem:     diskSchema,
+			},
+		},
+	}
+}
 
 func resourceJDCloudInstanceCreate(d *schema.ResourceData, m interface{}) error {
 	d.Partial(true)

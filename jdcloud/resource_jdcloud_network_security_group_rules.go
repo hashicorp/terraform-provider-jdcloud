@@ -6,30 +6,21 @@ import (
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/apis"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/client"
 	vpc "github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/models"
-	"log"
 )
 
 func typeSetToSgRuleList(s *schema.Set) []vpc.AddSecurityGroupRules {
 
 	sgRules := []vpc.AddSecurityGroupRules{}
-	log.Printf("popo-0")
 	for _, i := range s.List() {
 
 		m := i.(map[string]interface{})
 		r := vpc.AddSecurityGroupRules{}
-		log.Printf("popo-1")
 		r.Protocol = m["protocol"].(int)
-		log.Printf("popo-2")
 		r.Direction = m["direction"].(int)
-		log.Printf("popo-3")
 		r.AddressPrefix = m["address_prefix"].(string)
-		log.Printf("popo-4")
 		if _, ok := m["from_port"]; ok {
-			log.Printf("popopo")
-
 			r.FromPort = getMapIntAddr(m["from_port"].(int))
 		}
-		log.Printf("popo-5")
 		if _, ok := m["to_port"]; ok {
 			r.ToPort = getMapIntAddr(m["to_port"].(int))
 		}
@@ -188,11 +179,9 @@ func resourceJDCloudNetworkSecurityGroupRulesRead(d *schema.ResourceData, meta i
 		sgRuleArray = append(sgRuleArray, sgRule)
 	}
 
-	log.Printf("popo 7")
 	if err := d.Set("security_group_rules", sgRuleArray); err != nil {
 		return fmt.Errorf("[ERROR] Failed in resourceJDCloudNetworkSecurityGroupRulesRead,reasons:%s", err.Error())
 	}
-	log.Printf("popo 8")
 	return nil
 }
 
