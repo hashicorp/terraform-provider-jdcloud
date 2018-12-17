@@ -20,7 +20,7 @@ func resourceJDCloudNetworkInterface() *schema.Resource {
 			"subnet_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew:true,
+				ForceNew: true,
 			},
 			"network_interface_name": &schema.Schema{
 				Type:     schema.TypeString,
@@ -33,12 +33,12 @@ func resourceJDCloudNetworkInterface() *schema.Resource {
 			"az": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				ForceNew:true,
+				ForceNew: true,
 			},
 			"primary_ip_address": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				ForceNew:true,
+				ForceNew: true,
 			},
 			"sanity_check": &schema.Schema{
 				Type:     schema.TypeInt,
@@ -201,7 +201,7 @@ func resourceJDCloudNetworkInterfaceRead(d *schema.ResourceData, meta interface{
 	sgRemote := resp.Result.NetworkInterface.NetworkSecurityGroupIds
 	sgLocal := typeSetToStringArray(d.Get("security_groups").(*schema.Set))
 
-	if len(sgLocal)==RESOURCE_EMPTY && len(sgRemote)>1 {
+	if len(sgLocal) == RESOURCE_EMPTY && len(sgRemote) > 1 {
 		if errSetSg := d.Set("security_groups", resp.Result.NetworkInterface.NetworkSecurityGroupIds[1:]); errSetSg != nil {
 			return fmt.Errorf("[ERROR] resourceJDCloudNetworkInterfaceRead Failed in setting sg,reasons: %s", errSetSg.Error())
 		}
@@ -213,7 +213,7 @@ func resourceJDCloudNetworkInterfaceRead(d *schema.ResourceData, meta interface{
 func resourceJDCloudNetworkInterfaceUpdate(d *schema.ResourceData, meta interface{}) error {
 	d.Partial(true)
 
-	if d.HasChange("network_interface_name") || d.HasChange("security_groups")|| d.HasChange("description") {
+	if d.HasChange("network_interface_name") || d.HasChange("security_groups") || d.HasChange("description") {
 
 		config := meta.(*JDCloudConfig)
 		vpcClient := client.NewVpcClient(config.Credential)
@@ -239,17 +239,17 @@ func resourceJDCloudNetworkInterfaceUpdate(d *schema.ResourceData, meta interfac
 		d.SetPartial("description")
 	}
 
-	if d.HasChange("secondary_ip_addresses") || d.HasChange("secondary_ip_count"){
+	if d.HasChange("secondary_ip_addresses") || d.HasChange("secondary_ip_count") {
 
 		pInterface, cInterface := d.GetChange("secondary_ip_addresses")
 		p := pInterface.(*schema.Set)
 		c := cInterface.(*schema.Set)
 		i := p.Intersection(c)
 
-		if err:= performSecondaryIpDetach(d,meta,p.Difference(i));len(typeSetToStringArray(p.Difference(i)))!=0 && err!=nil{
+		if err := performSecondaryIpDetach(d, meta, p.Difference(i)); len(typeSetToStringArray(p.Difference(i))) != 0 && err != nil {
 			return err
 		}
-		if err:= performSecondaryIpAttach(d,meta,c.Difference(i),d.Get("secondary_ip_count").(int));len(typeSetToStringArray(c.Difference(i)))!=0 && err!=nil{
+		if err := performSecondaryIpAttach(d, meta, c.Difference(i), d.Get("secondary_ip_count").(int)); len(typeSetToStringArray(c.Difference(i))) != 0 && err != nil {
 			return err
 		}
 
@@ -280,37 +280,37 @@ func resourceJDCloudNetworkInterfaceDelete(d *schema.ResourceData, meta interfac
 	return nil
 }
 
-func performSecondaryIpDetach(d *schema.ResourceData,m interface{},set *schema.Set) error {
+func performSecondaryIpDetach(d *schema.ResourceData, m interface{}, set *schema.Set) error {
 
 	config := m.(*JDCloudConfig)
 	vpcClient := client.NewVpcClient(config.Credential)
 
-	req := apis.NewUnassignSecondaryIpsRequestWithAllParams(config.Region,d.Id(),typeSetToStringArray(set))
-	resp,err := vpcClient.UnassignSecondaryIps(req)
+	req := apis.NewUnassignSecondaryIpsRequestWithAllParams(config.Region, d.Id(), typeSetToStringArray(set))
+	resp, err := vpcClient.UnassignSecondaryIps(req)
 
-	if err!=nil{
-		return fmt.Errorf("[ERROR] performSecondaryIpDetach Failed,reasons:%s",err.Error())
+	if err != nil {
+		return fmt.Errorf("[ERROR] performSecondaryIpDetach Failed,reasons:%s", err.Error())
 	}
-	if resp.Error.Code!=REQUEST_COMPLETED{
+	if resp.Error.Code != REQUEST_COMPLETED {
 		return fmt.Errorf("[ERROR] performSecondaryIpDetach failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
 	return nil
 }
 
-func performSecondaryIpAttach(d *schema.ResourceData,m interface{},set *schema.Set, count int) error {
+func performSecondaryIpAttach(d *schema.ResourceData, m interface{}, set *schema.Set, count int) error {
 
 	force_tag := true
 
 	config := m.(*JDCloudConfig)
 	vpcClient := client.NewVpcClient(config.Credential)
 
-	req := apis.NewAssignSecondaryIpsRequestWithAllParams(config.Region,d.Id(),&force_tag,typeSetToStringArray(set),&count)
-	resp,err := vpcClient.AssignSecondaryIps(req)
+	req := apis.NewAssignSecondaryIpsRequestWithAllParams(config.Region, d.Id(), &force_tag, typeSetToStringArray(set), &count)
+	resp, err := vpcClient.AssignSecondaryIps(req)
 
-	if err!=nil{
-		return fmt.Errorf("[ERROR] performSecondaryIpAttach Failed,reasons:%s",err.Error())
+	if err != nil {
+		return fmt.Errorf("[ERROR] performSecondaryIpAttach Failed,reasons:%s", err.Error())
 	}
-	if resp.Error.Code!=REQUEST_COMPLETED{
+	if resp.Error.Code != REQUEST_COMPLETED {
 		return fmt.Errorf("[ERROR] performSecondaryIpAttach failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
 	return nil

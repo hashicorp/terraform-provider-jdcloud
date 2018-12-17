@@ -6,40 +6,46 @@ import (
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/apis"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/client"
 	vpc "github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/models"
+	"log"
 )
 
-func typeSetToSgRuleList(s *schema.Set) []vpc.AddSecurityGroupRules{
+func typeSetToSgRuleList(s *schema.Set) []vpc.AddSecurityGroupRules {
 
 	sgRules := []vpc.AddSecurityGroupRules{}
-
-	for _,i := range s.List() {
+	log.Printf("popo-0")
+	for _, i := range s.List() {
 
 		m := i.(map[string]interface{})
-
 		r := vpc.AddSecurityGroupRules{}
+		log.Printf("popo-1")
 		r.Protocol = m["protocol"].(int)
-		r.Direction=	m["direction"].(int)
+		log.Printf("popo-2")
+		r.Direction = m["direction"].(int)
+		log.Printf("popo-3")
 		r.AddressPrefix = m["address_prefix"].(string)
-
+		log.Printf("popo-4")
 		if _, ok := m["from_port"]; ok {
+			log.Printf("popopo")
+
 			r.FromPort = getMapIntAddr(m["from_port"].(int))
 		}
+		log.Printf("popo-5")
 		if _, ok := m["to_port"]; ok {
 			r.ToPort = getMapIntAddr(m["to_port"].(int))
 		}
 
-		sgRules = append(sgRules,r)
+		sgRules = append(sgRules, r)
 	}
 
 	return sgRules
 }
 
-func performSgRuleAttach(d *schema.ResourceData, m interface{},s *schema.Set) error {
+func performSgRuleAttach(d *schema.ResourceData, m interface{}, s *schema.Set) error {
 
 	config := m.(*JDCloudConfig)
 	vpcClient := client.NewVpcClient(config.Credential)
 
-	req := apis.NewAddNetworkSecurityGroupRulesRequest(config.Region, d.Get("network_security_group_id").(string), typeSetToSgRuleList(s))
+	req := apis.NewAddNetworkSecurityGroupRulesRequest(config.Region, d.Get("security_group_id").(string), typeSetToSgRuleList(s))
 	resp, err := vpcClient.AddNetworkSecurityGroupRules(req)
 
 	if err != nil {
@@ -52,12 +58,12 @@ func performSgRuleAttach(d *schema.ResourceData, m interface{},s *schema.Set) er
 	return nil
 }
 
-func performSgRuleDetach(d *schema.ResourceData, m interface{},s *schema.Set) error {
+func performSgRuleDetach(d *schema.ResourceData, m interface{}, s *schema.Set) error {
 
 	config := m.(*JDCloudConfig)
 	vpcClient := client.NewVpcClient(config.Credential)
 
-	req := apis.NewRemoveNetworkSecurityGroupRulesRequest(config.Region, d.Get("network_security_group_id").(string), ruleIdList(s))
+	req := apis.NewRemoveNetworkSecurityGroupRulesRequest(config.Region, d.Get("security_group_id").(string), ruleIdList(s))
 	resp, err := vpcClient.RemoveNetworkSecurityGroupRules(req)
 
 	if err != nil {
@@ -129,19 +135,19 @@ func resourceJDCloudNetworkSecurityGroupRulesCreate(d *schema.ResourceData, m in
 
 	d.Partial(true)
 
-	if err:=performSgRuleAttach(d,m,d.Get("security_group_rules").(*schema.Set));err!=nil{
+	if err := performSgRuleAttach(d, m, d.Get("security_group_rules").(*schema.Set)); err != nil {
 		return err
 	}
 
 	d.SetPartial("security_group_rules")
 	d.SetPartial("security_group_id")
 
-	if err:= resourceJDCloudNetworkSecurityGroupRulesRead(d, m);err!=nil{
+	if err := resourceJDCloudNetworkSecurityGroupRulesRead(d, m); err != nil {
 		return err
 	}
 
 	d.Partial(false)
-	d.SetId(d.Get("network_security_group_id").(string))
+	d.SetId(d.Get("security_group_id").(string))
 	return nil
 }
 
@@ -182,9 +188,11 @@ func resourceJDCloudNetworkSecurityGroupRulesRead(d *schema.ResourceData, meta i
 		sgRuleArray = append(sgRuleArray, sgRule)
 	}
 
-	if err := d.Set("add_security_group_rules", sgRuleArray); err != nil {
+	log.Printf("popo 7")
+	if err := d.Set("security_group_rules", sgRuleArray); err != nil {
 		return fmt.Errorf("[ERROR] Failed in resourceJDCloudNetworkSecurityGroupRulesRead,reasons:%s", err.Error())
 	}
+	log.Printf("popo 8")
 	return nil
 }
 
@@ -200,14 +208,14 @@ func resourceJDCloudNetworkSecurityGroupRulesUpdate(d *schema.ResourceData, m in
 		detachList := ruleIdList(p.Difference(i))
 		attachList := typeSetToSgRuleList(c.Difference(i))
 
-		if err:=performSgRuleDetach(d,m,p.Difference(i));len(detachList)!=0||err!=nil{
+		if err := performSgRuleDetach(d, m, p.Difference(i)); len(detachList) != 0 || err != nil {
 			return err
 		}
-		if err:=performSgRuleAttach(d,m,c.Difference(i));len(attachList)!=0||err!=nil{
+		if err := performSgRuleAttach(d, m, c.Difference(i)); len(attachList) != 0 || err != nil {
 			return err
 		}
 
-		d.Set("security_group_rules",cInterface)
+		d.Set("security_group_rules", cInterface)
 	}
 
 	return nil
@@ -215,7 +223,7 @@ func resourceJDCloudNetworkSecurityGroupRulesUpdate(d *schema.ResourceData, m in
 
 func resourceJDCloudNetworkSecurityGroupRulesDelete(d *schema.ResourceData, m interface{}) error {
 
-	if err := performSgRuleDetach(d,m,d.Get("security_group_rules").(*schema.Set));err!=nil{
+	if err := performSgRuleDetach(d, m, d.Get("security_group_rules").(*schema.Set)); err != nil {
 		return err
 	}
 	d.SetId("")

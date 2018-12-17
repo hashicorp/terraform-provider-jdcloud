@@ -42,23 +42,23 @@ const (
 	DISK_ATTACHED           = "attached"
 	DISK_DETACHED           = "detached"
 
-	MAX_EIP_COUNT = 1
-
-	DISKTYPE_CLOUD = "cloud"
-	MAX_VM_COUNT   = 1
-	VM_TIMEOUT     = 600
-	VM_PENDING     = "pending"
-	VM_STARTING    = "starting"
-	VM_RUNNING     = "running"
-	VM_STOPPING    = "stopping"
-	VM_STOPPED     = "stopped"
-	VM_REBOOTING   = "rebooting"
-	VM_REBUILDING  = "rebuilding"
-	VM_RESIZING    = "resizing"
-	VM_DELETING    = "deleting"
-	VM_TERMINATED  = "terminated"
-	VM_ERROR       = "error"
-	VM_DELETED     = "deleted" //actual,there is no such state
+	MAX_EIP_COUNT     = 1
+	MAX_SYSDISK_COUNT = 1
+	DISKTYPE_CLOUD    = "cloud"
+	MAX_VM_COUNT      = 1
+	VM_TIMEOUT        = 600
+	VM_PENDING        = "pending"
+	VM_STARTING       = "starting"
+	VM_RUNNING        = "running"
+	VM_STOPPING       = "stopping"
+	VM_STOPPED        = "stopped"
+	VM_REBOOTING      = "rebooting"
+	VM_REBUILDING     = "rebuilding"
+	VM_RESIZING       = "resizing"
+	VM_DELETING       = "deleting"
+	VM_TERMINATED     = "terminated"
+	VM_ERROR          = "error"
+	VM_DELETED        = "deleted" //actual,there is no such state
 
 	KEYPAIRS_PERM = 0600
 	KEYPAIRS_PRIV = 0400

@@ -275,13 +275,3 @@ func waitForDisk(d *schema.ResourceData, meta interface{}, id string, expectedSt
 
 	}
 }
-
-//   Important LOGS on DefaultFunc()
-//
-//	 Default function is supposed to return a fixed value rather than generating a random value
-//   For a random value generating, integrate it into your code. Once you have used a DefaultFunc,
-//   make sure they give same answer each time.
-//
-//   Each time when TERRAFORM PLAN is applied, terraform will check if value stored in "State"
-//   Matches with DefaultFunc, which returns a different value, this may lead to acc_test fail
-//

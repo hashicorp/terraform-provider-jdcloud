@@ -8,13 +8,13 @@ import (
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/rds/models"
 )
 
-func typeSetToAccountStructList(set *schema.Set)[]models.AccountPrivilege {
+func typeSetToAccountStructList(set *schema.Set) []models.AccountPrivilege {
 
 	a := []models.AccountPrivilege{}
-	for _,account := range set.List(){
+	for _, account := range set.List() {
 
 		m := account.(map[string]interface{})
-		a = append(a,models.AccountPrivilege{
+		a = append(a, models.AccountPrivilege{
 			DbName:    getMapStrAddr(m["db_name"].(string)),
 			Privilege: getMapStrAddr(m["privilege"].(string)),
 		})
@@ -26,30 +26,30 @@ func dbNameList(set *schema.Set) []string {
 
 	dbNameList := []string{}
 
-	for _,db := range set.List(){
+	for _, db := range set.List() {
 		m := db.(map[string]interface{})
-		dbNameList = append(dbNameList,m["db_name"].(string))
+		dbNameList = append(dbNameList, m["db_name"].(string))
 	}
 	return dbNameList
 }
 
-func performDetachDB(d *schema.ResourceData, m interface{},list []string) error {
+func performDetachDB(d *schema.ResourceData, m interface{}, list []string) error {
 
 	config := m.(*JDCloudConfig)
 	rdsClient := client.NewRdsClient(config.Credential)
-	req := apis.NewRevokePrivilegeRequest(config.Region, d.Get("instance_id").(string), d.Get("username").(string), list);
+	req := apis.NewRevokePrivilegeRequest(config.Region, d.Get("instance_id").(string), d.Get("username").(string), list)
 	resp, err := rdsClient.RevokePrivilege(req)
 
-	if err!=nil{
+	if err != nil {
 		return nil
 	}
-	if resp.Error.Code!=REQUEST_COMPLETED{
+	if resp.Error.Code != REQUEST_COMPLETED {
 		return fmt.Errorf("[ERROR] performDetachDB failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
 	return nil
 }
 
-func performAttachDB(d *schema.ResourceData, m interface{},attachSet *schema.Set) error {
+func performAttachDB(d *schema.ResourceData, m interface{}, attachSet *schema.Set) error {
 
 	config := m.(*JDCloudConfig)
 	rdsClient := client.NewRdsClient(config.Credential)
@@ -57,10 +57,10 @@ func performAttachDB(d *schema.ResourceData, m interface{},attachSet *schema.Set
 	req := apis.NewGrantPrivilegeRequest(config.Region, d.Get("instance_id").(string), d.Get("username").(string), typeSetToAccountStructList(attachSet))
 	resp, err := rdsClient.GrantPrivilege(req)
 
-	if err!=nil{
+	if err != nil {
 		return nil
 	}
-	if resp.Error.Code!=REQUEST_COMPLETED{
+	if resp.Error.Code != REQUEST_COMPLETED {
 		return fmt.Errorf("[ERROR] performAttachDB failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
 
@@ -85,7 +85,7 @@ func resourceJDCloudRDSPrivilege() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceJDCloudRDSPrivilegeCreate,
 		Read:   resourceJDCloudRDSPrivilegeRead,
-		Update:resourceJDCloudRDSPrivilegeUpdate,
+		Update: resourceJDCloudRDSPrivilegeUpdate,
 		Delete: resourceJDCloudRDSPrivilegeDelete,
 
 		Schema: map[string]*schema.Schema{
@@ -110,7 +110,7 @@ func resourceJDCloudRDSPrivilege() *schema.Resource {
 
 func resourceJDCloudRDSPrivilegeCreate(d *schema.ResourceData, m interface{}) error {
 
-	if err := performAttachDB(d,m,d.Get("account_privilege").(*schema.Set));err!=nil{
+	if err := performAttachDB(d, m, d.Get("account_privilege").(*schema.Set)); err != nil {
 		return err
 	}
 
@@ -166,22 +166,22 @@ func resourceJDCloudRDSPrivilegeRead(d *schema.ResourceData, meta interface{}) e
 
 func resourceJDCloudRDSPrivilegeUpdate(d *schema.ResourceData, m interface{}) error {
 
-	if d.HasChange("account_privilege"){
+	if d.HasChange("account_privilege") {
 
 		pInterface, cInterface := d.GetChange("account_privilege")
 		p := pInterface.(*schema.Set)
 		c := cInterface.(*schema.Set)
 		i := p.Intersection(c)
 
-		if err:=performDetachDB(d,m,dbNameList(p.Difference(i)));err!=nil || len(dbNameList(p.Difference(i)))!=0{
+		if err := performDetachDB(d, m, dbNameList(p.Difference(i))); err != nil || len(dbNameList(p.Difference(i))) != 0 {
 			return err
 		}
-		if err:=performAttachDB(d,m,c.Difference(i));err!=nil || len(dbNameList(c.Difference(i)))!=0{
+		if err := performAttachDB(d, m, c.Difference(i)); err != nil || len(dbNameList(c.Difference(i))) != 0 {
 			return err
 		}
 
-		d.Set("account_privilege",cInterface)
-		return performAttachDB(d,m,c.Difference(i))
+		d.Set("account_privilege", cInterface)
+		return performAttachDB(d, m, c.Difference(i))
 	}
 
 	return nil
@@ -189,7 +189,7 @@ func resourceJDCloudRDSPrivilegeUpdate(d *schema.ResourceData, m interface{}) er
 
 func resourceJDCloudRDSPrivilegeDelete(d *schema.ResourceData, m interface{}) error {
 
-	if err := performDetachDB(d,m,dbNameList(d.Get("account_privilege").(*schema.Set)));err!=nil{
+	if err := performDetachDB(d, m, dbNameList(d.Get("account_privilege").(*schema.Set))); err != nil {
 		return err
 	}
 	d.SetId("")
