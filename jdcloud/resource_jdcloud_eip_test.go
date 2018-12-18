@@ -35,7 +35,6 @@ func TestAccJDCloudEIP_basic(t *testing.T) {
 	})
 }
 
-
 func testAccIfEIPExists(resourceName string) resource.TestCheckFunc {
 
 	return func(stateInfo *terraform.State) error {

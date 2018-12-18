@@ -18,10 +18,10 @@ func typeSetToSgRuleList(s *schema.Set) []vpc.AddSecurityGroupRules {
 		r.Protocol = m["protocol"].(int)
 		r.Direction = m["direction"].(int)
 		r.AddressPrefix = m["address_prefix"].(string)
-		if _, ok := m["from_port"]; ok {
+		if m["from_port"] != "" {
 			r.FromPort = getMapIntAddr(m["from_port"].(int))
 		}
-		if _, ok := m["to_port"]; ok {
+		if m["to_port"] != "" {
 			r.ToPort = getMapIntAddr(m["to_port"].(int))
 		}
 

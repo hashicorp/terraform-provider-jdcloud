@@ -19,8 +19,6 @@ resource "jdcloud_route_table" "route-table-TEST-1"{
 
 func TestAccJDCloudRouteTable_basic(t *testing.T) {
 
-	// routeTableId is declared but not assigned any values here
-	// It will be assigned value in "testAccIfRouteTableExists"
 	var routeTableId string
 
 	resource.Test(t, resource.TestCase{
@@ -51,10 +49,10 @@ func testAccIfRouteTableExists(routeTableName string, routeTableId *string) reso
 		// STEP-1: Check if RouteTable resource has been created locally
 		routeTableInfoStoredLocally, ok := stateInfo.RootModule().Resources[routeTableName]
 		if ok == false {
-			return fmt.Errorf("we can not find a RouteTable namely:{%s} in terraform.State", routeTableName)
+			return fmt.Errorf("[ERROR] testAccIfRouteTableExists Failed,we can not find a RouteTable namely:{%s} in terraform.State", routeTableName)
 		}
 		if routeTableInfoStoredLocally.Primary.ID == "" {
-			return fmt.Errorf("operation failed, RouteTable is created but ID not set")
+			return fmt.Errorf("[ERROR] testAccIfRouteTableExists Failed,operation failed, RouteTable is created but ID not set")
 		}
 		routeTableIdStoredLocally := routeTableInfoStoredLocally.Primary.ID
 
@@ -68,12 +66,10 @@ func testAccIfRouteTableExists(routeTableName string, routeTableId *string) reso
 		if err != nil {
 			return err
 		}
-		if responseOnRouteTable.Error.Code != 0 {
-			return fmt.Errorf("according to the ID stored locally,we cannot find any RouteTable created remotely")
+		if responseOnRouteTable.Error.Code != REQUEST_COMPLETED {
+			return fmt.Errorf("[ERROR] testAccIfRouteTableExists Failed,according to the ID stored locally,we cannot find any RouteTable created remotely")
 		}
 
-		// RouteTable ID has been validated
-		// We are going to validate the remaining attributes - name,vpc_id,description
 		*routeTableId = routeTableIdStoredLocally
 		return nil
 	}
@@ -83,9 +79,8 @@ func testAccRouteTableDestroy(routeTableIdStoredLocally *string) resource.TestCh
 
 	return func(stateInfo *terraform.State) error {
 
-		//  routeTableId is not supposed to be empty
 		if *routeTableIdStoredLocally == "" {
-			return fmt.Errorf("route Table Id appears to be empty")
+			return fmt.Errorf("[ERROR] testAccRouteTableDestroy Failed,route Table Id appears to be empty")
 		}
 
 		routeTableConfig := testAccProvider.Meta().(*JDCloudConfig)
@@ -95,13 +90,11 @@ func testAccRouteTableDestroy(routeTableIdStoredLocally *string) resource.TestCh
 		requestOnRouteTable := apis.NewDescribeRouteTableRequest(routeTableRegion, *routeTableIdStoredLocally)
 		responseOnRouteTable, err := routeTableClient.DescribeRouteTable(requestOnRouteTable)
 
-		// Error.Code is supposed to be 404 since RouteTable was actually deleted
-		// Meanwhile turns out to be 0, successfully queried. Indicating delete error
 		if err != nil {
 			return err
 		}
-		if responseOnRouteTable.Error.Code == 0 {
-			return fmt.Errorf("routeTable resource still exists,check position-4")
+		if responseOnRouteTable.Error.Code == REQUEST_COMPLETED {
+			return fmt.Errorf("[ERROR] testAccRouteTableDestroy Failed,routeTable resource still exists,check position-4")
 		}
 
 		return nil

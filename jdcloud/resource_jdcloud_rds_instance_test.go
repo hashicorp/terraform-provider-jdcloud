@@ -10,8 +10,8 @@ import (
 )
 
 const TestAccRDSInstanceConfig = `
-resource "jdcloud_rds_instance" "rds-test-2"{
-  instance_name = "xiaohantesting"
+resource "jdcloud_rds_instance" "tftest"{
+  instance_name = "tftesting"
   engine = "MySQL"
   engine_version = "5.7"
   instance_class = "db.mysql.s1.micro"
@@ -35,34 +35,39 @@ func TestAccJDCloudRDSInstance_basic(t *testing.T) {
 			{
 				Config: TestAccRDSInstanceConfig,
 				Check: resource.ComposeTestCheckFunc(
-					// ROUTE_TABLE_ID validation
-					testAccIfRDSInstanceExists("jdcloud_rds.rds-test-2", &rdsId),
+
+					testAccIfRDSInstanceExists("jdcloud_rds_instance.tftest", &rdsId),
 				),
 			},
 		},
 	})
 }
+
 func testAccIfRDSInstanceExists(resourceName string, resourceId *string) resource.TestCheckFunc {
 	return func(stateInfo *terraform.State) error {
+
 		resourceStoredLocally, ok := stateInfo.RootModule().Resources[resourceName]
 		if ok == false {
-			return fmt.Errorf("we can not find a resource namely:{%s} in terraform.State", resourceName)
+			return fmt.Errorf("[ERROR] testAccIfRDSInstanceExists failed ,we can not find a resource namely:{%s} in terraform.State", resourceName)
 		}
 		if resourceStoredLocally.Primary.ID == "" {
-			return fmt.Errorf("operation failed, resource is created but ID not set")
+			return fmt.Errorf("[ERROR] testAccIfRDSInstanceExists failed ,operation failed, resource is created but ID not set")
 		}
 		idStoredLocally := resourceStoredLocally.Primary.ID
-		// STEP-2 : Check if RouteTable resource has been created remotely
+
 		config := testAccProvider.Meta().(*JDCloudConfig)
 		req := apis.NewDescribeInstanceAttributesRequest(config.Region, idStoredLocally)
 		rdsClient := client.NewRdsClient(config.Credential)
 		resp, err := rdsClient.DescribeInstanceAttributes(req)
+
 		if err != nil {
 			return err
 		}
-		if resp.Error.Code != 0 {
+
+		if resp.Error.Code != REQUEST_COMPLETED {
 			return fmt.Errorf("[ERROR] Test failed ,Code:%d, Status:%s ,Message :%s", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 		}
+
 		localInfo := resourceStoredLocally.Primary.Attributes
 		remoteInfo := resp.Result.DbInstanceAttributes
 		if localInfo["instance_name"] != remoteInfo.InstanceName {
@@ -87,7 +92,7 @@ func testAccIfRDSInstanceExists(resourceName string, resourceId *string) resourc
 func testAccRDSInstanceDestroy(resourceId *string) resource.TestCheckFunc {
 	return func(stateInfo *terraform.State) error {
 		if *resourceId == "" {
-			return fmt.Errorf("resource Id appears to be empty")
+			return fmt.Errorf("[ERROR] testAccRDSInstanceDestroy failed ,oresource Id appears to be empty")
 		}
 		config := testAccProvider.Meta().(*JDCloudConfig)
 		req := apis.NewDescribeInstanceAttributesRequest(config.Region, *resourceId)
@@ -96,8 +101,8 @@ func testAccRDSInstanceDestroy(resourceId *string) resource.TestCheckFunc {
 		if err != nil {
 			return err
 		}
-		if resp.Result.DbInstanceAttributes.InstanceStatus != "" {
-			return fmt.Errorf("[ERROR] resource still exists,check position-4")
+		if resp.Result.DbInstanceAttributes.InstanceStatus != RDS_DELETED {
+			return fmt.Errorf("[ERROR] testAccRDSInstanceDestroy failed ,ocheck position-4")
 		}
 		return nil
 	}

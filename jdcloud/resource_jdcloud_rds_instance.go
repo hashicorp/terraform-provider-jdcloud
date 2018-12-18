@@ -8,6 +8,7 @@ import (
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/rds/client"
 	rds "github.com/jdcloud-api/jdcloud-sdk-go/services/rds/models"
 	"log"
+	"regexp"
 	"time"
 )
 
@@ -140,7 +141,7 @@ func resourceJDCloudRDSInstanceCreate(d *schema.ResourceData, meta interface{}) 
 		return fmt.Errorf("[ERROR] resourceJDCloudRDSCreate failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
 
-	if RDS_READY := waitForRDS(d.Id(), meta, RDS_READY); RDS_READY != nil {
+	if RDS_READY := waitForRDS(resp.Result.InstanceId, meta, RDS_READY); RDS_READY != nil {
 		return RDS_READY
 	}
 
@@ -247,7 +248,7 @@ func resourceJDCloudRDSInstanceDelete(d *schema.ResourceData, meta interface{}) 
 	if err != nil {
 		return fmt.Errorf("[ERROR] resourceJDCloudRDSDelete failed %s ", err.Error())
 	}
-	if resp.Error.Code != REQUEST_COMPLETED {
+	if resp.Error.Code != REQUEST_COMPLETED && !invalidRequestDealing(resp.Error.Code, d, meta) {
 		return fmt.Errorf("[ERROR] resourceJDCloudRDSDelete failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
 
@@ -257,30 +258,29 @@ func resourceJDCloudRDSInstanceDelete(d *schema.ResourceData, meta interface{}) 
 }
 
 func waitForRDS(id string, meta interface{}, expectedStatus string) error {
-	currentTime := int(time.Now().Unix())
+
+	t := int(time.Now().Unix())
+	failCount := 0
 	config := meta.(*JDCloudConfig)
-	rdsClient := client.NewRdsClient(config.Credential)
+	c := client.NewRdsClient(config.Credential)
 	req := apis.NewDescribeInstanceAttributesRequest(config.Region, id)
-	connectFailedCount := 0
+
 	for {
-		time.Sleep(time.Second * 10)
-		resp, err := rdsClient.DescribeInstanceAttributes(req)
+
+		resp, err := c.DescribeInstanceAttributes(req)
 		if resp.Result.DbInstanceAttributes.InstanceStatus == expectedStatus {
 			return nil
 		}
-		if int(time.Now().Unix())-currentTime > RDS_TIMEOUT {
+
+		if timeOut(t) {
 			return fmt.Errorf("[ERROR] resourceJDCloudRDSCreate failed, timeout")
 		}
-		if err != nil {
-			if connectFailedCount > MAX_RECONNECT_COUNT {
-				return fmt.Errorf("[ERROR] resourceJDCloudRDSWait, Tolerrance Exceeded failed %s ", err.Error())
-			}
-			connectFailedCount++
-			continue
-		} else {
-			connectFailedCount = 0
+
+		if !errDealing(err, &failCount) {
+			return fmt.Errorf("[ERROR] resourceJDCloudRDSWait, Tolerance Exceeded failed %s ", err.Error())
 		}
 	}
+
 }
 
 func noOtherAttributesModified(d *schema.ResourceData) error {
@@ -300,4 +300,44 @@ func noOtherAttributesModified(d *schema.ResourceData) error {
 	} else {
 		return nil
 	}
+}
+
+func errDealing(err error, failCount *int) bool {
+
+	if err != nil {
+
+		if s, _ := regexp.MatchString(CONNECT_FAILED, err.Error()); !s || *failCount > MAX_RECONNECT_COUNT {
+			return false
+		}
+
+		*failCount++
+		time.Sleep(10 * time.Second)
+		return true
+	}
+
+	*failCount = 0
+	return true
+}
+
+func invalidRequestDealing(c int, d *schema.ResourceData, m interface{}) bool {
+
+	if c != REQUEST_INVALID {
+		return false
+	}
+
+	time.Sleep(10 * time.Second)
+	config := m.(*JDCloudConfig)
+	rdsClient := client.NewRdsClient(config.Credential)
+	req := apis.NewDeleteInstanceRequest(config.Region, d.Id())
+	resp, err := rdsClient.DeleteInstance(req)
+
+	if err != nil || resp.Error.Code != REQUEST_COMPLETED {
+		return false
+	}
+
+	return true
+}
+
+func timeOut(currentTime int) bool {
+	return int(time.Now().Unix())-currentTime > RDS_TIMEOUT
 }

@@ -80,7 +80,7 @@ func resourceJDCloudNetworkInterfaceAttachRead(d *schema.ResourceData, meta inte
 		return fmt.Errorf("[ERROR] resourceJDCloudNetworkInterfaceAttachRead Failed, reasons:%s", err.Error())
 	}
 
-	if resp.Error.Code == RESOURCE_NOT_FOUND {
+	if resp.Result.NetworkInterface.InstanceId == "" {
 		log.Printf("Resource not found, probably have been deleted")
 		d.SetId("")
 		return nil
@@ -141,7 +141,7 @@ func waitForDetachComplete(d *schema.ResourceData, meta interface{}) error {
 	vpcClient := vpc.NewVpcClient(config.Credential)
 	req := vpcApis.NewDescribeNetworkInterfaceRequest(config.Region, networkInterfaceId)
 
-	for retryCount := 0; retryCount < MAX_RECONNECT_COUNT; retryCount++ {
+	for retryCount := 0; retryCount < MAX_NI_RECONNECT; retryCount++ {
 
 		resp, err := vpcClient.DescribeNetworkInterface(req)
 

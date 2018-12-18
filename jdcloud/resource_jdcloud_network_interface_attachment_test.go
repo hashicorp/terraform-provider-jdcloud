@@ -12,7 +12,7 @@ import (
 
 const TestAccNetworkInterfaceAttachmentConfig = `
 resource "jdcloud_network_interface_attachment" "attachment-TEST-1"{
-  instance_id = "i-hves6944st"
+  instance_id = "i-77kettd7jf"
   network_interface_id = "port-ampj4oamxw"
   auto_delete = "true"
 }

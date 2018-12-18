@@ -74,17 +74,17 @@ func testAccRDSDatabaseDestroy(resourceName string) resource.TestCheckFunc {
 		instanceId := stateInfo.RootModule().Resources[resourceName].Primary.Attributes["instance_id"]
 		dbName := stateInfo.RootModule().Resources[resourceName].Primary.Attributes["db_name"]
 
-		config := testAccProvider.Meta().(*JDCloudConfig)
-		rdsClient := client.NewRdsClient(config.Credential)
-
-		req := apis.NewDescribeDatabasesRequestWithAllParams(config.Region, instanceId, &dbName)
-		resp, err := rdsClient.DescribeDatabases(req)
+		config := testAccProvider.Meta()
+		resp, err := keepReading(instanceId, config)
 
 		if err != nil {
-			return err
+			return fmt.Errorf("[ERROR] Test failed,error:%#v, Code:%d, Status:%s ,Message :%s", err.Error(), resp.Error.Code, resp.Error.Status, resp.Error.Message)
 		}
-		if len(resp.Result.Databases) != 0 {
-			return fmt.Errorf("[ERROR] Test failed, resource still exists ,Code:%d, Status:%s ,Message :%s", resp.Error.Code, resp.Error.Status, resp.Error.Message)
+
+		for _, db := range resp.Result.Databases {
+			if db.DbName == dbName {
+				return fmt.Errorf("[ERROR] Test failed, resource still exists, details: %#v", db)
+			}
 		}
 
 		return nil

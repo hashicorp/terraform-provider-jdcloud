@@ -192,7 +192,7 @@ func resourceJDCloudNetworkInterfaceRead(d *schema.ResourceData, meta interface{
 		d.Set("primary_ip_address", resp.Result.NetworkInterface.PrimaryIp.ElasticIpAddress)
 	}
 
-	if len(resp.Result.NetworkInterface.SecondaryIps)!=d.Get("secondary_ip_count").(int)+d.Get("secondary_ip_addresses.#").(int)  {
+	if len(resp.Result.NetworkInterface.SecondaryIps) != d.Get("secondary_ip_count").(int)+d.Get("secondary_ip_addresses.#").(int) {
 		if errSetIp := d.Set("secondary_ip_addresses", ipList(resp.Result.NetworkInterface.SecondaryIps)); errSetIp != nil {
 			return fmt.Errorf("[ERROR] resourceJDCloudNetworkInterfaceRead Failed in setting secondary ips,reasons: %s", errSetIp.Error())
 		}
@@ -317,11 +317,11 @@ func performSecondaryIpAttach(d *schema.ResourceData, m interface{}, set *schema
 	return nil
 }
 
-func ipList(v []models.NetworkInterfacePrivateIp) []string{
+func ipList(v []models.NetworkInterfacePrivateIp) []string {
 
 	ipList := []string{}
 
-	for _,vv := range v{
+	for _, vv := range v {
 
 		ipList = append(ipList, vv.PrivateIpAddress)
 	}

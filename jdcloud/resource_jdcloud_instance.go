@@ -129,7 +129,7 @@ func diskIdList(s *schema.Set) []string {
 func typeSetToDiskList(s *schema.Set) []vm.InstanceDiskAttachmentSpec {
 
 	ds := []vm.InstanceDiskAttachmentSpec{}
-	for _, d := range s.List() 	{
+	for _, d := range s.List() {
 
 		c := dm.DiskSpec{}
 		m := d.(map[string]interface{})
@@ -308,7 +308,7 @@ func performNewDiskCreate(d *schema.ResourceData, m interface{}, diskSpecsCloud 
 
 		err := waitForDisk(d, m, diskId, DISK_AVAILABLE)
 		if err != nil {
-			return nil,fmt.Errorf("[ERROR] performCloudDiskAttach Failed, reasons: %s", err.Error())
+			return nil, fmt.Errorf("[ERROR] performCloudDiskAttach Failed, reasons: %s", err.Error())
 		}
 	}
 

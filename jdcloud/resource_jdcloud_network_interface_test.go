@@ -56,7 +56,7 @@ func testAccIfNetworkInterfaceExists(name string, networkInterfaceId *string) re
 			return fmt.Errorf("[ERROR] testAccIfNetworkInterfaceExists Failed,operation failed,networkInterfaceName resources created but ID not set")
 		}
 		*networkInterfaceId = info.Primary.ID
-		log.Printf("info.Primary.ID,",*networkInterfaceId)
+		log.Printf("info.Primary.ID,", *networkInterfaceId)
 
 		config := testAccProvider.Meta().(*JDCloudConfig)
 		c := client.NewVpcClient(config.Credential)
@@ -72,24 +72,24 @@ func testAccIfNetworkInterfaceExists(name string, networkInterfaceId *string) re
 		}
 
 		// ip + count
-		l,_ := strconv.Atoi(info.Primary.Attributes["secondary_ip_addresses.#"])
+		l, _ := strconv.Atoi(info.Primary.Attributes["secondary_ip_addresses.#"])
 		l2, _ := strconv.Atoi(info.Primary.Attributes["secondary_ip_count"])
-		if l+l2 != len(resp.Result.NetworkInterface.SecondaryIps){
-			return fmt.Errorf("[ERROR] testAccIfNetworkInterfaceExists Failed,info don't mactch on secondary_ip_addresses.Details:" +
-				"Local:%#v, Remote:%#v",l,resp.Result.NetworkInterface.SecondaryIps)
+		if l+l2 != len(resp.Result.NetworkInterface.SecondaryIps) {
+			return fmt.Errorf("[ERROR] testAccIfNetworkInterfaceExists Failed,info don't mactch on secondary_ip_addresses.Details:"+
+				"Local:%#v, Remote:%#v", l, resp.Result.NetworkInterface.SecondaryIps)
 		}
 
 		// sg
 		l, _ = strconv.Atoi(info.Primary.Attributes["security_groups.#"])
-		if l != len(resp.Result.NetworkInterface.NetworkSecurityGroupIds){
-			return fmt.Errorf("[ERROR] testAccIfNetworkInterfaceExists Failed,info don't mactch on security_groups.Details:" +
-				"Local:%#v, Remote:%#v",info.Primary.Attributes["security_groups"],resp.Result.NetworkInterface.NetworkSecurityGroupIds)
+		if l != len(resp.Result.NetworkInterface.NetworkSecurityGroupIds) {
+			return fmt.Errorf("[ERROR] testAccIfNetworkInterfaceExists Failed,info don't mactch on security_groups.Details:"+
+				"Local:%#v, Remote:%#v", info.Primary.Attributes["security_groups"], resp.Result.NetworkInterface.NetworkSecurityGroupIds)
 		}
 
 		// name
-		if info.Primary.Attributes["network_interface_name"] != resp.Result.NetworkInterface.NetworkInterfaceName{
-			return fmt.Errorf("[ERROR] testAccIfNetworkInterfaceExists Failed,info don't mactch on network_interface_name.Details:" +
-				"Local:%#v, Remote:%#v",info.Primary.Attributes["network_interface_name"],resp.Result.NetworkInterface.NetworkInterfaceName)
+		if info.Primary.Attributes["network_interface_name"] != resp.Result.NetworkInterface.NetworkInterfaceName {
+			return fmt.Errorf("[ERROR] testAccIfNetworkInterfaceExists Failed,info don't mactch on network_interface_name.Details:"+
+				"Local:%#v, Remote:%#v", info.Primary.Attributes["network_interface_name"], resp.Result.NetworkInterface.NetworkInterfaceName)
 		}
 
 		return nil

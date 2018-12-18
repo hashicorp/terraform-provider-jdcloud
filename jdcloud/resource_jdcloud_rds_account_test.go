@@ -61,7 +61,7 @@ func testAccIfRDSAccountExists(resourceName string) resource.TestCheckFunc {
 		if err != nil {
 			return err
 		}
-		if resp.Error.Code != 0 {
+		if resp.Error.Code != REQUEST_COMPLETED {
 			return fmt.Errorf("[ERROR] Test failed ,Code:%d, Status:%s ,Message :%s", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 		}
 
@@ -98,7 +98,7 @@ func testAccRDSAccountDestroy(resourceName string) resource.TestCheckFunc {
 
 		for _, account := range remoteInfo {
 			if userName == account.AccountName {
-				return fmt.Errorf("[ERROR] Test failed , cannot find certain account")
+				return fmt.Errorf("[ERROR] Test failed , resource still exists")
 			}
 		}
 

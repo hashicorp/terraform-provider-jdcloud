@@ -94,60 +94,6 @@ func performRuleAttach(d *schema.ResourceData, m interface{}, attachList []vpc.A
 	return nil
 }
 
-// ---------------------- REMOVE THESE UGLY FUNCTION!!!!
-func equalSliceString(a []string, b []string) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	if (a == nil) != (b == nil) {
-		return false
-	}
-	if len(a) == 0 {
-		return true
-	}
-
-	for _, item := range a {
-		flag := false
-		for _, item2 := range b {
-			if item == item2 {
-				flag = true
-			}
-		}
-		if flag == false {
-			return false
-		}
-	}
-
-	for _, item := range b {
-		flag := false
-		for _, item2 := range a {
-			if item == item2 {
-				flag = true
-			}
-		}
-		if flag == false {
-			return false
-		}
-	}
-
-	return true
-}
-
-func sliceABelongToB(a []string, b []string) bool {
-	for _, itemInA := range a {
-		flag := false
-		for _, itemInB := range b {
-			if itemInA == itemInB {
-				flag = true
-			}
-		}
-		if flag == false {
-			return false
-		}
-	}
-	return true
-}
-
 // -----------------------------------------------------
 
 func resourceJDCloudRouteTableRules() *schema.Resource {

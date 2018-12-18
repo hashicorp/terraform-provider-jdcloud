@@ -20,7 +20,7 @@ resource "jdcloud_instance" "DevOps" {
 
   subnet_id              = "subnet-j8jrei2981"
   network_interface_name = "xixi"
-  primary_ip             = "10.0.2.0"
+  primary_ip             = "10.0.5.0"
   security_group_ids     = ["sg-ym9yp1egi0"]
   sanity_check           = 1
 
@@ -31,7 +31,6 @@ resource "jdcloud_instance" "DevOps" {
     disk_category = "local"
     auto_delete   = true
     device_name   = "vda"
-    no_device     = false
     disk_size_gb =  200
   }
 }
@@ -42,13 +41,13 @@ func TestAccJDCloudInstance_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccDiskInstanceDestroy("jdcloud_instance.xiaohan"),
+		CheckDestroy: testAccDiskInstanceDestroy("jdcloud_instance.DevOps"),
 		Steps: []resource.TestStep{
 			{
 				Config: TestAccInstanceConfig,
 				Check: resource.ComposeTestCheckFunc(
 
-					testAccIfInstanceExists("jdcloud_instance.xiaohan"),
+					testAccIfInstanceExists("jdcloud_instance.DevOps"),
 				),
 			},
 		},

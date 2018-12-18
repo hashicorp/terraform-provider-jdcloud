@@ -4,7 +4,10 @@ import (
 	"fmt"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/rds/apis"
+	rds "github.com/jdcloud-api/jdcloud-sdk-go/services/rds/apis"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/rds/client"
+	"regexp"
+	"time"
 )
 
 func resourceJDCloudRDSDatabase() *schema.Resource {
@@ -59,11 +62,7 @@ func resourceJDCloudRDSDatabaseCreate(d *schema.ResourceData, meta interface{}) 
 
 func resourceJDCloudRDSDatabaseRead(d *schema.ResourceData, meta interface{}) error {
 
-	config := meta.(*JDCloudConfig)
-	rdsClient := client.NewRdsClient(config.Credential)
-
-	req := apis.NewDescribeDatabasesRequest(config.Region, d.Get("instance_id").(string))
-	resp, err := rdsClient.DescribeDatabases(req)
+	resp, err := keepReading(d.Get("instance_id").(string), meta)
 
 	if err != nil {
 		return fmt.Errorf("[ERROR] resourceJDCloudRDSDatabaseRead failed %s ", err.Error())
@@ -116,8 +115,34 @@ func resourceJDCloudRDSDatabaseDelete(d *schema.ResourceData, meta interface{}) 
 	}
 
 	if resp.Error.Code != REQUEST_COMPLETED {
-		return fmt.Errorf("[ERROR] resourceJDCloudRDSDatabaseDelete failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
+		return fmt.Errorf("[ERROR] resourceJDCloudRDSDatabaseDelete failed  code:%d staus:%s message:%s ,result:%#v", resp.Error.Code, resp.Error.Status, resp.Error.Message, resp.Result)
 	}
 
 	return nil
+}
+
+// Reading Database often leads to connection error, this function will reconnect for at most 3 times
+func keepReading(instanceId string, m interface{}) (*rds.DescribeDatabasesResponse, error) {
+
+	config := m.(*JDCloudConfig)
+	rdsClient := client.NewRdsClient(config.Credential)
+	req := apis.NewDescribeDatabasesRequest(config.Region, instanceId)
+
+	for count := 0; count < RDS_MAX_RECONNECT; count++ {
+
+		resp, err := rdsClient.DescribeDatabases(req)
+
+		if err == nil {
+			return resp, err
+		}
+
+		if s, _ := regexp.MatchString(CONNECT_FAILED, err.Error()); s {
+			time.Sleep(3 * time.Second)
+			continue
+		}
+
+		return resp, err
+	}
+
+	return nil, fmt.Errorf("[ERROR] keepReading Failed, MAX_RECONNECT_EXCEDEEDED")
 }

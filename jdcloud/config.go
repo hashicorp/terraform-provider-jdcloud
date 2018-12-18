@@ -28,6 +28,8 @@ const (
 	MAX_SECURITY_GROUP_COUNT = 5
 	MAX_RECONNECT_COUNT      = 3
 
+	MAX_NI_RECONNECT = 6
+
 	REQUEST_COMPLETED  = 0
 	RESOURCE_EXISTS    = 0
 	RESOURCE_EMPTY     = 0
@@ -63,9 +65,11 @@ const (
 	KEYPAIRS_PERM = 0600
 	KEYPAIRS_PRIV = 0400
 
-	RDS_TIMEOUT = 300
-	RDS_READY   = "RUNNING"
-	RDS_DELETED = ""
+	RDS_TIMEOUT       = 300
+	RDS_READY         = "RUNNING"
+	RDS_DELETED       = ""
+	RDS_MAX_RECONNECT = 6
+	CONNECT_FAILED    = "Client.Timeout exceeded"
 )
 
 func initConfig(d *schema.ResourceData) (interface{}, error) {
