@@ -8,6 +8,7 @@ import (
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/client"
 	"strconv"
 	"testing"
+	"time"
 )
 
 const TestAccEIPConfig = `
@@ -80,16 +81,21 @@ func testAccEIPDestroy(resourceName string) resource.TestCheckFunc {
 		vpcClient := client.NewVpcClient(config.Credential)
 
 		req := apis.NewDescribeElasticIpRequest(config.Region, eipId)
-		resp, err := vpcClient.DescribeElasticIp(req)
 
-		if err != nil {
-			return err
+		for count := 0 ;count < MAX_EIP_RECONNECT ; count++ {
+
+			resp, err := vpcClient.DescribeElasticIp(req)
+
+			if err != nil {
+				return fmt.Errorf("[ERROR] testAccEIPDestroy failed %s ", err.Error())
+			}
+
+			if resp.Error.Code == RESOURCE_NOT_FOUND{
+				return nil
+			}
+			time.Sleep(3*time.Second)
 		}
 
-		if resp.Error.Code == RESOURCE_EXISTS {
-			return fmt.Errorf("[ERROR] testAccEIPDestroy Failed,failed in deleting resources")
-		}
-
-		return nil
+		return fmt.Errorf("[ERROR] testAccEIPDestroy failed, resource still exists")
 	}
 }

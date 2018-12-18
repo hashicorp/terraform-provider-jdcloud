@@ -6,7 +6,6 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/apis"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/client"
-	"github.com/pkg/errors"
 	"testing"
 )
 
@@ -43,21 +42,21 @@ func testAccIfNetworkInterfaceAttachmentExists(attachmentName string, networkInt
 
 	return func(stateInfo *terraform.State) error {
 
-		attachmentInfoStoredLocally, ok := stateInfo.RootModule().Resources[attachmentName]
+		info, ok := stateInfo.RootModule().Resources[attachmentName]
 		if ok == false {
 			return fmt.Errorf("[ERROR] testAccIfNetworkInterfaceAttachmentExists Failed.attachment namely {%s} has not been created", attachmentName)
 		}
 
-		networkInterfaceIdLocal, ok := attachmentInfoStoredLocally.Primary.Attributes["network_interface_id"]
-		if attachmentInfoStoredLocally.Primary.ID == "" || ok == false {
+		*networkInterfaceId, ok = info.Primary.Attributes["network_interface_id"]
+		if info.Primary.ID == "" || ok == false {
 			return fmt.Errorf("[ERROR] testAccIfNetworkInterfaceAttachmentExists Failed.operation failed, resources created but ID not set")
 		}
 
-		attachmentConfig := testAccProvider.Meta().(*JDCloudConfig)
-		attachmentClient := client.NewVpcClient(attachmentConfig.Credential)
+		config := testAccProvider.Meta().(*JDCloudConfig)
+		c := client.NewVpcClient(config.Credential)
 
-		req := apis.NewDescribeNetworkInterfaceRequest(attachmentConfig.Region, networkInterfaceIdLocal)
-		resp, err := attachmentClient.DescribeNetworkInterface(req)
+		req := apis.NewDescribeNetworkInterfaceRequest(config.Region, *networkInterfaceId)
+		resp, err := c.DescribeNetworkInterface(req)
 
 		if err != nil {
 			return fmt.Errorf("[ERROR] testAccIfNetworkInterfaceAttachmentExists Failed.Create check  failed ,error message: %s", err.Error())
@@ -66,14 +65,13 @@ func testAccIfNetworkInterfaceAttachmentExists(attachmentName string, networkInt
 			return fmt.Errorf("[ERROR] testAccIfNetworkInterfaceAttachmentExists Failed.resources created locally but not remotely")
 		}
 
-		instanceIdLocal := attachmentInfoStoredLocally.Primary.Attributes["instance_id"]
-		instanceIdRemote := resp.Result.NetworkInterface.InstanceId
+		//instanceIdLocal := info.Primary.Attributes["instance_id"]
+		//instanceIdRemote := resp.Result.NetworkInterface.InstanceId
+		//
+		//if instanceIdLocal != instanceIdRemote {
+		//	return fmt.Errorf("[ERROR] testAccIfNetworkInterfaceAttachmentExists Failed.does not match, local:%s remote:%s",instanceIdLocal,instanceIdRemote)
+		//}
 
-		if instanceIdLocal != instanceIdRemote {
-			return fmt.Errorf("[ERROR] testAccIfNetworkInterfaceAttachmentExists Failed.resources locally and remotely does not match")
-		}
-
-		*networkInterfaceId = networkInterfaceIdLocal
 		return nil
 	}
 }
@@ -83,7 +81,7 @@ func testAccCheckNetworkInterfaceAttachmentDestroy(networkInterfaceId *string) r
 	return func(stateInfo *terraform.State) error {
 
 		if *networkInterfaceId == "" {
-			return errors.New("[ERROR] testAccCheckNetworkInterfaceAttachmentDestroy Failed.networkInterfaceId is empty")
+			return fmt.Errorf("[ERROR] testAccCheckNetworkInterfaceAttachmentDestroy Failed.networkInterfaceId is empty")
 		}
 
 		attachmentConfig := testAccProvider.Meta().(*JDCloudConfig)

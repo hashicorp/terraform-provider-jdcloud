@@ -6,7 +6,6 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/apis"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/client"
-	"log"
 	"strconv"
 	"testing"
 )
@@ -56,7 +55,6 @@ func testAccIfNetworkInterfaceExists(name string, networkInterfaceId *string) re
 			return fmt.Errorf("[ERROR] testAccIfNetworkInterfaceExists Failed,operation failed,networkInterfaceName resources created but ID not set")
 		}
 		*networkInterfaceId = info.Primary.ID
-		log.Printf("info.Primary.ID,", *networkInterfaceId)
 
 		config := testAccProvider.Meta().(*JDCloudConfig)
 		c := client.NewVpcClient(config.Credential)

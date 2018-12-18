@@ -208,7 +208,6 @@ func resourceJDCloudRDSInstanceRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("az", resp.Result.DbInstanceAttributes.AzId[0])
 	d.Set("vpc_id", resp.Result.DbInstanceAttributes.VpcId)
 	d.Set("subnet_id", resp.Result.DbInstanceAttributes.SubnetId)
-	d.Set("charge_mode", resp.Result.DbInstanceAttributes.Charge.ChargeMode)
 
 	return nil
 }

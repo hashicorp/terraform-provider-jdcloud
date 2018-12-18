@@ -132,16 +132,17 @@ func resourceJDCloudNetworkSecurityGroupRulesCreate(d *schema.ResourceData, m in
 	if err := performSgRuleAttach(d, m, d.Get("security_group_rules").(*schema.Set)); err != nil {
 		return err
 	}
-
-	d.SetPartial("security_group_rules")
 	d.SetPartial("security_group_id")
+	d.SetId(d.Get("security_group_id").(string))
+
 
 	if err := resourceJDCloudNetworkSecurityGroupRulesRead(d, m); err != nil {
+		d.SetId("")
 		return err
 	}
 
+	d.SetPartial("security_group_rules")
 	d.Partial(false)
-	d.SetId(d.Get("security_group_id").(string))
 	return nil
 }
 

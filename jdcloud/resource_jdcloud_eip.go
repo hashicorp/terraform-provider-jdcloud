@@ -94,14 +94,14 @@ func resourceJDCloudEIPDelete(d *schema.ResourceData, meta interface{}) error {
 	elasticIpId := d.Id()
 	rq := apis.NewDeleteElasticIpRequest(config.Region, elasticIpId)
 	vpcClient := client.NewVpcClient(config.Credential)
-	resp, err := vpcClient.DeleteElasticIp(rq)
 
+	resp, err := vpcClient.DeleteElasticIp(rq)
 	if err != nil {
 		return fmt.Errorf("[ERROR] resourceJDCloudEIPDelete failed %s ", err.Error())
 	}
 
 	if resp.Error.Code != REQUEST_COMPLETED {
-		return fmt.Errorf("[ERROR] resourceJDCloudEIPDelete failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
+		return fmt.Errorf("[ERROR] resourceJDCloudEIPDelete ,reasons: %#v",resp.Error)
 	}
 
 	return nil
