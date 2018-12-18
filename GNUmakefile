@@ -39,7 +39,7 @@ fmtcheck:
 errcheck:
 	@sh -c "'$(CURDIR)/scripts/errcheck.sh'"
 # FINISHED
-vendor-staus:
+vendor-status:
 	@govendor status
 # FINISHED
 tools:

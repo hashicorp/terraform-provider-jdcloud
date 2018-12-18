@@ -591,15 +591,39 @@ func resourceJDCloudInstanceCreate(d *schema.ResourceData, m interface{}) error 
 	errCreating := waitForInstance(d, m, VM_RUNNING)
 	if errCreating != nil {
 		d.SetId("")
-		return fmt.Errorf("[ERROR] Failed in resourceJDCloudInstanceCreate,reasons are as follows: %s", errCreating.Error())
+		return fmt.Errorf("[ERROR] Failed in waitForInstance,reasons are as follows: %s", errCreating.Error())
 	}
+
+	d.SetPartial("az")
+	d.SetPartial("image_id")
+	d.SetPartial("password")
+	d.SetPartial("subnet_id")
+	d.SetPartial("key_names")
+	d.SetPartial("primary_ip")
+	d.SetPartial("system_disk")
+	d.SetPartial("description")
+	d.SetPartial("instance_type")
+	d.SetPartial("instance_name")
+	d.SetPartial("secondary_ips")
+	d.SetPartial("secondary_ip_count")
+	d.SetPartial("security_group_ids")
+	d.SetPartial("elastic_ip_provider")
+	d.SetPartial("network_interface_name")
+	d.SetPartial("elastic_ip_bandwidth_mbps")
+
+	if errDataDisk := waitCloudDiskId(d, m); errDataDisk != nil {
+		d.SetId("")
+		return fmt.Errorf("[ERROR] Failed in waitCloudDiskId,reasons are as follows: %s", errDataDisk.Error())
+	}
+
+	d.SetPartial("data_disk")
 
 	d.Partial(false)
 	return waitCloudDiskId(d, m)
 }
 
 func resourceJDCloudInstanceRead(d *schema.ResourceData, m interface{}) error {
-	d.Partial(true)
+
 	vmInstanceDetail, err := QueryInstanceDetail(d, m)
 
 	if err != nil {
@@ -632,7 +656,6 @@ func resourceJDCloudInstanceRead(d *schema.ResourceData, m interface{}) error {
 		return fmt.Errorf("[ERROR] Failed in setting data_disk, reasons:%s", errSet.Error())
 	}
 
-	d.Partial(false)
 	return nil
 }
 

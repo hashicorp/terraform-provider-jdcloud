@@ -149,7 +149,7 @@ func resourceJDCloudRouteTableRules() *schema.Resource {
 }
 
 func resourceRouteTableRulesCreate(d *schema.ResourceData, m interface{}) error {
-
+	d.Partial(true)
 	config := m.(*JDCloudConfig)
 	tableId := d.Get("route_table_id").(string)
 	routeTableRulesClient := client.NewVpcClient(config.Credential)
@@ -166,11 +166,17 @@ func resourceRouteTableRulesCreate(d *schema.ResourceData, m interface{}) error 
 		return fmt.Errorf("[ERROR] resourceRouteTableRulesCreate failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
 
+	d.SetPartial("route_table_id")
 	d.SetId(tableId)
+
 	//Rule id can only be retrieved via "read"
 	if err := resourceRouteTableRulesRead(d, m); err != nil {
+		d.SetId("")
 		return err
 	}
+
+	d.SetPartial("rule_specs")
+	d.Partial(false)
 	return nil
 }
 

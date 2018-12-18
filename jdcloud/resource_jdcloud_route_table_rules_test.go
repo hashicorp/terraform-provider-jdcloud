@@ -78,7 +78,7 @@ func testAccIfRouteTableRuleExists(ruleName string, routeTableId *string) resour
 		// Rules
 		if ruleCount != len(resp.Result.RouteTable.RouteTableRules)-1 {
 			return fmt.Errorf("[ERROR] testAccIfRouteTableRuleExists Failed,expect to have %d rules remotely,actually get %d(Default case included)",
-				ruleCount, resp.Result.RouteTable.RouteTableRules)
+				ruleCount, len(resp.Result.RouteTable.RouteTableRules))
 		}
 
 		return nil
