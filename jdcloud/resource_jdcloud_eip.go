@@ -101,7 +101,7 @@ func resourceJDCloudEIPDelete(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if resp.Error.Code != REQUEST_COMPLETED {
-		return fmt.Errorf("[ERROR] resourceJDCloudEIPDelete ,reasons: %#v",resp.Error)
+		return fmt.Errorf("[ERROR] resourceJDCloudEIPDelete ,reasons: %#v", resp.Error)
 	}
 
 	return nil

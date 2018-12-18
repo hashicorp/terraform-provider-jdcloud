@@ -82,7 +82,7 @@ func testAccEIPDestroy(resourceName string) resource.TestCheckFunc {
 
 		req := apis.NewDescribeElasticIpRequest(config.Region, eipId)
 
-		for count := 0 ;count < MAX_EIP_RECONNECT ; count++ {
+		for count := 0; count < MAX_EIP_RECONNECT; count++ {
 
 			resp, err := vpcClient.DescribeElasticIp(req)
 
@@ -90,10 +90,10 @@ func testAccEIPDestroy(resourceName string) resource.TestCheckFunc {
 				return fmt.Errorf("[ERROR] testAccEIPDestroy failed %s ", err.Error())
 			}
 
-			if resp.Error.Code == RESOURCE_NOT_FOUND{
+			if resp.Error.Code == RESOURCE_NOT_FOUND {
 				return nil
 			}
-			time.Sleep(3*time.Second)
+			time.Sleep(3 * time.Second)
 		}
 
 		return fmt.Errorf("[ERROR] testAccEIPDestroy failed, resource still exists")
