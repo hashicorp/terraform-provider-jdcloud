@@ -15,7 +15,9 @@ func resourceJDCloudRouteTable() *schema.Resource {
 		Read:   resourceRouteTableRead,
 		Update: resourceRouteTableUpdate,
 		Delete: resourceRouteTableDelete,
-
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 		Schema: map[string]*schema.Schema{
 
 			"route_table_name": {

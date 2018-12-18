@@ -15,6 +15,9 @@ func resourceJDCloudVpc() *schema.Resource {
 		Read:   resourceVpcRead,
 		Update: resourceVpcUpdate,
 		Delete: resourceVpcDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 

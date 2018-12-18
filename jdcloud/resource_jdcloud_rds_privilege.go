@@ -87,6 +87,9 @@ func resourceJDCloudRDSPrivilege() *schema.Resource {
 		Read:   resourceJDCloudRDSPrivilegeRead,
 		Update: resourceJDCloudRDSPrivilegeUpdate,
 		Delete: resourceJDCloudRDSPrivilegeDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"instance_id": &schema.Schema{
