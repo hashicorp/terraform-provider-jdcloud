@@ -15,6 +15,9 @@ func resourceJDCloudNetworkAcl() *schema.Resource {
 		Create: resourceJDCloudNetworkAclCreate,
 		Read:   resourceJDCloudNetworkAclRead,
 		Delete: resourceJDCloudNetworkAclDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"description": {

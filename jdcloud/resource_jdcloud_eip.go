@@ -14,6 +14,9 @@ func resourceJDCloudEIP() *schema.Resource {
 		Create: resourceJDCloudEIPCreate,
 		Read:   resourceJDCloudEIPRead,
 		Delete: resourceJDCloudEIPDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"eip_provider": &schema.Schema{

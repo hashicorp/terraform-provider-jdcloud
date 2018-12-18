@@ -73,6 +73,9 @@ func resourceJDCloudNetworkSecurityGroupRules() *schema.Resource {
 		Read:   resourceJDCloudNetworkSecurityGroupRulesRead,
 		Update: resourceJDCloudNetworkSecurityGroupRulesUpdate,
 		Delete: resourceJDCloudNetworkSecurityGroupRulesDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"security_group_id": &schema.Schema{
@@ -146,8 +149,7 @@ func resourceJDCloudNetworkSecurityGroupRulesRead(d *schema.ResourceData, meta i
 
 	config := meta.(*JDCloudConfig)
 	ruleClient := client.NewVpcClient(config.Credential)
-	sgId := d.Get("security_group_id").(string)
-	req := apis.NewDescribeNetworkSecurityGroupRequest(config.Region, sgId)
+	req := apis.NewDescribeNetworkSecurityGroupRequest(config.Region, d.Id())
 	resp, err := ruleClient.DescribeNetworkSecurityGroup(req)
 
 	if err != nil {

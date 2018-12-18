@@ -13,6 +13,9 @@ func resourceJDCloudNetworkSecurityGroup() *schema.Resource {
 		Read:   resourceJDCloudNetworkSecurityGroupRead,
 		Update: resourceJDCloudNetworkSecurityGroupUpdate,
 		Delete: resourceJDCloudNetworkSecurityGroupDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"description": &schema.Schema{

@@ -25,6 +25,10 @@ func resourceJDCloudRDSInstance() *schema.Resource {
 		Read:   resourceJDCloudRDSInstanceRead,
 		Update: resourceJDCloudRDSInstanceUpdate,
 		Delete: resourceJDCloudRDSInstanceDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
+
 		Schema: map[string]*schema.Schema{
 			"instance_name": &schema.Schema{
 				Type:     schema.TypeString,
@@ -199,6 +203,12 @@ func resourceJDCloudRDSInstanceRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("public_domain_name", resp.Result.DbInstanceAttributes.PublicDomainName)
 	d.Set("instance_port", resp.Result.DbInstanceAttributes.InstancePort)
 	d.Set("connection_mode", resp.Result.DbInstanceAttributes.ConnectionMode)
+	d.Set("engine", resp.Result.DbInstanceAttributes.Engine)
+	d.Set("engine_version", resp.Result.DbInstanceAttributes.EngineVersion)
+	d.Set("az", resp.Result.DbInstanceAttributes.AzId[0])
+	d.Set("vpc_id", resp.Result.DbInstanceAttributes.VpcId)
+	d.Set("subnet_id", resp.Result.DbInstanceAttributes.SubnetId)
+	d.Set("charge_mode", resp.Result.DbInstanceAttributes.Charge.ChargeMode)
 
 	return nil
 }

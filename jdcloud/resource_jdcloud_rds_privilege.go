@@ -6,6 +6,7 @@ import (
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/rds/apis"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/rds/client"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/rds/models"
+	"log"
 )
 
 func typeSetToAccountStructList(set *schema.Set) []models.AccountPrivilege {
@@ -87,9 +88,6 @@ func resourceJDCloudRDSPrivilege() *schema.Resource {
 		Read:   resourceJDCloudRDSPrivilegeRead,
 		Update: resourceJDCloudRDSPrivilegeUpdate,
 		Delete: resourceJDCloudRDSPrivilegeDelete,
-		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
-		},
 
 		Schema: map[string]*schema.Schema{
 			"instance_id": &schema.Schema{
@@ -123,10 +121,12 @@ func resourceJDCloudRDSPrivilegeCreate(d *schema.ResourceData, m interface{}) er
 
 func resourceJDCloudRDSPrivilegeRead(d *schema.ResourceData, meta interface{}) error {
 
+	log.Printf("popo 1")
 	config := meta.(*JDCloudConfig)
 	rdsClient := client.NewRdsClient(config.Credential)
-
+	log.Printf("popo 2 %#v,%#v", d.Get("username").(string), d.Id())
 	req := apis.NewDescribeAccountsRequest(config.Region, d.Get("instance_id").(string))
+	log.Printf("popo 3")
 	resp, err := rdsClient.DescribeAccounts(req)
 	if err != nil {
 		return fmt.Errorf("[ERROR] resourceJDCloudRDSPrivilegeRead failed %s ", err.Error())

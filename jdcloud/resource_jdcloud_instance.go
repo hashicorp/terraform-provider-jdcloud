@@ -398,6 +398,9 @@ func resourceJDCloudInstance() *schema.Resource {
 		Read:   resourceJDCloudInstanceRead,
 		Update: resourceJDCloudInstanceUpdate,
 		Delete: resourceJDCloudInstanceDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"az": {

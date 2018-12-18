@@ -20,6 +20,9 @@ func resourceJDCloudDisk() *schema.Resource {
 		Read:   resourceJDCloudDiskRead,
 		Update: resourceJDCloudDiskUpdate,
 		Delete: resourceJDCloudDiskDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"client_token": &schema.Schema{

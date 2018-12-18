@@ -16,6 +16,9 @@ func resourceJDCloudNetworkInterface() *schema.Resource {
 		Read:   resourceJDCloudNetworkInterfaceRead,
 		Update: resourceJDCloudNetworkInterfaceUpdate,
 		Delete: resourceJDCloudNetworkInterfaceDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"subnet_id": &schema.Schema{
