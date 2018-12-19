@@ -15,7 +15,9 @@ func resourceJDCloudRouteTable() *schema.Resource {
 		Read:   resourceRouteTableRead,
 		Update: resourceRouteTableUpdate,
 		Delete: resourceRouteTableDelete,
-
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 		Schema: map[string]*schema.Schema{
 
 			"route_table_name": {
@@ -52,7 +54,7 @@ func resourceRouteTableCreate(d *schema.ResourceData, m interface{}) error {
 		return fmt.Errorf("[ERROR] resourceRouteTableCreate failed %s ", err.Error())
 	}
 
-	if resp.Error.Code != 0 {
+	if resp.Error.Code != REQUEST_COMPLETED {
 		return fmt.Errorf("[ERROR] resourceRouteTableCreate failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
 
@@ -72,12 +74,12 @@ func resourceRouteTableRead(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("[ERROR] resourceRouteTableRead failed %s ", err.Error())
 	}
 
-	if resp.Error.Code == 404 {
+	if resp.Error.Code == RESOURCE_NOT_FOUND {
 		d.SetId("")
 		return nil
 	}
 
-	if resp.Error.Code != 0 {
+	if resp.Error.Code != REQUEST_COMPLETED {
 		return fmt.Errorf("[ERROR] resourceRouteTableRead failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
 
@@ -105,7 +107,7 @@ func resourceRouteTableUpdate(d *schema.ResourceData, meta interface{}) error {
 			return fmt.Errorf("[ERROR] resourceRouteTableUpdate failed %s ", err.Error())
 		}
 
-		if resp.Error.Code != 0 {
+		if resp.Error.Code != REQUEST_COMPLETED {
 			return fmt.Errorf("[ERROR] resourceRouteTableUpdate failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 		}
 	}
@@ -125,7 +127,7 @@ func resourceRouteTableDelete(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("[ERROR] resourceRouteTableDelete failed %s ", err.Error())
 	}
 
-	if resp.Error.Code != 0 {
+	if resp.Error.Code != REQUEST_COMPLETED {
 		return fmt.Errorf("[ERROR] resourceRouteTableDelete failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
 

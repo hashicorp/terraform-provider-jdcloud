@@ -46,10 +46,10 @@ func testAccIfRDSPrivilegeExists(resourceName string) resource.TestCheckFunc {
 
 		resourceStoredLocally, ok := stateInfo.RootModule().Resources[resourceName]
 		if ok == false {
-			return fmt.Errorf("we can not find a resource namely:{%s} in terraform.State", resourceName)
+			return fmt.Errorf("[ERROR] testAccIfRDSPrivilegeExists Failed,we can not find a resource namely:{%s} in terraform.State", resourceName)
 		}
 		if resourceStoredLocally.Primary.ID == "" {
-			return fmt.Errorf("operation failed, resource is created but ID not set")
+			return fmt.Errorf("[ERROR] testAccIfRDSPrivilegeExists Failed,operation failed, resource is created but ID not set")
 		}
 
 		instanceId := resourceStoredLocally.Primary.Attributes["instance_id"]

@@ -7,13 +7,12 @@ import (
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vm/apis"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vm/client"
 	"testing"
-	"time"
 )
 
 const TestAccDiskAttachmentConfig = `
 resource "jdcloud_disk_attachment" "disk-attachment-TEST-1"{
-	instance_id = "i-96ef5rv62n" 
-	disk_id = "vol-39dmz9csj6"
+	instance_id = "i-77kettd7jf" 
+	disk_id = "vol-w7bhp8s43l"
 }
 `
 
@@ -37,20 +36,16 @@ func TestAccJDCloudDiskAttachment_basic(t *testing.T) {
 	})
 }
 
-//-------------------------- Customized check functions
-
 func testAccIfDiskAttachmentExists(resourceName string, resourceId, diskId *string) resource.TestCheckFunc {
 
 	return func(stateInfo *terraform.State) error {
 
-		time.Sleep(time.Second * 15)
-
 		infoStoredLocally, ok := stateInfo.RootModule().Resources[resourceName]
 		if ok == false {
-			return fmt.Errorf("we can not find a resouce namely:{%s} in terraform.State", resourceName)
+			return fmt.Errorf("[ERROR] testAccIfDiskAttachmentExists failed, we can not find a resouce namely:{%s} in terraform.State", resourceName)
 		}
 		if infoStoredLocally.Primary.ID == "" {
-			return fmt.Errorf("operation failed, resource:%s is created but ID not set", resourceName)
+			return fmt.Errorf("[ERROR] testAccIfDiskAttachmentExists failed, operation failed, resource:%s is created but ID not set", resourceName)
 		}
 		*resourceId = infoStoredLocally.Primary.Attributes["instance_id"]
 		*diskId = infoStoredLocally.Primary.Attributes["disk_id"]
@@ -65,17 +60,15 @@ func testAccIfDiskAttachmentExists(resourceName string, resourceId, diskId *stri
 			return err
 		}
 
-		expectedCloudDiskNotFound := true
 		for _, aDisk := range resp.Result.Instance.DataDisks {
+
 			if aDisk.CloudDisk.DiskId == *diskId {
-				expectedCloudDiskNotFound = false
+
+				return nil
 			}
 		}
-		if expectedCloudDiskNotFound {
-			return fmt.Errorf("resource not found remotely")
-		}
 
-		return nil
+		return fmt.Errorf("[ERROR] testAccIfDiskAttachmentExists failed,resource not found remotely")
 	}
 }
 
@@ -93,10 +86,11 @@ func testAccDiskAttachmentDestroy(resourceId *string, diskId *string) resource.T
 			return err
 		}
 
-		if resp.Result.Instance.DataDisks[0].Status == "detached" || resp.Result.Instance.DataDisks[0].Status == "detaching" {
-			return nil
+		for _, disk := range resp.Result.Instance.DataDisks {
+			if *diskId == disk.CloudDisk.DiskId && disk.Status != DISK_DETACHED {
+				return fmt.Errorf("[ERROR] testAccDiskAttachmentDestroy failed,data disk failed in detatching")
+			}
 		}
-
-		return fmt.Errorf("data disk failed in detatching ")
+		return nil
 	}
 }

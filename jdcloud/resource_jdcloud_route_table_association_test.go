@@ -19,8 +19,6 @@ resource "jdcloud_route_table_association" "route-table-association-TEST-1"{
 
 func TestAccJDCloudRouteTableAssociation_basic(t *testing.T) {
 
-	// routeTableId is declared but not assigned any values here
-	// It will be assigned value in "testAccIfRouteTableAssociationExists"
 	var routeTableId string
 
 	resource.Test(t, resource.TestCase{
@@ -32,7 +30,6 @@ func TestAccJDCloudRouteTableAssociation_basic(t *testing.T) {
 				Config: TestAccRouteTableAssociationConfig,
 				Check: resource.ComposeTestCheckFunc(
 
-					// Association relationship validation
 					testAccIfRouteTableAssociationExists("jdcloud_route_table_association.route-table-association-TEST-1", &routeTableId),
 				),
 			},
@@ -40,58 +37,35 @@ func TestAccJDCloudRouteTableAssociation_basic(t *testing.T) {
 	})
 }
 
-func testAccIfRouteTableAssociationExists(routeTableAssociationName string, routeTableId *string) resource.TestCheckFunc {
+func testAccIfRouteTableAssociationExists(name string, routeTableId *string) resource.TestCheckFunc {
 
 	return func(stateInfo *terraform.State) error {
 
-		// STEP-1: Check if RouteTableAssociation resource has been created locally
-		routeTableAssociationInfoStoredLocally, ok := stateInfo.RootModule().Resources[routeTableAssociationName]
+		info, ok := stateInfo.RootModule().Resources[name]
 		if ok == false {
-			return fmt.Errorf("we can not find a RouteTableAssociation namely:{%s} in terraform.State", routeTableAssociationName)
+			return fmt.Errorf("[ERROR] testAccIfRouteTableAssociationExists Failed,we can not find a RouteTableAssociation namely:{%s} in terraform.State", name)
 		}
-		if routeTableAssociationInfoStoredLocally.Primary.ID == "" {
-			return fmt.Errorf("operation failed, RouteTableAssociation is created but ID not set")
+		if info.Primary.ID == "" {
+			return fmt.Errorf("[ERROR] testAccIfRouteTableAssociationExists Failed,operation failed, RouteTableAssociation is created but ID not set")
 		}
-		routeTableIdStoredLocally := routeTableAssociationInfoStoredLocally.Primary.ID
+		*routeTableId = info.Primary.ID
 
-		// STEP-2 : Check if RouteTableAssociation resource has been created remotely
-		routeTableAssociationConfig := testAccProvider.Meta().(*JDCloudConfig)
-		routeTableAssociationClient := client.NewVpcClient(routeTableAssociationConfig.Credential)
+		config := testAccProvider.Meta().(*JDCloudConfig)
+		c := client.NewVpcClient(config.Credential)
 
-		requestOnRouteTable := apis.NewDescribeRouteTableRequest(routeTableAssociationConfig.Region, routeTableIdStoredLocally)
-		responseOnRouteTable, _ := routeTableAssociationClient.DescribeRouteTable(requestOnRouteTable)
+		req := apis.NewDescribeRouteTableRequest(config.Region, *routeTableId)
+		resp, err := c.DescribeRouteTable(req)
 
-		subnetIdArrayStoredRemotely := responseOnRouteTable.Result.RouteTable.SubnetIds
-		subnetIdArrayStoredLocally := routeTableAssociationInfoStoredLocally.Primary
-		subnetIdCountLocally, _ := strconv.Atoi(subnetIdArrayStoredLocally.Attributes["subnet_id.#"])
-
-		// STEP-2-1 : Comapre subnet ID stored locally and remotely
-		if subnetIdCountLocally != len(subnetIdArrayStoredRemotely) {
-			return fmt.Errorf("expect to have %d subnet ids, actually getv %d",
-				subnetIdCountLocally, len(subnetIdArrayStoredRemotely))
+		if err != nil || resp.Error.Code != REQUEST_COMPLETED {
+			return fmt.Errorf("[ERROR] testAccIfRouteTableAssociationExists Failed in reading conf, reasons err: %s, resp:%#v", err.Error(), resp.Error)
 		}
 
-		// Verify that each subnet Id recorded locally meets with that remotely
-		for i := 0; i < subnetIdCountLocally; i++ {
-
-			flag := false
-			localSubnetId := subnetIdArrayStoredLocally.Attributes[("subnet_id." + strconv.Itoa(i))]
-
-			for _, subnetIdRemote := range subnetIdArrayStoredRemotely {
-				if localSubnetId == subnetIdRemote {
-					flag = true
-				}
-			}
-
-			if flag == false {
-				return fmt.Errorf("association info stored locally and remotely does not match")
-			}
-
+		l, _ := strconv.Atoi(info.Primary.Attributes["subnet_id.#"])
+		if l != len(resp.Result.RouteTable.SubnetIds) {
+			return fmt.Errorf("[ERROR] testAccIfRouteTableAssociationExists Failed,expect to have %d subnet ids, actually getv %d",
+				l, len(resp.Result.RouteTable.SubnetIds))
 		}
 
-		// RouteTable ID has been validated
-		// We are going to validate the remaining attributes - name,vpc_id,description
-		*routeTableId = routeTableIdStoredLocally
 		return nil
 	}
 }
@@ -102,7 +76,7 @@ func testAccRouteTableAssociationDestroy(routeTableId *string) resource.TestChec
 
 		//  routeTableId is not supposed to be empty
 		if *routeTableId == "" {
-			return fmt.Errorf("route Table Id appears to be empty")
+			return fmt.Errorf("[ERROR] testAccRouteTableAssociationDestroy Failed,route Table Id appears to be empty")
 		}
 
 		routeTableConfig := testAccProvider.Meta().(*JDCloudConfig)
@@ -112,13 +86,11 @@ func testAccRouteTableAssociationDestroy(routeTableId *string) resource.TestChec
 		requestOnRouteTable := apis.NewDescribeRouteTableRequest(routeTableRegion, *routeTableId)
 		responseOnRouteTable, err := routeTableClient.DescribeRouteTable(requestOnRouteTable)
 
-		// Error.Code is supposed to be 404 since RouteTable was actually deleted
-		// Meanwhile turns out to be 0, successfully queried. Indicating delete error
 		if err != nil {
 			return err
 		}
-		if len(responseOnRouteTable.Result.RouteTable.SubnetIds) != 0 {
-			return fmt.Errorf("routeTableAssociation resource still exists,check position-4")
+		if len(responseOnRouteTable.Result.RouteTable.SubnetIds) != REQUEST_COMPLETED {
+			return fmt.Errorf("[ERROR] testAccRouteTableAssociationDestroy Failed,routeTableAssociation resource still exists,check position-4")
 		}
 
 		return nil

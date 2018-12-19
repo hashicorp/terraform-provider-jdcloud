@@ -4,7 +4,10 @@ import (
 	"fmt"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/rds/apis"
+	rds "github.com/jdcloud-api/jdcloud-sdk-go/services/rds/apis"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/rds/client"
+	"regexp"
+	"time"
 )
 
 func resourceJDCloudRDSDatabase() *schema.Resource {
@@ -44,12 +47,12 @@ func resourceJDCloudRDSDatabaseCreate(d *schema.ResourceData, meta interface{}) 
 		return fmt.Errorf("[ERROR] resourceJDCloudRDSDatabaseCreate failed %s ", err.Error())
 	}
 
-	if resp.Error.Code == 404 {
+	if resp.Error.Code == RESOURCE_NOT_FOUND {
 		d.SetId("")
 		return nil
 	}
 
-	if resp.Error.Code != 0 {
+	if resp.Error.Code != REQUEST_COMPLETED {
 		return fmt.Errorf("[ERROR] resourceJDCloudRDSDatabaseCreate failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
 
@@ -59,22 +62,18 @@ func resourceJDCloudRDSDatabaseCreate(d *schema.ResourceData, meta interface{}) 
 
 func resourceJDCloudRDSDatabaseRead(d *schema.ResourceData, meta interface{}) error {
 
-	config := meta.(*JDCloudConfig)
-	rdsClient := client.NewRdsClient(config.Credential)
-
-	req := apis.NewDescribeDatabasesRequest(config.Region, d.Get("instance_id").(string))
-	resp, err := rdsClient.DescribeDatabases(req)
+	resp, err := keepReading(d.Get("instance_id").(string), meta)
 
 	if err != nil {
 		return fmt.Errorf("[ERROR] resourceJDCloudRDSDatabaseRead failed %s ", err.Error())
 	}
 
-	if resp.Error.Code == 404 {
+	if resp.Error.Code == RESOURCE_NOT_FOUND {
 		d.SetId("")
 		return nil
 	}
 
-	if resp.Error.Code != 0 {
+	if resp.Error.Code != REQUEST_COMPLETED {
 		return fmt.Errorf("[ERROR] resourceJDCloudRDSDatabaseRead failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
 
@@ -99,6 +98,7 @@ func resourceJDCloudRDSDatabaseUpdate(d *schema.ResourceData, meta interface{}) 
 		d.Set("character_set", originSet)
 		return fmt.Errorf("[ERROR] resourceJDCloudRDSDatabaseUpdate failed,Attributes cannot be modified")
 	}
+
 	return nil
 }
 
@@ -114,9 +114,35 @@ func resourceJDCloudRDSDatabaseDelete(d *schema.ResourceData, meta interface{}) 
 		return fmt.Errorf("[ERROR] resourceJDCloudRDSDatabaseDelete failed %s ", err.Error())
 	}
 
-	if resp.Error.Code != 0 {
-		return fmt.Errorf("[ERROR] resourceJDCloudRDSDatabaseDelete failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
+	if resp.Error.Code != REQUEST_COMPLETED {
+		return fmt.Errorf("[ERROR] resourceJDCloudRDSDatabaseDelete failed  code:%d staus:%s message:%s ,result:%#v", resp.Error.Code, resp.Error.Status, resp.Error.Message, resp.Result)
 	}
 
 	return nil
+}
+
+// Reading Database often leads to connection error, this function will reconnect for at most 3 times
+func keepReading(instanceId string, m interface{}) (*rds.DescribeDatabasesResponse, error) {
+
+	config := m.(*JDCloudConfig)
+	rdsClient := client.NewRdsClient(config.Credential)
+	req := apis.NewDescribeDatabasesRequest(config.Region, instanceId)
+
+	for count := 0; count < RDS_MAX_RECONNECT; count++ {
+
+		resp, err := rdsClient.DescribeDatabases(req)
+
+		if err == nil {
+			return resp, err
+		}
+
+		if s, _ := regexp.MatchString(CONNECT_FAILED, err.Error()); s {
+			time.Sleep(3 * time.Second)
+			continue
+		}
+
+		return resp, err
+	}
+
+	return nil, fmt.Errorf("[ERROR] keepReading Failed, MAX_RECONNECT_EXCEDEEDED")
 }

@@ -6,18 +6,17 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/apis"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/client"
-	"github.com/pkg/errors"
 	"strconv"
 	"testing"
 )
 
 const TestAccNetWorkInterfaceConfig = `
-resource "jdcloud_network_interface" "network-interface-TEST-1"{
+resource "jdcloud_network_interface" "NI-TEST"{
 	subnet_id = "subnet-j8jrei2981"
 	description = "test"
 	az = "cn-north-1"
-	network_interface_name = "test"
-	secondary_ip_addresses = ["10.0.1.0","10.0.2.0"]
+	network_interface_name = "TerraformTest"
+	secondary_ip_addresses = ["10.0.3.0","10.0.4.0"]
 	secondary_ip_count = "2"
 	security_groups = ["sg-yrd5fa7y55"]
 }
@@ -25,8 +24,6 @@ resource "jdcloud_network_interface" "network-interface-TEST-1"{
 
 func TestAccJDCloudNetworkInterface_basic(t *testing.T) {
 
-	// This networkInterfaceId is used to create and verify network interface
-	// Currently declared but assigned values later
 	var networkInterfaceId string
 
 	resource.Test(t, resource.TestCase{
@@ -38,12 +35,7 @@ func TestAccJDCloudNetworkInterface_basic(t *testing.T) {
 				Config: TestAccNetWorkInterfaceConfig,
 				Check: resource.ComposeTestCheckFunc(
 
-					// networkInterfaceId verification
-					testAccIfNetworkInterfaceExists("jdcloud_network_interface.network-interface-TEST-1", &networkInterfaceId),
-					// Remaining attributes validation
-					resource.TestCheckResourceAttr("jdcloud_network_interface.network-interface-TEST-1", "network_interface_name", "test"),
-					resource.TestCheckResourceAttr("jdcloud_network_interface.network-interface-TEST-1", "az", "cn-north-1"),
-					resource.TestCheckResourceAttr("jdcloud_network_interface.network-interface-TEST-1", "description", "test"),
+					testAccIfNetworkInterfaceExists("jdcloud_network_interface.NI-TEST", &networkInterfaceId),
 				),
 			},
 		},
@@ -51,72 +43,53 @@ func TestAccJDCloudNetworkInterface_basic(t *testing.T) {
 
 }
 
-func testAccIfNetworkInterfaceExists(networkInterfaceName string, networkInterfaceId *string) resource.TestCheckFunc {
+func testAccIfNetworkInterfaceExists(name string, networkInterfaceId *string) resource.TestCheckFunc {
 
 	return func(stateInfo *terraform.State) error {
 
-		//STEP-1 : Check if networkInterface resource has been created locally
-		networkInterfaceInfoStoredLocally, ok := stateInfo.RootModule().Resources[networkInterfaceName]
+		info, ok := stateInfo.RootModule().Resources[name]
 		if ok == false {
-			return fmt.Errorf("networkInterfaceName namely {%s} has not been created", networkInterfaceName)
+			return fmt.Errorf("[ERROR] testAccIfNetworkInterfaceExists Failed,networkInterfaceName namely {%s} has not been created", info)
 		}
-		if networkInterfaceInfoStoredLocally.Primary.ID == "" {
-			return fmt.Errorf("operation failed,networkInterfaceName resources created but ID not set")
+		if info.Primary.ID == "" {
+			return fmt.Errorf("[ERROR] testAccIfNetworkInterfaceExists Failed,operation failed,networkInterfaceName resources created but ID not set")
 		}
-		networkInterfaceIdStoredLocally := networkInterfaceInfoStoredLocally.Primary.ID
+		*networkInterfaceId = info.Primary.ID
 
-		//STEP-2: Check if networkInterface resource has been created remotely
-		networkInterfaceConfig := testAccProvider.Meta().(*JDCloudConfig)
-		networkInterfaceClient := client.NewVpcClient(networkInterfaceConfig.Credential)
+		config := testAccProvider.Meta().(*JDCloudConfig)
+		c := client.NewVpcClient(config.Credential)
 
-		requestOnNetworkInterface := apis.NewDescribeNetworkInterfaceRequest(networkInterfaceConfig.Region, networkInterfaceIdStoredLocally)
-		responseOnNetworkInterface, err := networkInterfaceClient.DescribeNetworkInterface(requestOnNetworkInterface)
+		req := apis.NewDescribeNetworkInterfaceRequest(config.Region, *networkInterfaceId)
+		resp, err := c.DescribeNetworkInterface(req)
 
 		if err != nil {
 			return err
 		}
-		if responseOnNetworkInterface.Error.Code != 0 {
-			return fmt.Errorf("resources created locally but not remotely: %s", responseOnNetworkInterface.Error)
+		if resp.Error.Code != REQUEST_COMPLETED {
+			return fmt.Errorf("[ERROR] testAccIfNetworkInterfaceExists Failed. Reasons:: code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 		}
 
-		// STEP-3-Verification on SECONDARY-IP-ADDRESSES
-
-		// Build secondary ip list stored locally
-		secondaryIpListLengthLocal, _ := strconv.Atoi(networkInterfaceInfoStoredLocally.Primary.Attributes["secondary_ip_addresses.#"])
-		secondaryIpListLocal := make([]string, 0, secondaryIpListLengthLocal)
-		for i := 0; i < secondaryIpListLengthLocal; i++ {
-			ip_index := "secondary_ip_addresses." + strconv.Itoa(i)
-			secondaryIpListLocal = append(secondaryIpListLocal, networkInterfaceInfoStoredLocally.Primary.Attributes[ip_index])
+		// ip + count
+		l, _ := strconv.Atoi(info.Primary.Attributes["secondary_ip_addresses.#"])
+		l2, _ := strconv.Atoi(info.Primary.Attributes["secondary_ip_count"])
+		if l+l2 != len(resp.Result.NetworkInterface.SecondaryIps) {
+			return fmt.Errorf("[ERROR] testAccIfNetworkInterfaceExists Failed,info don't mactch on secondary_ip_addresses.Details:"+
+				"Local:%#v, Remote:%#v", l, resp.Result.NetworkInterface.SecondaryIps)
 		}
 
-		// Build secondary ip list stored remotely
-		secondaryIpListLengthRemote := len(responseOnNetworkInterface.Result.NetworkInterface.SecondaryIps)
-		secondaryIpListRemote := make([]string, 0, secondaryIpListLengthRemote)
-		for i := 0; i < secondaryIpListLengthRemote; i++ {
-			secondaryIpListRemote = append(secondaryIpListRemote, responseOnNetworkInterface.Result.NetworkInterface.SecondaryIps[i].PrivateIpAddress)
+		// sg
+		l, _ = strconv.Atoi(info.Primary.Attributes["security_groups.#"])
+		if l != len(resp.Result.NetworkInterface.NetworkSecurityGroupIds) {
+			return fmt.Errorf("[ERROR] testAccIfNetworkInterfaceExists Failed,info don't mactch on security_groups.Details:"+
+				"Local:%#v, Remote:%#v", info.Primary.Attributes["security_groups"], resp.Result.NetworkInterface.NetworkSecurityGroupIds)
 		}
 
-		// Compare two ip lists, check if they match
-
-		if ok := sliceABelongToB(secondaryIpListLocal, secondaryIpListRemote); ok == false {
-			return fmt.Errorf("secondary ip list stored locally and remotely does not match")
+		// name
+		if info.Primary.Attributes["network_interface_name"] != resp.Result.NetworkInterface.NetworkInterfaceName {
+			return fmt.Errorf("[ERROR] testAccIfNetworkInterfaceExists Failed,info don't mactch on network_interface_name.Details:"+
+				"Local:%#v, Remote:%#v", info.Primary.Attributes["network_interface_name"], resp.Result.NetworkInterface.NetworkInterfaceName)
 		}
 
-		// STEP-4-Verification on SECURITY-GROUPS
-		securityGroupLengthLocal, _ := strconv.Atoi(networkInterfaceInfoStoredLocally.Primary.Attributes["security_groups.#"])
-		securityGroupLocal := make([]string, 0, securityGroupLengthLocal)
-		for i := 0; i < securityGroupLengthLocal; i++ {
-			sg_index := "security_groups." + strconv.Itoa(i)
-			securityGroupLocal = append(securityGroupLocal, networkInterfaceInfoStoredLocally.Primary.Attributes[sg_index])
-		}
-		securityGroupRemote := responseOnNetworkInterface.Result.NetworkInterface.NetworkSecurityGroupIds
-		if ok := equalSliceString(securityGroupLocal, securityGroupRemote); ok == false {
-			return fmt.Errorf("security group list stored locally and remotely does not match")
-		}
-
-		//  Here network Interface resources has been validated to be created locally and
-		//  Remotely, next we are going to validate the remaining attributes
-		*networkInterfaceId = networkInterfaceIdStoredLocally
 		return nil
 	}
 }
@@ -125,24 +98,21 @@ func testAccCheckNetworkInterfaceDestroy(networkInterfaceId *string) resource.Te
 
 	return func(stateInfo *terraform.State) error {
 
-		// networkInterface ID is not supposed to be empty during testing stage
 		if *networkInterfaceId == "" {
-			return errors.New("networkInterfaceId is empty")
+			return fmt.Errorf("[ERROR] testAccCheckNetworkInterfaceDestroy Failed,networkInterfaceId is empty")
 		}
 
-		networkInterfaceConfig := testAccProvider.Meta().(*JDCloudConfig)
-		networkInterfaceClient := client.NewVpcClient(networkInterfaceConfig.Credential)
+		config := testAccProvider.Meta().(*JDCloudConfig)
+		c := client.NewVpcClient(config.Credential)
 
-		requestOnNetworkInterface := apis.NewDescribeNetworkInterfaceRequest(networkInterfaceConfig.Region, *networkInterfaceId)
-		responseOnNetworkInterface, err := networkInterfaceClient.DescribeNetworkInterface(requestOnNetworkInterface)
+		req := apis.NewDescribeNetworkInterfaceRequest(config.Region, *networkInterfaceId)
+		resp, err := c.DescribeNetworkInterface(req)
 
-		// ErrorCode is supposed to be 404 since the networkInterface has already been deleted
-		// err is supposed to be nil pointer since query process shall finish
 		if err != nil {
 			return err
 		}
-		if responseOnNetworkInterface.Error.Code != 404 {
-			return fmt.Errorf("something wrong happens or resource still exists")
+		if resp.Error.Code != RESOURCE_NOT_FOUND {
+			return fmt.Errorf("[ERROR] testAccCheckNetworkInterfaceDestroy Failed,something wrong happens or resource still exists")
 		}
 		return nil
 	}

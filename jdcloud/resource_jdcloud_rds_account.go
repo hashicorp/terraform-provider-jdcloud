@@ -46,7 +46,7 @@ func resourceJDCloudRDSAccountCreate(d *schema.ResourceData, meta interface{}) e
 		return fmt.Errorf("[ERROR] resourceJDCloudRDSAccountCreate failed %s ", err.Error())
 	}
 
-	if resp.Error.Code != 0 {
+	if resp.Error.Code != REQUEST_COMPLETED {
 		return fmt.Errorf("[ERROR] resourceJDCloudRDSAccountCreate failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
 
@@ -66,12 +66,12 @@ func resourceJDCloudRDSAccountRead(d *schema.ResourceData, meta interface{}) err
 		return fmt.Errorf("[ERROR] resourceJDCloudRDSAccountRead failed %s ", err.Error())
 	}
 
-	if resp.Error.Code == 404 {
+	if resp.Error.Code == RESOURCE_NOT_FOUND {
 		d.SetId("")
 		return nil
 	}
 
-	if resp.Error.Code != 0 {
+	if resp.Error.Code != REQUEST_COMPLETED {
 		return fmt.Errorf("[ERROR] resourceJDCloudRDSAccountRead failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
 
@@ -97,7 +97,7 @@ func resourceJDCloudRDSAccountDelete(d *schema.ResourceData, meta interface{}) e
 		return fmt.Errorf("[ERROR] resourceJDCloudRDSAccountDelete failed %s ", err.Error())
 	}
 
-	if resp.Error.Code != 0 {
+	if resp.Error.Code != REQUEST_COMPLETED {
 		return fmt.Errorf("[ERROR] resourceJDCloudRDSAccountDelete failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
 

@@ -9,18 +9,9 @@ import (
 	"testing"
 )
 
-/*
-PROCESS:
-	1. [TF_ACC] PreCheck          - If necessary parameters exists
-	2. Invoke:resourceVpcCreate   - Create corresponding resource
-	3. [TF_ACC] resource.TestStep - Check if resources created and attributes set correctly
-	4. Invoke: resourceVpcDelete  - Destroy corresponding resource
-	4. [TF_ACC] CheckDestroy      - Check if resources has been destroyed correctly
-*/
-
 const TestAccVpcConfig = `
-resource "jdcloud_vpc" "vpc-TEST-1"{
-	vpc_name = "vpc_test"
+resource "jdcloud_vpc" "vpc-TEST"{
+	vpc_name = "DevOps2018"
 	cidr_block = "172.16.0.0/19"
 	description = "test"
 }
@@ -28,8 +19,6 @@ resource "jdcloud_vpc" "vpc-TEST-1"{
 
 func TestAccJDCloudVpc_basic(t *testing.T) {
 
-	// vpcId is declared but not assigned any values here
-	// It will be assigned value in "testAccIfVpcExists"
 	var vpcId string
 
 	resource.Test(t, resource.TestCase{
@@ -41,36 +30,29 @@ func TestAccJDCloudVpc_basic(t *testing.T) {
 				Config: TestAccVpcConfig,
 				Check: resource.ComposeTestCheckFunc(
 
-					// VPC_ID validation
-					testAccIfVpcExists("jdcloud_vpc.vpc-TEST-1", &vpcId),
-					// Remaining attributes validation
-					resource.TestCheckResourceAttr("jdcloud_vpc.vpc-TEST-1", "vpc_name", "vpc_test"),
-					resource.TestCheckResourceAttr("jdcloud_vpc.vpc-TEST-1", "cidr_block", "172.16.0.0/19"),
-					resource.TestCheckResourceAttr("jdcloud_vpc.vpc-TEST-1", "description", "test"),
+					testAccIfVpcExists("jdcloud_vpc.vpc-TEST", &vpcId),
+					resource.TestCheckResourceAttr("jdcloud_vpc.vpc-TEST", "vpc_name", "DevOps2018"),
+					resource.TestCheckResourceAttr("jdcloud_vpc.vpc-TEST", "cidr_block", "172.16.0.0/19"),
+					resource.TestCheckResourceAttr("jdcloud_vpc.vpc-TEST", "description", "test"),
 				),
 			},
 		},
 	})
 }
 
-//-------------------------- Customized check functions
-
-// Validate attributes on : VPC_ID
 func testAccIfVpcExists(vpcName string, vpcId *string) resource.TestCheckFunc {
 
 	return func(stateInfo *terraform.State) error {
 
-		// STEP-1 : Check if VPC resource has been created locally
 		vpcInfoStoredLocally, ok := stateInfo.RootModule().Resources[vpcName]
 		if ok == false {
-			return fmt.Errorf("we can not find a vpc namely:{%s} in terraform.State", vpcName)
+			return fmt.Errorf("[ERROR] testAccIfVpcExists Failed,we can not find a vpc namely:{%s} in terraform.State", vpcName)
 		}
 		if vpcInfoStoredLocally.Primary.ID == "" {
-			return fmt.Errorf("operation failed, vpc is created but ID not set")
+			return fmt.Errorf("[ERROR] testAccIfVpcExists Failed,operation failed, vpc is created but ID not set")
 		}
 		vpcIdStoredLocally := vpcInfoStoredLocally.Primary.ID
 
-		// STEP-2 : Check if VPC resource has been created remotely
 		vpcConfig := testAccProvider.Meta().(*JDCloudConfig)
 		vpcClient := client.NewVpcClient(vpcConfig.Credential)
 
@@ -80,26 +62,21 @@ func testAccIfVpcExists(vpcName string, vpcId *string) resource.TestCheckFunc {
 		if err != nil {
 			return err
 		}
-		if resp.Error.Code != 0 {
-			return fmt.Errorf("according to the ID stored locally,we cannot find any VPC on your cloud")
+		if resp.Error.Code != REQUEST_COMPLETED {
+			return fmt.Errorf("[ERROR] testAccIfVpcExists Failed,according to the ID stored locally,we cannot find any VPC on your cloud")
 		}
 
-		// Vpc ID has been validated
-		// We are going to validate the remaining attributes - name,cidr,description
 		*vpcId = vpcIdStoredLocally
 		return nil
 	}
 }
 
-// Validate if VPC resources has been destroyed correctly
 func testAccVpcDestroy(vpcIdStoredLocally *string) resource.TestCheckFunc {
 
 	return func(stateInfo *terraform.State) error {
 
-		// If vpcID appears to be empty it seems that
-		// Some thing went wrong in the previous step
 		if *vpcIdStoredLocally == "" {
-			return fmt.Errorf("vpcID is empty")
+			return fmt.Errorf("[ERROR] testAccVpcDestroy Failed,vpcID is empty")
 		}
 
 		vpcConfig := testAccProvider.Meta().(*JDCloudConfig)
@@ -108,13 +85,11 @@ func testAccVpcDestroy(vpcIdStoredLocally *string) resource.TestCheckFunc {
 		req := apis.NewDescribeVpcRequest(vpcConfig.Region, *vpcIdStoredLocally)
 		resp, err := vpcClient.DescribeVpc(req)
 
-		// Error.Code is supposed to be 404 since VPC was actually deleted
-		// Meanwhile turns out to be 0, successfully queried. Indicating delete error
 		if err != nil {
 			return err
 		}
-		if resp.Error.Code == 0 {
-			return fmt.Errorf("resource still exists,check position-4")
+		if resp.Error.Code == REQUEST_COMPLETED {
+			return fmt.Errorf("[ERROR] testAccVpcDestroy Failed,resource still exists,check position-4")
 		}
 		return nil
 	}

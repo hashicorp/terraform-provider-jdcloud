@@ -59,7 +59,9 @@ func resourceJDCloudOssBucketUploadCreate(d *schema.ResourceData, meta interface
 	if err != nil {
 		return fmt.Errorf("[ERROR] Failed to open file namely %s, Error message-%s", fileName, err)
 	}
-	defer file.Close()
+	if errFileClose := file.Close(); errFileClose != nil {
+		return fmt.Errorf("Here may have some problem since we cannot close this file")
+	}
 
 	uploader := getUploader(meta)
 	respUpload, errUpload := uploader.Upload(&s3manager.UploadInput{
@@ -68,7 +70,7 @@ func resourceJDCloudOssBucketUploadCreate(d *schema.ResourceData, meta interface
 		Body:   file,
 	})
 	if errUpload != nil || respUpload.Location == "" {
-		return fmt.Errorf("[ERROR] Failed to upload file", errUpload)
+		return fmt.Errorf("[ERROR] Failed to upload file: %s", errUpload.Error())
 	}
 
 	d.Set("remote_location", respUpload.Location)
@@ -77,6 +79,23 @@ func resourceJDCloudOssBucketUploadCreate(d *schema.ResourceData, meta interface
 }
 
 func resourceJDCloudOssBucketUploadRead(d *schema.ResourceData, meta interface{}) error {
+
+	svc := getOssClient(meta)
+	bucketName := d.Get("bucket_name").(string)
+	fileName := d.Get("file_name").(string)
+	resp, err := svc.ListObjects(&s3.ListObjectsInput{Bucket: aws.String(bucketName)})
+
+	if err != nil {
+		return fmt.Errorf("[ERROR] Failed in resourceJDCloudOssBucketUploadRead,reasons:%s", err.Error())
+	}
+
+	for _, item := range resp.Contents {
+		if fileName == *item.Key {
+			return nil
+		}
+	}
+
+	d.SetId("")
 	return nil
 }
 

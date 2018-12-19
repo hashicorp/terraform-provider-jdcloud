@@ -11,16 +11,16 @@ import (
 )
 
 const TestAccInstanceConfig = `
-resource "jdcloud_instance" "xiaohan" {
+resource "jdcloud_instance" "DevOps" {
   az            = "cn-north-1a"
-  instance_name = "xiaohantesting2"
+  instance_name = "DevOps2018"
   instance_type = "c.n1.large"
   image_id      = "bba85cab-dfdc-4359-9218-7a2de429dd80"
-  password      = "hanwalks1995~"
+  password      = "DevOps2018~"
 
   subnet_id              = "subnet-j8jrei2981"
   network_interface_name = "xixi"
-  primary_ip             = "10.0.2.0"
+  primary_ip             = "10.0.5.0"
   security_group_ids     = ["sg-ym9yp1egi0"]
   sanity_check           = 1
 
@@ -31,7 +31,6 @@ resource "jdcloud_instance" "xiaohan" {
     disk_category = "local"
     auto_delete   = true
     device_name   = "vda"
-    no_device     = true
     disk_size_gb =  200
   }
 }
@@ -42,13 +41,13 @@ func TestAccJDCloudInstance_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccDiskInstanceDestroy("jdcloud_instance.xiaohan"),
+		CheckDestroy: testAccDiskInstanceDestroy("jdcloud_instance.DevOps"),
 		Steps: []resource.TestStep{
 			{
 				Config: TestAccInstanceConfig,
 				Check: resource.ComposeTestCheckFunc(
 
-					testAccIfInstanceExists("jdcloud_instance.xiaohan"),
+					testAccIfInstanceExists("jdcloud_instance.DevOps"),
 				),
 			},
 		},
@@ -77,7 +76,7 @@ func testAccIfInstanceExists(resourceName string) resource.TestCheckFunc {
 		if err != nil {
 			return fmt.Errorf("testAccIfInstanceExists failed position-1")
 		}
-		if resp.Error.Code != 0 {
+		if resp.Error.Code != REQUEST_COMPLETED {
 			return fmt.Errorf("testAccIfInstanceExists failed position-2")
 		}
 
@@ -102,7 +101,7 @@ func testAccIfInstanceExists(resourceName string) resource.TestCheckFunc {
 		if remoteStruct.SubnetId != localMap["subnet_id"] {
 			return fmt.Errorf("testAccIfInstanceExists failed subnet id")
 		}
-		if len(remoteStruct.KeyNames) != 0 && remoteStruct.KeyNames[0] != localMap["key_names"] {
+		if len(remoteStruct.KeyNames) != RESOURCE_EMPTY && remoteStruct.KeyNames[0] != localMap["key_names"] {
 			return fmt.Errorf("testAccIfInstanceExists failed on key names")
 		}
 		sgLength, _ := strconv.Atoi(localMap["security_group_ids.#"])
@@ -129,8 +128,8 @@ func testAccDiskInstanceDestroy(resourceName string) resource.TestCheckFunc {
 			return fmt.Errorf("failed in deleting certain resources position-10")
 		}
 
-		if resp.Error.Code == 0 {
-			return fmt.Errorf("failed in deleting certain resources position-11 ,%s", resp.Error)
+		if resp.Error.Code == REQUEST_COMPLETED {
+			return fmt.Errorf("failed in deleting certain resources position-11 ,code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 		}
 
 		return nil

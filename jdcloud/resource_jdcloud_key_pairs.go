@@ -1,7 +1,6 @@
 package jdcloud
 
 import (
-	"errors"
 	"fmt"
 	"github.com/hashicorp/terraform/helper/schema"
 	commonModels "github.com/jdcloud-api/jdcloud-sdk-go/services/common/models"
@@ -16,7 +15,6 @@ func resourceJDCloudKeyPairs() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceJDCloudKeyPairsCreate,
 		Read:   resourceJDCloudKeyPairsRead,
-		//Update: resourceJDCloudKeyPairsUpdate,
 		Delete: resourceJDCloudKeyPairsDelete,
 
 		Schema: map[string]*schema.Schema{
@@ -64,7 +62,7 @@ func resourceJDCloudKeyPairsCreate(d *schema.ResourceData, meta interface{}) err
 			return fmt.Errorf("[ERROR] import key pairs failed %s ", err.Error())
 		}
 
-		if resp.Error.Code != 0 {
+		if resp.Error.Code != REQUEST_COMPLETED {
 			return fmt.Errorf("[ERROR] import key pairs failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 		}
 
@@ -79,7 +77,7 @@ func resourceJDCloudKeyPairsCreate(d *schema.ResourceData, meta interface{}) err
 			return fmt.Errorf("[DEBUG] create key pairs failed %s ", err.Error())
 		}
 
-		if resp.Error.Code != 0 {
+		if resp.Error.Code != REQUEST_COMPLETED {
 			return fmt.Errorf("[DEBUG] create key pairs failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 		}
 
@@ -88,8 +86,16 @@ func resourceJDCloudKeyPairsCreate(d *schema.ResourceData, meta interface{}) err
 		d.Set("private_key", resp.Result.PrivateKey)
 
 		if file, ok := d.GetOk("key_file"); ok {
-			ioutil.WriteFile(file.(string), []byte(resp.Result.PrivateKey), 0600)
-			os.Chmod(file.(string), 0400)
+
+			errIO := ioutil.WriteFile(file.(string), []byte(resp.Result.PrivateKey), KEYPAIRS_PERM)
+			if errIO != nil {
+				return fmt.Errorf("[ERROR] resourceJDCloudKeyPairsCreate failed with error message:%s", errIO.Error())
+			}
+
+			errChmod := os.Chmod(file.(string), KEYPAIRS_PRIV)
+			if errChmod != nil {
+				return fmt.Errorf("[ERROR] resourceJDCloudKeyPairsCreate failed with error message:%s", errChmod.Error())
+			}
 		}
 
 	}
@@ -115,35 +121,20 @@ func resourceJDCloudKeyPairsRead(d *schema.ResourceData, meta interface{}) error
 
 	resp, err := vmClient.DescribeKeypairs(req)
 	if err != nil {
-		log.Printf("[DEBUG] resourceJDCloudKeyPairsUpdate failed %s", err.Error())
-		return err
+		return fmt.Errorf("[DEBUG] resourceJDCloudKeyPairsUpdate failed %s", err.Error())
 	}
 
-	if resp.Error.Code != 0 {
-		log.Printf("[DEBUG] resourceJDCloudKeyPairsUpdate failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
-		return errors.New(resp.Error.Message)
-	}
-
-	if resp.Result.TotalCount == 0 {
-		log.Printf("[DEBUG] resourceJDCloudKeyPairsUpdate failed ,keypairs may be deleted ")
+	if resp.Error.Code == RESOURCE_NOT_FOUND || resp.Result.TotalCount == RESOURCE_EMPTY {
+		log.Printf("Resource not found, probably have been deleted")
+		d.SetId("")
 		return nil
-	} else {
-
-		d.Set("key_finger_print", resp.Result.Keypairs[0].KeyFingerprint)
 	}
 
-	return nil
-
-	for _, key := range resp.Result.Keypairs {
-		if key.KeyName == keyName {
-			return nil
-		}
+	if resp.Error.Code != REQUEST_COMPLETED {
+		return fmt.Errorf("[DEBUG] resourceJDCloudKeyPairsUpdate failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
 
-	if resp.Error.Code != 0 {
-		return fmt.Errorf("[ERROR] read key pairs failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
-	}
-	d.SetId("")
+	d.Set("key_finger_print", resp.Result.Keypairs[0].KeyFingerprint)
 	return nil
 }
 
@@ -159,7 +150,7 @@ func resourceJDCloudKeyPairsDelete(d *schema.ResourceData, meta interface{}) err
 	if err != nil {
 		return fmt.Errorf("[DEBUG]  delete key pairs failed %s", err.Error())
 	}
-	if resp.Error.Code != 0 {
+	if resp.Error.Code != REQUEST_COMPLETED {
 		return fmt.Errorf("[DEBUG] delete key pairs failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
 

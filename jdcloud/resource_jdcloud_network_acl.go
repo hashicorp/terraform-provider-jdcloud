@@ -5,6 +5,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/apis"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/client"
+	"log"
 )
 
 func resourceJDCloudNetworkAcl() *schema.Resource {
@@ -14,6 +15,9 @@ func resourceJDCloudNetworkAcl() *schema.Resource {
 		Create: resourceJDCloudNetworkAclCreate,
 		Read:   resourceJDCloudNetworkAclRead,
 		Delete: resourceJDCloudNetworkAclDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"description": {
@@ -59,7 +63,7 @@ func resourceJDCloudNetworkAclCreate(d *schema.ResourceData, meta interface{}) e
 		return fmt.Errorf("[ERROR] resourceJDCloudNetworkAclCreate failed %s ", err.Error())
 	}
 
-	if resp.Error.Code != 0 {
+	if resp.Error.Code != REQUEST_COMPLETED {
 		return fmt.Errorf("[ERROR] resourceJDCloudNetworkAclCreate failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
 	d.SetId(resp.Result.NetworkAclId)
@@ -77,7 +81,14 @@ func resourceJDCloudNetworkAclRead(d *schema.ResourceData, meta interface{}) err
 	if err != nil {
 		return fmt.Errorf("[ERROR] resourceJDCloudNetworkAclRead failed %s ", err.Error())
 	}
-	if resp.Error.Code != 0 {
+
+	if resp.Error.Code == RESOURCE_NOT_FOUND {
+		log.Printf("Resource not found, probably have been deleted")
+		d.SetId("")
+		return nil
+	}
+
+	if resp.Error.Code != REQUEST_COMPLETED {
 		return fmt.Errorf("[ERROR] failed in resourceJDCloudNetworkAclRead code:%d message:%s", resp.Error.Code, resp.Error.Message)
 	}
 
@@ -101,7 +112,7 @@ func resourceJDCloudNetworkAclDelete(d *schema.ResourceData, meta interface{}) e
 		return fmt.Errorf("[ERROR] resourceJDCloudNetworkAclDelete failed %s ", err.Error())
 	}
 
-	if resp.Error.Code != 0 {
+	if resp.Error.Code != REQUEST_COMPLETED {
 		return fmt.Errorf("[ERROR] resourceJDCloudNetworkAclDelete failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
 

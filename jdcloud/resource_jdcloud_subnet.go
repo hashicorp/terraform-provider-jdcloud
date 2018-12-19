@@ -15,6 +15,9 @@ func resourceJDCloudSubnet() *schema.Resource {
 		Read:   resourceSubnetRead,
 		Update: resourceSubnetUpdate,
 		Delete: resourceSubnetDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 
@@ -23,18 +26,15 @@ func resourceJDCloudSubnet() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
-
 			"cidr_block": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-
 			"subnet_name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-
 			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -48,11 +48,11 @@ func resourceSubnetCreate(d *schema.ResourceData, m interface{}) error {
 	config := m.(*JDCloudConfig)
 	subnetClient := client.NewVpcClient(config.Credential)
 
-	regionId := config.Region
-	vpcId := d.Get("vpc_id").(string)
-	subnetName := d.Get("subnet_name").(string)
-	addressPrefix := d.Get("cidr_block").(string)
-	req := apis.NewCreateSubnetRequest(regionId, vpcId, subnetName, addressPrefix)
+	req := apis.NewCreateSubnetRequest(config.Region,
+		d.Get("vpc_id").(string),
+		d.Get("subnet_name").(string),
+		d.Get("cidr_block").(string))
+
 	if _, ok := d.GetOk("description"); ok {
 		req.Description = GetStringAddr(d, "description")
 	}
@@ -63,7 +63,7 @@ func resourceSubnetCreate(d *schema.ResourceData, m interface{}) error {
 		return fmt.Errorf("[ERROR] resourceSubnetCreate failed %s ", err.Error())
 	}
 
-	if resp.Error.Code != 0 {
+	if resp.Error.Code != REQUEST_COMPLETED {
 		return fmt.Errorf("[ERROR] resourceSubnetCreate failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
 
@@ -83,12 +83,12 @@ func resourceSubnetRead(d *schema.ResourceData, m interface{}) error {
 		return fmt.Errorf("[ERROR] resourceSubnetRead failed %s ", err.Error())
 	}
 
-	if resp.Error.Code == 404 {
+	if resp.Error.Code == RESOURCE_NOT_FOUND {
 		d.SetId("")
 		return nil
 	}
 
-	if resp.Error.Code != 0 {
+	if resp.Error.Code != REQUEST_COMPLETED {
 		return fmt.Errorf("[ERROR] resourceSubnetRead failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
 
@@ -114,7 +114,7 @@ func resourceSubnetUpdate(d *schema.ResourceData, m interface{}) error {
 			return fmt.Errorf("[ERROR] resourceSubnetUpdate failed %s ", err.Error())
 		}
 
-		if resp.Error.Code != 0 {
+		if resp.Error.Code != REQUEST_COMPLETED {
 			return fmt.Errorf("[ERROR] resourceSubnetUpdate failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 		}
 
@@ -134,7 +134,7 @@ func resourceSubnetDelete(d *schema.ResourceData, m interface{}) error {
 		return fmt.Errorf("[ERROR] resourceSubnetDelete failed %s ", err.Error())
 	}
 
-	if resp.Error.Code != 0 {
+	if resp.Error.Code != REQUEST_COMPLETED {
 		return fmt.Errorf("[ERROR] resourceSubnetDelete failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 	}
 

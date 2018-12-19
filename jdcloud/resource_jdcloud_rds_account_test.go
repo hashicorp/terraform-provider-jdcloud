@@ -12,8 +12,8 @@ import (
 const TestAccRDSAccountConfig = `
 resource "jdcloud_rds_account" "rds-test1"{
   instance_id = "mysql-g0afoqpl6y"
-  username = "xiaohanliang"
-  password = "XIAOhan123"
+  username = "DevOps"
+  password = "DevOps2018"
 }
 `
 
@@ -42,10 +42,10 @@ func testAccIfRDSAccountExists(resourceName string) resource.TestCheckFunc {
 
 		resourceStoredLocally, ok := stateInfo.RootModule().Resources[resourceName]
 		if ok == false {
-			return fmt.Errorf("we can not find a resource namely:{%s} in terraform.State", resourceName)
+			return fmt.Errorf("[ERROR] testAccIfRDSAccountExists Failed,we can not find a resource namely:{%s} in terraform.State", resourceName)
 		}
 		if resourceStoredLocally.Primary.ID == "" {
-			return fmt.Errorf("operation failed, resource is created but ID not set")
+			return fmt.Errorf("[ERROR] testAccIfRDSAccountExists Failed,operation failed, resource is created but ID not set")
 		}
 
 		instanceId := resourceStoredLocally.Primary.Attributes["instance_id"]
@@ -61,7 +61,7 @@ func testAccIfRDSAccountExists(resourceName string) resource.TestCheckFunc {
 		if err != nil {
 			return err
 		}
-		if resp.Error.Code != 0 {
+		if resp.Error.Code != REQUEST_COMPLETED {
 			return fmt.Errorf("[ERROR] Test failed ,Code:%d, Status:%s ,Message :%s", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 		}
 
@@ -98,7 +98,7 @@ func testAccRDSAccountDestroy(resourceName string) resource.TestCheckFunc {
 
 		for _, account := range remoteInfo {
 			if userName == account.AccountName {
-				return fmt.Errorf("[ERROR] Test failed , cannot find certain account")
+				return fmt.Errorf("[ERROR] Test failed , resource still exists")
 			}
 		}
 

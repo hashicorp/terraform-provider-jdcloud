@@ -24,22 +24,53 @@ var (
 	}
 )
 
-const DefaultTimeout = 600
-const DefaultSecurityGroupsMax = 5
-
 const (
-	VM_PENDING    = "pending"
-	VM_STARTING   = "starting"
-	VM_RUNNING    = "running"
-	VM_STOPPING   = "stopping"
-	VM_STOPPED    = "stopped"
-	VM_REBOOTING  = "rebooting"
-	VM_REBUILDING = "rebuilding"
-	VM_RESIZING   = "resizing"
-	VM_DELETING   = "deleting"
-	VM_TERMINATED = "terminated"
-	VM_ERROR      = "error"
-	VM_DELETED    = "deleted" //actual,there is no such state
+	MAX_SECURITY_GROUP_COUNT = 5
+	MAX_RECONNECT_COUNT      = 3
+
+	MAX_NI_RECONNECT  = 6
+	MAX_EIP_RECONNECT = 10
+
+	REQUEST_COMPLETED  = 0
+	RESOURCE_EXISTS    = 0
+	RESOURCE_EMPTY     = 0
+	RESOURCE_NOT_FOUND = 404
+	REQUEST_INVALID    = 400
+
+	MAX_DISK_COUNT          = 1
+	DISK_AVAILABLE          = "available"
+	DISK_DELETED            = "deleted"
+	DISK_TIMEOUT            = 60
+	DISK_ATTACHMENT_TIMEOUT = 60
+	DISK_ATTACHED           = "attached"
+	DISK_DETACHED           = "detached"
+
+	MAX_EIP_COUNT     = 1
+	MAX_SYSDISK_COUNT = 1
+	DISKTYPE_CLOUD    = "cloud"
+	MAX_VM_COUNT      = 1
+	VM_TIMEOUT        = 600
+	VM_PENDING        = "pending"
+	VM_STARTING       = "starting"
+	VM_RUNNING        = "running"
+	VM_STOPPING       = "stopping"
+	VM_STOPPED        = "stopped"
+	VM_REBOOTING      = "rebooting"
+	VM_REBUILDING     = "rebuilding"
+	VM_RESIZING       = "resizing"
+	VM_DELETING       = "deleting"
+	VM_TERMINATED     = "terminated"
+	VM_ERROR          = "error"
+	VM_DELETED        = "deleted" //actual,there is no such state
+
+	KEYPAIRS_PERM = 0600
+	KEYPAIRS_PRIV = 0400
+
+	RDS_TIMEOUT       = 300
+	RDS_READY         = "RUNNING"
+	RDS_DELETED       = ""
+	RDS_MAX_RECONNECT = 6
+	CONNECT_FAILED    = "Client.Timeout exceeded"
 )
 
 func initConfig(d *schema.ResourceData) (interface{}, error) {
