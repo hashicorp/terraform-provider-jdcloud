@@ -83,7 +83,7 @@ resource "jdcloud_vpc" "vpc-1" {
 
 ## License
 
-Apache License Version 2
+Mozilla Public License 2.0
 
 
 <br>
