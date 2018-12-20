@@ -13,7 +13,7 @@ show you how to install Terraform together with JDCloud plugin. Commands are giv
 ### Build from binary
 
 Download the Terraform binary, make sure Terraform binary is available in your `PATH`.
-Download JDCloud plugin into the same directory as Terraform. Detailed instruction can be found in [release page](https://github.com/XiaohanLiang/terraform-provider-jdcloud/releases/edit/v0.1-beta)
+Download JDCloud plugin into the same directory as Terraform. Detailed instruction can be found in [release page](https://github.com/jdclouddevelopers/terraform-provider-jdcloud/releases/edit/v0.1-beta)
 <br>
 
 ### Build from source code (Recommended for developers)
@@ -76,10 +76,10 @@ resource "jdcloud_vpc" "vpc-1" {
 
 
 # More
-**More example** on how to create a resource can be found [here](https://github.com/XiaohanLiang/terraform-provider-jdcloud/blob/master/example/main.tf).  
-**Restrictions** on creating/updating a resource can be found [here](https://docs.jdcloud.com/cn/).  
+**More example** on how to create a resource can be found [here](https://github.com/jdclouddevelopers/terraform-provider-jdcloud/blob/master/example/main.tf).  
+**Restrictions** on creating/updating a resource can be found [here](https://docs.jdcloud.com/).  
 **Terraform official** web page can be found [here](https://www.terraform.io/intro/index.html).  
-**Contact us JDCloud-Team** <ark@jd.com>
+**Contact us JDCloud-Team** <devops@jd.com>
 
 ## License
 
