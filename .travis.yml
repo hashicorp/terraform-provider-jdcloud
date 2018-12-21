@@ -3,4 +3,10 @@ go:
   - "1.9"
   - "1.10"
   - master
-script: sh scripts/changeFileName.sh
+  
+script:
+  - sh scripts/changeFileName.sh
+  - make fmtcheck
+  - make errcheck
+  - make build
+  - make test-compile
