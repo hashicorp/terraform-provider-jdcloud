@@ -13,15 +13,16 @@ install:
 # go.googlesource.com so rate limits are higher when using `go get` to fetch
 # packages that live there.
 # See: https://github.com/golang/go/issues/12933
-
+- bash scripts/gogetcookie.sh
 - go get github.com/kardianos/govendor
 
 script:
-- sh scripts/xiaohan.sh
 - make test
 - make vendor-status
 - make vet
-- make website-test
+#- make website-test
+# This branch is currently discarded since we have to
+# Add some soft links to make middle man working
 
 branches:
   only:
