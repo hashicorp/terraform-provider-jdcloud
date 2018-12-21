@@ -17,7 +17,7 @@ testacc: fmtcheck
 
 vet:
 	@echo "go vet ."
-	@go vet $$(go list ./... | grep -v vendor/);
+		@go vet $$(go list ./... | grep -v vendor/);
 
 fmt:
 	gofmt -w $(GOFMT_FILES)
