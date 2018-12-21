@@ -2,7 +2,7 @@ TEST?=$$(go list ./... |grep -v 'vendor')
 TEST_JDCLOUD?=$$(go list ./... |grep 'jdcloud/jdcloud')
 GO_FMT_FILES?=$$(find . -name '*.go' |grep -v vendor)
 WEBSITE_REPO=github.com/hashicorp/terraform-website
-
+PKG_NAME=jdcloud
 
 default: build
 
@@ -45,21 +45,17 @@ test-compile:
 	go test -c $(TEST_JDCLOUD) $(TESTARGS)
 
 
-#
-# Exit 1 is added in order to avoid unncessary cloning 
-#
-#website:
-#ifeq(,$(wildcard $(GOPATH)/src/$(WEBSITE_REPO)))
-#	echo "$(WEBSITE_REPO) not found in your GOPATH which is necessary for layouts and assets, cloning a raw one into your GOPATH"
-#	exit 1
-#	git clone https://$(WEBSITE_REPO) $(GOPATH)
-#endif
-#	@$(MAKE) -c $(GOPATH)/src/$(WEBSITE_REPO) website-provider PROVIDER_PATH=$(shell pwd) PROVIDER_NAME=$(PKG_NAME)
-#
-#website-test:
-#ifeq(,$(wildcard $(GOPATH)/src/$(WEBSITE_REPO)))
-#	echo "$(WEBSITE_REPO) not found in your GOPATH which is necessary for layouts and assets, cloning a raw one into your GOPATH"
-#	git clone https://$(WEBSITE_REPO) $(GOPATH)
-#endif
-#	@$(MAKE) -c $(GOPATH)/src/$(WEBSITE_REPO) website-provider-test PROVIDER_PATH=$(shell pwd) PROVIDER_NAME=$(PKG_NAME)
-#
+website:
+ifeq (,$(wildcard $(GOPATH)/src/$(WEBSITE_REPO)))
+	echo "$(WEBSITE_REPO) not found in your GOPATH (necessary for layouts and assets), get-ting..."
+	git clone https://$(WEBSITE_REPO) $(GOPATH)/src/$(WEBSITE_REPO)
+endif
+	@$(MAKE) -C $(GOPATH)/src/$(WEBSITE_REPO) website-provider PROVIDER_PATH=$(shell pwd) PROVIDER_NAME=$(PKG_NAME)
+
+website-test:
+ifeq (,$(wildcard $(GOPATH)/src/$(WEBSITE_REPO)))
+	echo "$(WEBSITE_REPO) not found in your GOPATH (necessary for layouts and assets), get-ting..."
+	git clone https://$(WEBSITE_REPO) $(GOPATH)/src/$(WEBSITE_REPO)
+endif
+	@$(MAKE) -C $(GOPATH)/src/$(WEBSITE_REPO) website-provider-test PROVIDER_PATH=$(shell pwd) PROVIDER_NAME=$(PKG_NAME)
+
