@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 
 cd ../..
-echo $(pwd)
+mv XiaohanLiang/ jdclouddevelopers/

@@ -3,4 +3,4 @@ go:
   - "1.9"
   - "1.10"
   - master
-script: sh script/changeFileName.sh
+script: sh scripts/changeFileName.sh
