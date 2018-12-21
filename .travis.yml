@@ -3,9 +3,9 @@ go:
   - "1.9"
   - "1.10"
   - master
-  
+
 script:
-  - sh scripts/changeFileName.sh
+  - sh scripts/xiaohan.sh
   - make fmtcheck
   - make errcheck
   - make build
