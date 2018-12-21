@@ -75,7 +75,6 @@ func resourceJDCloudEIPRead(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return fmt.Errorf("[ERROR] resourceJDCloudEIPRead failed %s ", err.Error())
 	}
-
 	if resp.Error.Code == RESOURCE_NOT_FOUND {
 		d.SetId("")
 		return nil

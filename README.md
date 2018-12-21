@@ -42,7 +42,7 @@ JDCloud resources were managed through a configuration file namely "jdcloud.tf",
 This tutorial gives you an **idea on how to edit this configuration file and how this plugin works**.
 Before everything starts you have to provide [access key and secret key](https://docs.jdcloud.com/cn/account-management/accesskey-management).
 
-```bash
+```hcl
 provider "jdcloud" {
   access_key = "EXAMPLEACCESSKEY"
   secret_key = "EXAMPLESECRETKEY"
@@ -53,7 +53,7 @@ provider "jdcloud" {
 
 ### Create a VPC resource through Terraform
 VPC resource can be created by specifying the name of this VPC resource and the CIDR block. Meanwhile description on this resource is optional. Edit `jdcloud.tf` and then execute `terraform apply`. Resource on the cloud will be modified consequently.
-```bash
+```hcl
 resource "jdcloud_vpc" "vpc-1" {
   vpc_name = "my-vpc-1"
   cidr_block = "172.16.0.0/20"
@@ -64,7 +64,7 @@ resource "jdcloud_vpc" "vpc-1" {
 
 ### Modify resource attributes through Terraform
 Just like creating them through console on web page. You can modify some attributes of resource after it has been created. Execute terraform applyafter it has been modified
-```bash
+```hcl
 resource "jdcloud_vpc" "vpc-1" {
   vpc_name = "my-vpc-1"
   cidr_block = "172.16.0.0/20"
