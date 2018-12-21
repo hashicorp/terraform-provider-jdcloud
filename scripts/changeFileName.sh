@@ -2,3 +2,4 @@
 
 cd ../..
 mv XiaohanLiang/ jdclouddevelopers/
+cd jdclouddevelopers/terraform-provider-jdcloud/
