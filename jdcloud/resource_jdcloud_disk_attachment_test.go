@@ -11,7 +11,7 @@ import (
 
 const TestAccDiskAttachmentConfig = `
 resource "jdcloud_disk_attachment" "disk-attachment-TEST-1"{
-	instance_id = "i-77kettd7jf" 
+	instance_id = "i-g6xse7qb0z" 
 	disk_id = "vol-w7bhp8s43l"
 }
 `

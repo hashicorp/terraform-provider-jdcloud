@@ -12,12 +12,12 @@ import (
 
 const TestAccRDSPrivilegeConfig = `
 resource "jdcloud_rds_privilege" "pri-test" {
-  instance_id = "mysql-g0afoqpl6y"
-  username = "xiaohanliang"
+  instance_id = "mysql-155pjskhpy"
+  username = "jdcloudDevOps"
   account_privilege = [
-    {db_name = "chenyao6",privilege = "rw"},
-    {db_name = "chenyao7",privilege = "rw"},
-    {db_name = "chenyao8",privilege = "rw"},
+    {db_name = "jdcloud2017",privilege = "rw"},
+    {db_name = "jdcloud2018",privilege = "rw"},
+    {db_name = "jdcloud2019",privilege = "ro"},
   ]
 }
 `

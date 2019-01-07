@@ -11,7 +11,7 @@ import (
 
 const TestAccEIPAssociationConfig = `
 resource "jdcloud_eip_association" "eip-association-TEST-1"{
-	instance_id = "i-p3yh27xd3s"
+	instance_id = "i-g6xse7qb0z"
 	elastic_ip_id = "fip-e3lfigpewx"
 }
 `
