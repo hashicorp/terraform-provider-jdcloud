@@ -11,7 +11,7 @@ import (
 
 const TestAccRDSAccountConfig = `
 resource "jdcloud_rds_account" "rds-test1"{
-  instance_id = "mysql-g0afoqpl6y"
+  instance_id = "mysql-155pjskhpy"
   username = "DevOps"
   password = "DevOps2018"
 }

@@ -11,7 +11,7 @@ import (
 
 const TestAccRDSDatabaseConfig = `
 resource "jdcloud_rds_database" "db-TEST"{
-  instance_id = "mysql-g0afoqpl6y"
+  instance_id = "mysql-155pjskhpy"
   db_name = "devops2018"
   character_set = "utf8"
 }

@@ -19,7 +19,7 @@ resource "jdcloud_instance" "DevOps" {
   password      = "DevOps2018~"
 
   subnet_id              = "subnet-j8jrei2981"
-  network_interface_name = "xixi"
+  network_interface_name = "jdcloud"
   primary_ip             = "10.0.5.0"
   security_group_ids     = ["sg-ym9yp1egi0"]
   sanity_check           = 1
