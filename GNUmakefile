@@ -44,6 +44,8 @@ test-compile:
 	fi
 	go test -c $(TEST_JDCLOUD) $(TESTARGS)
 
+scan:
+	cd scanner && go run *.go
 
 website:
 ifeq (,$(wildcard $(GOPATH)/src/$(WEBSITE_REPO)))
