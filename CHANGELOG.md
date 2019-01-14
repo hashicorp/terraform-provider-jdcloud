@@ -2,6 +2,7 @@
 
 FEATURES:
 
+* Scanner, back up your current infrastructure and save into a configuration file [GH-21]
 * Importer for various resources is introduced [GH-17]
 * Website files prepared [GH-18]
 * CHANGELOG.md created [GH-18]
