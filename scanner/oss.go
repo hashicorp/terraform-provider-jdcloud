@@ -31,15 +31,14 @@ func copyOSS() {
 
 	for index, bucket := range o.Buckets {
 
-		fmt.Println(*bucket.Name)
 		result, err := s.GetBucketAcl(&s3.GetBucketAclInput{Bucket: bucket.Name})
+		privilege := "private"
 
-		resourceName := fmt.Sprintf("oss-%d", index)
-		if err != nil {
-			tracefile(fmt.Sprintf(ossTemplate, resourceName, *bucket.Name, "private"))
-		} else {
-			tracefile(fmt.Sprintf(ossTemplate, resourceName, *bucket.Name, privMap[*result.Grants[0].Permission]))
+		if len(result.Grants)!=0 && err==nil {
+			privilege = privMap[*result.Grants[0].Permission]
 		}
+
+		tracefile(fmt.Sprintf(ossTemplate, fmt.Sprintf("oss-%d", index), *bucket.Name, privilege))
 	}
 }
 

@@ -38,14 +38,14 @@ func main() {
 
 	resourceMap = make(map[string]string)
 
-	copyVPC()
-	copySubnet()
-	copyRouteTable()
-	copySecurityGroup()
-	copyNetworkInterface()
-	copyEIP()
-	copyDisk()
-	copyInstance()
-	copyRDS()
+	//copyVPC()
+	//copySubnet()
+	//copyRouteTable()
+	//copySecurityGroup()
+	//copyNetworkInterface()
+	//copyEIP()
+	//copyDisk()
+	//copyInstance()
+	//copyRDS()
 	copyOSS()
 }
