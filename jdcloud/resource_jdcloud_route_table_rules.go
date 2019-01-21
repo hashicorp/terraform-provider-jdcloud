@@ -73,17 +73,17 @@ func performRuleDetach(d *schema.ResourceData, m interface{}, detachList []strin
 	c := client.NewVpcClient(config.Credential)
 	req := apis.NewRemoveRouteTableRulesRequest(config.Region, d.Id(), detachList)
 
-	return resource.Retry( time.Minute , func() *resource.RetryError{
+	return resource.Retry(time.Minute, func() *resource.RetryError {
 
 		resp, err := c.RemoveRouteTableRules(req)
 
-		if err == nil && resp.Error.Code==REQUEST_COMPLETED {
+		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
 			return nil
 		}
 		if connectionError(err) {
 			return resource.RetryableError(formatConnectionErrorMessage())
 		} else {
-			return resource.NonRetryableError(formatErrorMessage(resp.Error,err))
+			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
 		}
 	})
 }
@@ -95,18 +95,18 @@ func performRuleAttach(d *schema.ResourceData, m interface{}, attachList []vpc.A
 	tableId := d.Get("route_table_id").(string)
 	req := apis.NewAddRouteTableRulesRequest(config.Region, tableId, attachList)
 
-	return resource.Retry( time.Minute , func() *resource.RetryError{
+	return resource.Retry(time.Minute, func() *resource.RetryError {
 
 		resp, err := c.AddRouteTableRules(req)
 
-		if err == nil && resp.Error.Code==REQUEST_COMPLETED {
+		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
 			return nil
 		}
 
 		if connectionError(err) {
 			return resource.RetryableError(formatConnectionErrorMessage())
 		} else {
-			return resource.NonRetryableError(formatErrorMessage(resp.Error,err))
+			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
 		}
 	})
 
@@ -161,7 +161,7 @@ func resourceJDCloudRouteTableRules() *schema.Resource {
 						},
 					},
 				},
-				MinItems:1,
+				MinItems: 1,
 			},
 		},
 	}
@@ -173,7 +173,7 @@ func resourceRouteTableRulesCreate(d *schema.ResourceData, m interface{}) error 
 	tableId := d.Get("route_table_id").(string)
 	attachList := typeSetToRouteRuleArray(d.Get("rule_specs").(*schema.Set))
 
-	if err := performRuleAttach(d,m,attachList); err!=nil {
+	if err := performRuleAttach(d, m, attachList); err != nil {
 		return err
 	}
 
@@ -198,11 +198,11 @@ func resourceRouteTableRulesRead(d *schema.ResourceData, m interface{}) error {
 
 	req := apis.NewDescribeRouteTableRequest(config.Region, d.Id())
 
-	return resource.Retry( time.Minute , func() *resource.RetryError{
+	return resource.Retry(time.Minute, func() *resource.RetryError {
 
 		resp, err := vpcClient.DescribeRouteTable(req)
 
-		if err == nil && resp.Error.Code==REQUEST_COMPLETED {
+		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
 			ruleMap := ruleMap(resp.Result.RouteTable.RouteTableRules[1:])
 			if err := d.Set("rule_specs", ruleMap); err != nil {
 				return resource.NonRetryableError(err)
@@ -218,7 +218,7 @@ func resourceRouteTableRulesRead(d *schema.ResourceData, m interface{}) error {
 		if connectionError(err) {
 			return resource.RetryableError(formatConnectionErrorMessage())
 		} else {
-			return resource.NonRetryableError(formatErrorMessage(resp.Error,err))
+			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
 		}
 	})
 
@@ -236,10 +236,10 @@ func resourceRouteTableRulesUpdate(d *schema.ResourceData, m interface{}) error 
 		detachList := ruleIdList(p.Difference(i))
 		attachList := typeSetToRouteRuleArray(c.Difference(i))
 
-		if err := performRuleDetach(d, m, detachList); err != nil || len(detachList) != 0 {
+		if err := performRuleDetach(d, m, detachList); err != nil && len(detachList) != 0 {
 			return err
 		}
-		if err := performRuleAttach(d, m, attachList); err != nil || len(attachList) != 0 {
+		if err := performRuleAttach(d, m, attachList); err != nil && len(attachList) != 0 {
 			return err
 		}
 	}
@@ -255,11 +255,11 @@ func resourceRouteTableRulesDelete(d *schema.ResourceData, m interface{}) error 
 
 	req := apis.NewRemoveRouteTableRulesRequest(config.Region, d.Get("route_table_id").(string), idList)
 
-	return resource.Retry( time.Minute , func() *resource.RetryError{
+	return resource.Retry(time.Minute, func() *resource.RetryError {
 
 		resp, err := routeTableRulesClient.RemoveRouteTableRules(req)
 
-		if err == nil && resp.Error.Code==REQUEST_COMPLETED {
+		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
 			d.SetId("")
 			return nil
 		}
@@ -267,7 +267,7 @@ func resourceRouteTableRulesDelete(d *schema.ResourceData, m interface{}) error 
 		if connectionError(err) {
 			return resource.RetryableError(formatConnectionErrorMessage())
 		} else {
-			return resource.NonRetryableError(formatErrorMessage(resp.Error,err))
+			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
 		}
 	})
 }

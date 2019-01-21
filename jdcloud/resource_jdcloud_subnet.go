@@ -59,7 +59,7 @@ func resourceSubnetCreate(d *schema.ResourceData, m interface{}) error {
 		req.Description = GetStringAddr(d, "description")
 	}
 
-	return resource.Retry( 20*time.Second , func() *resource.RetryError {
+	return resource.Retry(20*time.Second, func() *resource.RetryError {
 
 		resp, err := conn.CreateSubnet(req)
 
@@ -71,7 +71,7 @@ func resourceSubnetCreate(d *schema.ResourceData, m interface{}) error {
 		if connectionError(err) {
 			return resource.RetryableError(formatConnectionErrorMessage())
 		} else {
-			return resource.NonRetryableError(formatErrorMessage(resp.Error,err))
+			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
 		}
 	})
 }

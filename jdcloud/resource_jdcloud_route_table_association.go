@@ -1,11 +1,11 @@
 package jdcloud
 
 import (
-	"fmt"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/apis"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/client"
-	"log"
+	"time"
 )
 
 func resourceJDCloudRouteTableAssociation() *schema.Resource {
@@ -31,6 +31,7 @@ func resourceJDCloudRouteTableAssociation() *schema.Resource {
 			"subnet_id": {
 				Type:     schema.TypeSet,
 				Required: true,
+				MinItems: 1,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
@@ -41,55 +42,46 @@ func resourceJDCloudRouteTableAssociation() *schema.Resource {
 
 func resourceRouteTableAssociationCreate(d *schema.ResourceData, meta interface{}) error {
 
-	config := meta.(*JDCloudConfig)
-	associationClient := client.NewVpcClient(config.Credential)
-
-	regionId := config.Region
-	subnetIds := typeSetToStringArray(d.Get("subnet_id").(*schema.Set))
-
+	attachList := typeSetToStringArray(d.Get("subnet_id").(*schema.Set))
 	routeTableId := d.Get("route_table_id").(string)
-	req := apis.NewAssociateRouteTableRequest(regionId, routeTableId, subnetIds)
-	resp, err := associationClient.AssociateRouteTable(req)
 
-	if err != nil {
-		return fmt.Errorf("[ERROR] resourceRouteTableAssociationCreate failed %s ", err.Error())
+	if err := performSubnetAttach(d, meta, attachList); err != nil {
+		return err
+	} else {
+		d.SetId(routeTableId)
+		return nil
 	}
-
-	if resp.Error.Code != REQUEST_COMPLETED {
-		return fmt.Errorf("[ERROR] resourceRouteTableAssociationCreate failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
-	}
-
-	d.SetId(routeTableId)
-	return nil
 }
 
 func resourceRouteTableAssociationRead(d *schema.ResourceData, meta interface{}) error {
 
 	config := meta.(*JDCloudConfig)
 	associationClient := client.NewVpcClient(config.Credential)
-
 	req := apis.NewDescribeRouteTableRequest(config.Region, d.Id())
-	resp, err := associationClient.DescribeRouteTable(req)
 
-	if err != nil {
-		return fmt.Errorf("[ERROR] resourceRouteTableAssociationRead failed %s ", err.Error())
-	}
+	return resource.Retry(time.Minute, func() *resource.RetryError {
 
-	if resp.Error.Code == RESOURCE_NOT_FOUND {
-		log.Printf("Resource not found, probably have been deleted")
-		d.SetId("")
-		return nil
-	}
+		resp, err := associationClient.DescribeRouteTable(req)
 
-	if resp.Error.Code != REQUEST_COMPLETED {
-		return fmt.Errorf("[ERROR] resourceRouteTableAssociationRead failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
-	}
+		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
 
-	if err := d.Set("subnet_id", resp.Result.RouteTable.SubnetIds); err != nil {
-		return fmt.Errorf("[ERROR] Failed in resourceRouteTableAssociationRead,reasons: %s", err.Error())
-	}
+			if err := d.Set("subnet_id", resp.Result.RouteTable.SubnetIds); err != nil {
+				return resource.NonRetryableError(formatArraySetErrorMessage(err))
+			}
+			return nil
+		}
 
-	return nil
+		if resp.Error.Code == RESOURCE_NOT_FOUND {
+			d.SetId("")
+			return nil
+		}
+
+		if connectionError(err) {
+			return resource.RetryableError(formatConnectionErrorMessage())
+		} else {
+			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
+		}
+	})
 }
 
 func resourceRouteTableAssociationUpdate(d *schema.ResourceData, m interface{}) error {
@@ -104,35 +96,23 @@ func resourceRouteTableAssociationUpdate(d *schema.ResourceData, m interface{}) 
 		detachList := typeSetToStringArray(p.Difference(i))
 		attachList := typeSetToStringArray(c.Difference(i))
 
-		if result := performSubnetDetach(d, m, detachList) && performSubnetAttach(d, m, attachList); result == false {
-			return fmt.Errorf("[ERROR] resourceRouteTableAssociationUpdate failed")
+		if err := performSubnetDetach(d, m, detachList); err != nil && len(detachList) != 0 {
+			return err
 		}
-
-		d.Set("subnet_id", cInterface)
+		if err := performSubnetAttach(d, m, attachList); err != nil && len(attachList) != 0 {
+			return err
+		}
 	}
 
-	return resourceRouteTableAssociationRead(d, m)
+	return nil
 }
 
 func resourceRouteTableAssociationDelete(d *schema.ResourceData, meta interface{}) error {
 
-	config := meta.(*JDCloudConfig)
-	disassociationClient := client.NewVpcClient(config.Credential)
-
 	subnetIds := typeSetToStringArray(d.Get("subnet_id").(*schema.Set))
-	routeTableId := d.Get("route_table_id").(string)
 
-	for _, item := range subnetIds {
-		req := apis.NewDisassociateRouteTableRequest(config.Region, routeTableId, item)
-		resp, err := disassociationClient.DisassociateRouteTable(req)
-
-		if err != nil {
-			return fmt.Errorf("[ERROR] resourceRouteTableAssociationDelete failed %s ", err.Error())
-		}
-
-		if resp.Error.Code != REQUEST_COMPLETED {
-			return fmt.Errorf("[ERROR] resourceRouteTableAssociationDelete failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
-		}
+	if err := performSubnetDetach(d, meta, subnetIds); err != nil {
+		return err
 	}
 
 	d.SetId("")
@@ -148,24 +128,30 @@ func typeSetToStringArray(set *schema.Set) []string {
 	return ret
 }
 
-func performSubnetAttach(d *schema.ResourceData, meta interface{}, attachList []string) bool {
+func performSubnetAttach(d *schema.ResourceData, meta interface{}, attachList []string) error {
 
-	performSuccess := true
 	config := meta.(*JDCloudConfig)
 	disassociationClient := client.NewVpcClient(config.Credential)
-
 	req := apis.NewAssociateRouteTableRequest(config.Region, d.Get("route_table_id").(string), attachList)
-	resp, err := disassociationClient.AssociateRouteTable(req)
-	if err != nil || resp.Error.Code != REQUEST_COMPLETED {
-		performSuccess = false
-	}
 
-	return len(attachList) == RESOURCE_EMPTY || performSuccess
+	return resource.Retry(time.Minute, func() *resource.RetryError {
+
+		resp, err := disassociationClient.AssociateRouteTable(req)
+
+		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
+			return nil
+		}
+
+		if connectionError(err) {
+			return resource.RetryableError(formatConnectionErrorMessage())
+		} else {
+			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
+		}
+	})
 }
 
-func performSubnetDetach(d *schema.ResourceData, meta interface{}, detachList []string) bool {
+func performSubnetDetach(d *schema.ResourceData, meta interface{}, detachList []string) error {
 
-	performSuccess := true
 	config := meta.(*JDCloudConfig)
 	disassociationClient := client.NewVpcClient(config.Credential)
 	routeTableId := d.Get("route_table_id").(string)
@@ -173,11 +159,26 @@ func performSubnetDetach(d *schema.ResourceData, meta interface{}, detachList []
 	for _, id := range detachList {
 
 		req := apis.NewDisassociateRouteTableRequest(config.Region, routeTableId, id)
-		resp, err := disassociationClient.DisassociateRouteTable(req)
-		if err != nil || resp.Error.Code != REQUEST_COMPLETED {
-			performSuccess = false
+
+		err := resource.Retry(time.Minute, func() *resource.RetryError {
+
+			resp, err := disassociationClient.DisassociateRouteTable(req)
+			if err == nil && resp.Error.Code == REQUEST_COMPLETED {
+				return nil
+			}
+			if connectionError(err) {
+				return resource.RetryableError(formatConnectionErrorMessage())
+			} else {
+				return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
+			}
+
+		})
+
+		if err != nil {
+			return err
 		}
+
 	}
 
-	return performSuccess
+	return nil
 }

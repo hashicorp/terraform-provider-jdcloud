@@ -101,17 +101,16 @@ func formatConnectionErrorMessage() error {
 	pc, _, _, _ := runtime.Caller(1)
 	nameFull := runtime.FuncForPC(pc).Name()
 	nameEnd := filepath.Base(nameFull)
-	funcName:= strings.Split(nameEnd,".")[1]
+	funcName := strings.Split(nameEnd, ".")[1]
 
 	template := ` [ERROR] Operation failed. Details are:
 
      + FunctionName :    %c[1;40;37m%s%c[0m 
      + Message:          Connection failed due to bad network condition`
 
-	errorMessage := fmt.Sprintf(template,0x1B,funcName,0x1B)
+	errorMessage := fmt.Sprintf(template, 0x1B, funcName, 0x1B)
 	return fmt.Errorf(errorMessage)
 }
-
 
 /*
 	When request failed due to other reasons ,
@@ -119,12 +118,12 @@ func formatConnectionErrorMessage() error {
 	We use this function to generate a error with formatted error message
 */
 
-func formatErrorMessage( respError core.ErrorResponse, e error) error {
+func formatErrorMessage(respError core.ErrorResponse, e error) error {
 
 	pc, _, _, _ := runtime.Caller(1)
 	nameFull := runtime.FuncForPC(pc).Name()
 	nameEnd := filepath.Base(nameFull)
-	funcName:= strings.Split(nameEnd,".")[1]
+	funcName := strings.Split(nameEnd, ".")[1]
 
 	template := ` [ERROR] Operation failed. Details are:
 
@@ -134,6 +133,27 @@ func formatErrorMessage( respError core.ErrorResponse, e error) error {
      + Status:           %s
      + Message:          %s`
 
-	errorMessage := fmt.Sprintf(template,0x1B,funcName,0x1B,e,respError.Code,respError.Status,respError.Message)
+	errorMessage := fmt.Sprintf(template, 0x1B, funcName, 0x1B, e, respError.Code, respError.Status, respError.Message)
+	return fmt.Errorf(errorMessage)
+}
+
+/*
+	This function is used to format error message in setting
+	in TypeList or *Schema.Set()
+*/
+
+func formatArraySetErrorMessage(e error) error {
+
+	pc, _, _, _ := runtime.Caller(1)
+	nameFull := runtime.FuncForPC(pc).Name()
+	nameEnd := filepath.Base(nameFull)
+	funcName := strings.Split(nameEnd, ".")[1]
+
+	template := ` [ERROR] Operation failed in setting TypeList/Schema.Set. Details are:
+
+     + FunctionName :    %c[1;40;37m%s%c[0m 
+     + ErrorMessage :     %#v`
+
+	errorMessage := fmt.Sprintf(template, 0x1B, funcName, 0x1B, e)
 	return fmt.Errorf(errorMessage)
 }
