@@ -3,9 +3,13 @@ package jdcloud
 import (
 	"fmt"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/jdcloud-api/jdcloud-sdk-go/core"
 	vpcApis "github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/apis"
 	vpcClient "github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/client"
 	"github.com/satori/go.uuid"
+	"path/filepath"
+	"regexp"
+	"runtime"
 	"strings"
 )
 
@@ -70,4 +74,66 @@ func verifyVPC(d *schema.ResourceData, m interface{}, vpc, subnet string) error 
 		return fmt.Errorf("[ERROR] verifyVPC Failed, vpc ID does not match")
 	}
 	return nil
+}
+
+/*
+	This function parse the error message to Check
+	If error is lead by bad network condition
+*/
+
+func connectionError(e error) bool {
+
+	if e == nil {
+		return false
+	}
+	ok, _ := regexp.MatchString(CONNECT_FAILED, e.Error())
+	return ok
+}
+
+/*
+	When request failed due to bad condition
+	We use this function to generate a error
+	With a formatted error Message
+*/
+
+func formatConnectionErrorMessage() error {
+
+	pc, _, _, _ := runtime.Caller(1)
+	nameFull := runtime.FuncForPC(pc).Name()
+	nameEnd := filepath.Base(nameFull)
+	funcName:= strings.Split(nameEnd,".")[1]
+
+	template := ` [ERROR] Operation failed. Details are:
+
+     + FunctionName :    %c[1;40;37m%s%c[0m 
+     + Message:          Connection failed due to bad network condition`
+
+	errorMessage := fmt.Sprintf(template,0x1B,funcName,0x1B)
+	return fmt.Errorf(errorMessage)
+}
+
+
+/*
+	When request failed due to other reasons ,
+	For example : Resource name conflict, Incorrect parameters, etc.
+	We use this function to generate a error with formatted error message
+*/
+
+func formatErrorMessage( respError core.ErrorResponse, e error) error {
+
+	pc, _, _, _ := runtime.Caller(1)
+	nameFull := runtime.FuncForPC(pc).Name()
+	nameEnd := filepath.Base(nameFull)
+	funcName:= strings.Split(nameEnd,".")[1]
+
+	template := ` [ERROR] Operation failed. Details are:
+
+     + FunctionName :    %c[1;40;37m%s%c[0m 
+     + RequestError:     %#v 
+     + Code:             %d 
+     + Status:           %s
+     + Message:          %s`
+
+	errorMessage := fmt.Sprintf(template,0x1B,funcName,0x1B,e,respError.Code,respError.Status,respError.Message)
+	return fmt.Errorf(errorMessage)
 }

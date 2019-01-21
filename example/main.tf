@@ -122,7 +122,7 @@ resource "jdcloud_network_security_group_rules" "sg-r-1" {
     },
     {
       address_prefix = "0.0.0.0/0"
-      direction = "0"
+      direction = "1"
       from_port = "8000"
       protocol = "300"
       to_port = "8900"

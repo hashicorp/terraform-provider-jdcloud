@@ -34,7 +34,7 @@ func copyOSS() {
 		result, err := s.GetBucketAcl(&s3.GetBucketAclInput{Bucket: bucket.Name})
 		privilege := "private"
 
-		if len(result.Grants)!=0 && err==nil {
+		if len(result.Grants) != 0 && err == nil {
 			privilege = privMap[*result.Grants[0].Permission]
 		}
 
