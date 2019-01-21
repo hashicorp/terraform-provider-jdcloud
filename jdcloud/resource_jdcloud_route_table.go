@@ -1,7 +1,6 @@
 package jdcloud
 
 import (
-	"fmt"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/apis"
@@ -97,27 +96,41 @@ func resourceRouteTableRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceRouteTableUpdate(d *schema.ResourceData, meta interface{}) error {
+	d.Partial(true)
 
 	config := meta.(*JDCloudConfig)
-	routeClient := client.NewVpcClient(config.Credential)
+	conn := client.NewVpcClient(config.Credential)
 
 	if d.HasChange("route_table_name") || d.HasChange("description") {
-		req := apis.NewModifyRouteTableRequestWithAllParams(
-			config.Region,
-			d.Id(),
-			GetStringAddr(d, "route_table_name"),
-			GetStringAddr(d, "description"),
-		)
-		resp, err := routeClient.ModifyRouteTable(req)
+
+		req := apis.NewModifyRouteTableRequestWithAllParams(config.Region,
+															d.Id(),
+															GetStringAddr(d, "route_table_name"),
+															GetStringAddr(d, "description"), )
+
+		err := resource.Retry(time.Minute, func() *resource.RetryError {
+
+			resp, err := conn.ModifyRouteTable(req)
+
+			if err == nil && resp.Error.Code == REQUEST_COMPLETED {
+				return nil
+			}
+
+			if connectionError(err) {
+				return resource.RetryableError(formatConnectionErrorMessage())
+			} else {
+				return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
+			}
+		})
+
 		if err != nil {
-			return fmt.Errorf("[ERROR] resourceRouteTableUpdate failed %s ", err.Error())
+			return err
 		}
 
-		if resp.Error.Code != REQUEST_COMPLETED {
-			return fmt.Errorf("[ERROR] resourceRouteTableUpdate failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
-		}
+		d.SetPartial("route_table_name")
+		d.SetPartial("description")
 	}
-
+	d.Partial(false)
 	return nil
 }
 

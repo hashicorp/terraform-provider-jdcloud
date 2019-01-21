@@ -129,7 +129,7 @@ func typeSetToStringArray(set *schema.Set) []string {
 }
 
 func performSubnetAttach(d *schema.ResourceData, meta interface{}, attachList []string) error {
-
+	d.Partial(true)
 	config := meta.(*JDCloudConfig)
 	disassociationClient := client.NewVpcClient(config.Credential)
 	req := apis.NewAssociateRouteTableRequest(config.Region, d.Get("route_table_id").(string), attachList)
@@ -139,6 +139,8 @@ func performSubnetAttach(d *schema.ResourceData, meta interface{}, attachList []
 		resp, err := disassociationClient.AssociateRouteTable(req)
 
 		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
+			d.SetPartial("subnet_id")
+			d.Partial(false)
 			return nil
 		}
 
