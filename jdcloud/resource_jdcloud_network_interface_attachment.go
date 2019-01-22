@@ -132,7 +132,7 @@ func resourceJDCloudNetworkInterfaceAttachDelete(d *schema.ResourceData, meta in
 	reqDes := vpcApis.NewDescribeNetworkInterfaceRequest(config.Region, networkInterfaceId)
 	vpcClient := vpc.NewVpcClient(config.Credential)
 
-	return resource.Retry( 5*time.Minute , func() *resource.RetryError {
+	return resource.Retry(5*time.Minute, func() *resource.RetryError {
 
 		resp, err := vpcClient.DescribeNetworkInterface(reqDes)
 
@@ -141,7 +141,7 @@ func resourceJDCloudNetworkInterfaceAttachDelete(d *schema.ResourceData, meta in
 			return nil
 		}
 
-		if resp.Error.Code==RESOURCE_NOT_FOUND{
+		if resp.Error.Code == RESOURCE_NOT_FOUND {
 			log.Printf("Resource not found, probably have been deleted")
 			d.SetId("")
 			return nil

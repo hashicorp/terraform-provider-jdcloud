@@ -216,12 +216,19 @@ func waitForDiskAttaching(d *schema.ResourceData, meta interface{}, instanceId, 
 
 		found := false
 
-		for _, disk := range resp.Result.Instance.DataDisks {
-			if diskId == disk.CloudDisk.DiskId && disk.Status == expectedStatus {
-				found = true
-				break
+		// Immediately after the disk has been created, even though we've
+		// got the disk_id, doesn't mean we can query its detail
+		// Probably we have to wait for a few seconds ...
+		if resp.Error.Code == REQUEST_COMPLETED {
+
+			for _, disk := range resp.Result.Instance.DataDisks {
+				if diskId == disk.CloudDisk.DiskId && disk.Status == expectedStatus {
+					found = true
+					break
+				}
 			}
 		}
+
 		if err == nil && resp.Error.Code == REQUEST_COMPLETED && found {
 			d.Partial(false)
 			return nil
