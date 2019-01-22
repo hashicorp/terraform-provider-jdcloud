@@ -2,9 +2,11 @@ package jdcloud
 
 import (
 	"fmt"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/apis"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/client"
+	"time"
 )
 
 func resourceJDCloudSubnet() *schema.Resource {
@@ -46,7 +48,7 @@ func resourceJDCloudSubnet() *schema.Resource {
 func resourceSubnetCreate(d *schema.ResourceData, m interface{}) error {
 
 	config := m.(*JDCloudConfig)
-	subnetClient := client.NewVpcClient(config.Credential)
+	conn := client.NewVpcClient(config.Credential)
 
 	req := apis.NewCreateSubnetRequest(config.Region,
 		d.Get("vpc_id").(string),
@@ -57,18 +59,21 @@ func resourceSubnetCreate(d *schema.ResourceData, m interface{}) error {
 		req.Description = GetStringAddr(d, "description")
 	}
 
-	resp, err := subnetClient.CreateSubnet(req)
+	return resource.Retry(20*time.Second, func() *resource.RetryError {
 
-	if err != nil {
-		return fmt.Errorf("[ERROR] resourceSubnetCreate failed %s ", err.Error())
-	}
+		resp, err := conn.CreateSubnet(req)
 
-	if resp.Error.Code != REQUEST_COMPLETED {
-		return fmt.Errorf("[ERROR] resourceSubnetCreate failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
-	}
+		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
+			d.SetId(resp.Result.SubnetId)
+			return nil
+		}
 
-	d.SetId(resp.Result.SubnetId)
-	return nil
+		if connectionError(err) {
+			return resource.RetryableError(formatConnectionErrorMessage())
+		} else {
+			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
+		}
+	})
 }
 
 func resourceSubnetRead(d *schema.ResourceData, m interface{}) error {

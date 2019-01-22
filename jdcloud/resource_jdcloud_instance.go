@@ -2,8 +2,8 @@ package jdcloud
 
 import "C"
 import (
-	"errors"
 	"fmt"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/jdcloud-api/jdcloud-sdk-go/core"
 	da "github.com/jdcloud-api/jdcloud-sdk-go/services/disk/apis"
@@ -58,43 +58,88 @@ func GetIntAddr(d *schema.ResourceData, key string) *int {
 }
 
 func QueryInstanceDetail(d *schema.ResourceData, m interface{}) (*apis.DescribeInstanceResponse, error) {
+
 	config := m.(*JDCloudConfig)
 	vmClient := client.NewVmClient(config.Credential)
 	req := apis.NewDescribeInstanceRequest(config.Region, d.Id())
-	resp, err := vmClient.DescribeInstance(req)
-	if resp.Error.Code == 404 {
-		resp.Result.Instance.Status = VM_DELETED
+	resp := new(apis.DescribeInstanceResponse)
+	err := fmt.Errorf("")
+
+	errRetry := resource.Retry(5*time.Minute, func() *resource.RetryError {
+
+		resp, err = vmClient.DescribeInstance(req)
+
+		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
+			return nil
+		}
+
+		if resp.Error.Code == 404 {
+			resp.Result.Instance.Status = VM_DELETED
+			return nil
+		}
+
+		if connectionError(err) {
+			return resource.RetryableError(formatConnectionErrorMessage())
+		} else {
+			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
+		}
+
+	})
+
+	if errRetry != nil {
+		return nil, errRetry
+	} else {
+		return resp, err
 	}
-	return resp, err
 }
 
 //----------------------------------------------------------------------------------- VM-RELATED
 
-func waitForInstance(d *schema.ResourceData, m interface{}, vmStatus string) error {
-	currentTime := int(time.Now().Unix())
+func waitForInstance(d *schema.ResourceData, m interface{}, expectedStatus string) error {
 
-	for {
-		if int(time.Now().Unix())-currentTime >= VM_TIMEOUT {
-			return errors.New("create vm instance timeout")
-		}
-		vmInstanceDetail, err := QueryInstanceDetail(d, m)
-		if err != nil {
-			return errors.New("query vm instance detail fail")
-		}
-		if vmInstanceDetail.Result.Instance.Status != vmStatus {
-			continue
+	config := m.(*JDCloudConfig)
+	vmClient := client.NewVmClient(config.Credential)
+	req := apis.NewDescribeInstanceRequest(config.Region, d.Id())
+
+	return resource.Retry(5*time.Minute, func() *resource.RetryError {
+
+		resp, err := vmClient.DescribeInstance(req)
+
+		if err == nil && resp.Error.Code == REQUEST_COMPLETED && resp.Result.Instance.Status == expectedStatus {
+			return nil
 		}
 
-		return nil
-	}
+		if expectedStatus == "" && resp.Result.Instance.Status == expectedStatus {
+			return nil
+		}
+
+		if connectionError(err) || resp.Result.Instance.Status != expectedStatus {
+			return resource.RetryableError(formatConnectionErrorMessage())
+		} else {
+			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
+		}
+	})
 }
 
-func StopVmInstance(d *schema.ResourceData, m interface{}) (*apis.StopInstanceResponse, error) {
+func StopVmInstance(d *schema.ResourceData, m interface{}) error {
 	config := m.(*JDCloudConfig)
 	vmClient := client.NewVmClient(config.Credential)
 	req := apis.NewStopInstanceRequest(config.Region, d.Id())
-	resp, err := vmClient.StopInstance(req)
-	return resp, err
+
+	return resource.Retry(5*time.Minute, func() *resource.RetryError {
+
+		resp, err := vmClient.StopInstance(req)
+
+		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
+			return nil
+		}
+
+		if connectionError(err) {
+			return resource.RetryableError(formatConnectionErrorMessage())
+		} else {
+			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
+		}
+	})
 }
 
 func StartVmInstance(d *schema.ResourceData, m interface{}) (*apis.StartInstanceResponse, error) {
@@ -207,33 +252,17 @@ func cloudDiskStructIntoMap(ss []vm.InstanceDiskAttachment) []map[string]interfa
 
 func waitCloudDiskId(d *schema.ResourceData, m interface{}) error {
 
-	currentTime := int(time.Now().Unix())
-	diskAmount := len(typeSetToDiskList(d.Get("data_disk").(*schema.Set)))
-	TOTAL_TIME := diskAmount * DISK_TIMEOUT
+	resp, err := QueryInstanceDetail(d, m)
 
-	for {
-
-		vmInstanceDetail, err := QueryInstanceDetail(d, m)
-
-		if len(vmInstanceDetail.Result.Instance.DataDisks) == diskAmount {
-
-			if errSet := d.Set("data_disk", cloudDiskStructIntoMap(vmInstanceDetail.Result.Instance.DataDisks)); err != nil {
-				return fmt.Errorf("[ERROR] Failed in setting waitCloudDiskId, reasons:%s", errSet.Error())
-			} else {
-				return nil
-			}
-		}
-
-		if int(time.Now().Unix())-currentTime > TOTAL_TIME {
-			return fmt.Errorf("[ERROR] waitCloudDiskId failed, timeout")
-		}
-
-		if len(vmInstanceDetail.Result.Instance.DataDisks) != diskAmount {
-			time.Sleep(3 * time.Second)
-			continue
-		}
-
+	if err != nil || resp.Error.Code != REQUEST_COMPLETED {
+		return err
 	}
+
+	if errSet := d.Set("data_disk", cloudDiskStructIntoMap(resp.Result.Instance.DataDisks)); err != nil {
+		return errSet
+	}
+
+	return nil
 }
 
 func performCloudDiskDetach(d *schema.ResourceData, m interface{}, set *schema.Set) error {
@@ -406,6 +435,7 @@ func resourceJDCloudInstance() *schema.Resource {
 			"az": {
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 			"instance_name": {
 				Type:     schema.TypeString,
@@ -414,14 +444,17 @@ func resourceJDCloudInstance() *schema.Resource {
 			"instance_type": {
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 			"image_id": {
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 			"subnet_id": {
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 			"description": {
 				Type:     schema.TypeString,
@@ -429,67 +462,81 @@ func resourceJDCloudInstance() *schema.Resource {
 			},
 
 			"password": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:      schema.TypeString,
+				Optional:  true,
+				Sensitive: true,
 			},
 
 			"key_names": { //Only one key pair name is supported
 				Type:     schema.TypeString,
 				Optional: true,
+				ForceNew: true,
 			},
 
 			"primary_ip": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
+				ForceNew: true,
 			},
 
 			"security_group_ids": {
 				Type:     schema.TypeSet,
 				Optional: true,
+				MinItems: 1,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
+				ForceNew: true,
 				MaxItems: MAX_SECURITY_GROUP_COUNT,
 			},
 
 			"network_interface_name": {
 				Type:     schema.TypeString,
 				Optional: true,
+				ForceNew: true,
 			},
 			"secondary_ips": {
 				Type:     schema.TypeSet,
 				Optional: true,
+				MinItems: 1,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
+				ForceNew: true,
 			},
 			"secondary_ip_count": {
 				Type:     schema.TypeInt,
 				Optional: true,
+				ForceNew: true,
 			},
 			"sanity_check": {
 				Type:     schema.TypeInt,
 				Optional: true,
+				ForceNew: true,
 			},
 			"elastic_ip_bandwidth_mbps": {
 				Type:     schema.TypeInt,
 				Optional: true,
+				ForceNew: true,
 			},
 			"elastic_ip_provider": {
 				Type:     schema.TypeString,
 				Optional: true,
+				ForceNew: true,
 			},
 
 			"system_disk": {
 				Type:     schema.TypeSet,
 				Optional: true,
+				MinItems: 1,
 				Elem:     diskSchema,
 				MaxItems: MAX_SYSDISK_COUNT,
 				ForceNew: true,
 			},
 			"data_disk": {
 				Type:     schema.TypeSet,
+				MinItems: 1,
 				Optional: true,
 				Elem:     diskSchema,
 			},
@@ -577,21 +624,29 @@ func resourceJDCloudInstanceCreate(d *schema.ResourceData, m interface{}) error 
 	req := apis.NewCreateInstancesRequest(config.Region, &spec)
 	req.SetMaxCount(MAX_VM_COUNT)
 
-	resp, err := vmClient.CreateInstances(req)
+	err := resource.Retry(5*time.Minute, func() *resource.RetryError {
 
+		resp, err := vmClient.CreateInstances(req)
+
+		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
+			d.SetId(resp.Result.InstanceIds[0])
+			return nil
+		}
+
+		if connectionError(err) {
+			return resource.RetryableError(formatConnectionErrorMessage())
+		} else {
+			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
+		}
+	})
 	if err != nil {
-		return fmt.Errorf("[ERROR] Failed in resourceJDCloudInstanceCreate,reasons are as follows: %s", err.Error())
+		return err
 	}
 
-	if resp.Error.Code != REQUEST_COMPLETED {
-		return fmt.Errorf("[ERROR] resourceJDCloudInstanceCreate failed  code:%d staus:%s message:%s", resp.Error.Code, resp.Error.Status, resp.Error.Message)
-	}
-
-	d.SetId(resp.Result.InstanceIds[0])
 	errCreating := waitForInstance(d, m, VM_RUNNING)
 	if errCreating != nil {
 		d.SetId("")
-		return fmt.Errorf("[ERROR] Failed in waitForInstance,reasons are as follows: %s", errCreating.Error())
+		return errCreating
 	}
 
 	d.SetPartial("az")
@@ -613,13 +668,12 @@ func resourceJDCloudInstanceCreate(d *schema.ResourceData, m interface{}) error 
 
 	if errDataDisk := waitCloudDiskId(d, m); errDataDisk != nil {
 		d.SetId("")
-		return fmt.Errorf("[ERROR] Failed in waitCloudDiskId,reasons are as follows: %s", errDataDisk.Error())
+		return errDataDisk
 	}
 
 	d.SetPartial("data_disk")
-
 	d.Partial(false)
-	return waitCloudDiskId(d, m)
+	return nil
 }
 
 func resourceJDCloudInstanceRead(d *schema.ResourceData, m interface{}) error {
@@ -680,7 +734,7 @@ func resourceJDCloudInstanceUpdate(d *schema.ResourceData, m interface{}) error 
 
 	if d.HasChange("password") {
 
-		if _, err := StopVmInstance(d, m); err != nil {
+		if err := StopVmInstance(d, m); err != nil {
 			return fmt.Errorf("stop instance got error:%s", err)
 		}
 		req := apis.ModifyInstancePasswordRequest{
@@ -699,7 +753,7 @@ func resourceJDCloudInstanceUpdate(d *schema.ResourceData, m interface{}) error 
 		}
 
 		if vmInstanceDetail.Result.Instance.Status == VM_RUNNING {
-			if _, err := StopVmInstance(d, m); err != nil {
+			if err := StopVmInstance(d, m); err != nil {
 				return fmt.Errorf("stop instance fail: %s", err)
 			}
 		}
@@ -745,26 +799,38 @@ func resourceJDCloudInstanceUpdate(d *schema.ResourceData, m interface{}) error 
 func resourceJDCloudInstanceDelete(d *schema.ResourceData, m interface{}) error {
 	vmInstanceDetail, err := QueryInstanceDetail(d, m)
 	if err != nil {
-		return fmt.Errorf("query instance fail: %s", err)
+		return err
 	}
 
 	if vmInstanceDetail.Result.Instance.Status == VM_RUNNING {
-		if _, err := StopVmInstance(d, m); err != nil {
-			return fmt.Errorf("stop instance fail: %s", err)
+		if err := StopVmInstance(d, m); err != nil {
+			return err
 		}
 		if err := waitForInstance(d, m, VM_STOPPED); err != nil {
-			return fmt.Errorf("query stopped instance fail: %s", err)
+			return err
 		}
 	}
 
-	if _, err := DeleteVmInstance(d, m); err != nil {
-		return fmt.Errorf("delete instance fail: %s", err)
+	errDel := resource.Retry(5*time.Minute, func() *resource.RetryError {
+
+		resp, err := DeleteVmInstance(d, m)
+
+		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
+			return nil
+		}
+		if connectionError(err) {
+			return resource.RetryableError(formatConnectionErrorMessage())
+		} else {
+			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
+		}
+	})
+	if errDel != nil {
+		return errDel
 	}
 
 	if err := waitForInstance(d, m, VM_DELETED); err != nil {
-		return fmt.Errorf("query deleted instance fail: %s", err)
+		return err
 	}
-
 	d.SetId("")
 	return nil
 }

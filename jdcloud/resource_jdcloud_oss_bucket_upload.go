@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 func resourceJDCloudOssBucketUpload() *schema.Resource {
@@ -59,9 +60,6 @@ func resourceJDCloudOssBucketUploadCreate(d *schema.ResourceData, meta interface
 	if err != nil {
 		return fmt.Errorf("[ERROR] Failed to open file namely %s, Error message-%s", fileName, err)
 	}
-	if errFileClose := file.Close(); errFileClose != nil {
-		return fmt.Errorf("Here may have some problem since we cannot close this file")
-	}
 
 	uploader := getUploader(meta)
 	respUpload, errUpload := uploader.Upload(&s3manager.UploadInput{
@@ -69,6 +67,11 @@ func resourceJDCloudOssBucketUploadCreate(d *schema.ResourceData, meta interface
 		Key:    aws.String(filepath.Base(fileName)),
 		Body:   file,
 	})
+
+	if err := file.Close(); err != nil {
+		return err
+	}
+
 	if errUpload != nil || respUpload.Location == "" {
 		return fmt.Errorf("[ERROR] Failed to upload file: %s", errUpload.Error())
 	}
@@ -82,12 +85,14 @@ func resourceJDCloudOssBucketUploadRead(d *schema.ResourceData, meta interface{}
 
 	svc := getOssClient(meta)
 	bucketName := d.Get("bucket_name").(string)
-	fileName := d.Get("file_name").(string)
 	resp, err := svc.ListObjects(&s3.ListObjectsInput{Bucket: aws.String(bucketName)})
-
 	if err != nil {
 		return fmt.Errorf("[ERROR] Failed in resourceJDCloudOssBucketUploadRead,reasons:%s", err.Error())
 	}
+
+	fileNameFull := d.Get("file_name").(string)
+	fileNameParsed := strings.Split(fileNameFull, "/")
+	fileName := fileNameParsed[len(fileNameParsed)-1]
 
 	for _, item := range resp.Contents {
 		if fileName == *item.Key {

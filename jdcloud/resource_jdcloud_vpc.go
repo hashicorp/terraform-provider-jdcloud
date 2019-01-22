@@ -2,9 +2,11 @@ package jdcloud
 
 import (
 	"fmt"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/apis"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/client"
+	"time"
 )
 
 func resourceJDCloudVpc() *schema.Resource {
@@ -44,6 +46,7 @@ func resourceVpcCreate(d *schema.ResourceData, m interface{}) error {
 
 	config := m.(*JDCloudConfig)
 	req := apis.NewCreateVpcRequest(config.Region, d.Get("vpc_name").(string))
+	conn := client.NewVpcClient(config.Credential)
 
 	if _, ok := d.GetOk("cidr_block"); ok {
 		req.AddressPrefix = GetStringAddr(d, "cidr_block")
@@ -52,19 +55,21 @@ func resourceVpcCreate(d *schema.ResourceData, m interface{}) error {
 		req.Description = GetStringAddr(d, "description")
 	}
 
-	vpcClient := client.NewVpcClient(config.Credential)
-	resp, err := vpcClient.CreateVpc(req)
+	return resource.Retry(20*time.Second, func() *resource.RetryError {
 
-	if err != nil {
-		return fmt.Errorf("[ERROR] resourceVpcCreate failed %s ", err.Error())
-	}
+		resp, err := conn.CreateVpc(req)
 
-	if resp.Error.Code != REQUEST_COMPLETED {
-		return fmt.Errorf("[ERROR] resourceVpcCreate failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
-	}
+		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
+			d.SetId(resp.Result.VpcId)
+			return nil
+		}
 
-	d.SetId(resp.Result.VpcId)
-	return nil
+		if connectionError(err) {
+			return resource.RetryableError(formatConnectionErrorMessage())
+		} else {
+			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
+		}
+	})
 }
 
 func resourceVpcRead(d *schema.ResourceData, m interface{}) error {

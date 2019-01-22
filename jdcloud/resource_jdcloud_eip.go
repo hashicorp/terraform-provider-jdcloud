@@ -2,11 +2,13 @@ package jdcloud
 
 import (
 	"fmt"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/charge/models"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/apis"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/client"
 	vpcModels "github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/models"
+	"time"
 )
 
 func resourceJDCloudEIP() *schema.Resource {
@@ -46,23 +48,27 @@ func resourceJDCloudEIPCreate(d *schema.ResourceData, meta interface{}) error {
 		Provider:      d.Get("eip_provider").(string),
 		ChargeSpec:    &models.ChargeSpec{},
 	}
+	vpcClient := client.NewVpcClient(config.Credential)
 	req := apis.NewCreateElasticIpsRequest(config.Region, MAX_EIP_COUNT, &elasticIpSpec)
 	if _, ok := d.GetOk("elastic_ip_address"); ok {
 		req.ElasticIpAddress = GetStringAddr(d, "elastic_ip_address")
 	}
 
-	vpcClient := client.NewVpcClient(config.Credential)
-	resp, err := vpcClient.CreateElasticIps(req)
+	return resource.Retry(20*time.Second, func() *resource.RetryError {
 
-	if err != nil {
-		return fmt.Errorf("[ERROR] resourceJDCloudEIPCreate failed %s ", err.Error())
-	}
-	if resp.Error.Code != REQUEST_COMPLETED {
-		return fmt.Errorf("[ERROR] resourceJDCloudEIPCreate failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
-	}
+		resp, err := vpcClient.CreateElasticIps(req)
 
-	d.SetId(resp.Result.ElasticIpIds[0])
-	return nil
+		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
+			d.SetId(resp.Result.ElasticIpIds[0])
+			return nil
+		}
+
+		if connectionError(err) {
+			return resource.RetryableError(formatConnectionErrorMessage())
+		} else {
+			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
+		}
+	})
 }
 
 func resourceJDCloudEIPRead(d *schema.ResourceData, meta interface{}) error {
@@ -94,16 +100,26 @@ func resourceJDCloudEIPDelete(d *schema.ResourceData, meta interface{}) error {
 	rq := apis.NewDeleteElasticIpRequest(config.Region, elasticIpId)
 	vpcClient := client.NewVpcClient(config.Credential)
 
-	resp, err := vpcClient.DeleteElasticIp(rq)
-	if err != nil {
-		return fmt.Errorf("[ERROR] resourceJDCloudEIPDelete failed %s ", err.Error())
-	}
+	return resource.Retry(20*time.Second, func() *resource.RetryError {
 
-	if resp.Error.Code != REQUEST_COMPLETED {
-		return fmt.Errorf("[ERROR] resourceJDCloudEIPDelete ,reasons: %#v", resp.Error)
-	}
+		resp, err := vpcClient.DeleteElasticIp(rq)
 
-	return nil
+		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
+			d.SetId("")
+			return nil
+		}
+
+		if resp.Error.Code == RESOURCE_NOT_FOUND {
+			d.SetId("")
+			return nil
+		}
+
+		if connectionError(err) {
+			return resource.RetryableError(formatConnectionErrorMessage())
+		} else {
+			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
+		}
+	})
 }
 
 /*

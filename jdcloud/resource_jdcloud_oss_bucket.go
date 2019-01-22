@@ -28,6 +28,7 @@ func resourceJDCloudOssBucket() *schema.Resource {
 			"bucket_name": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 			"acl": &schema.Schema{
 				Type:     schema.TypeString,
@@ -37,6 +38,7 @@ func resourceJDCloudOssBucket() *schema.Resource {
 			"grant_full_control": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				ForceNew: true,
 			},
 		},
 	}

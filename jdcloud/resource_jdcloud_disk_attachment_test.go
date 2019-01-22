@@ -75,11 +75,11 @@ func testAccIfDiskAttachmentExists(resourceName string, resourceId, diskId *stri
 func testAccDiskAttachmentDestroy(resourceId *string, diskId *string) resource.TestCheckFunc {
 
 	return func(stateInfo *terraform.State) error {
-
 		config := testAccProvider.Meta().(*JDCloudConfig)
 		vmClient := client.NewVmClient(config.Credential)
 
 		req := apis.NewDescribeInstanceRequest(config.Region, *resourceId)
+
 		resp, err := vmClient.DescribeInstance(req)
 
 		if err != nil {

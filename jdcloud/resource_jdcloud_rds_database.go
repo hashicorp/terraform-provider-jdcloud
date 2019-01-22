@@ -2,6 +2,7 @@ package jdcloud
 
 import (
 	"fmt"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/rds/apis"
 	rds "github.com/jdcloud-api/jdcloud-sdk-go/services/rds/apis"
@@ -10,26 +11,33 @@ import (
 	"time"
 )
 
+/*
+	By modifying any attributes in database
+	may lead to an rebuilding and data loss
+*/
+
 func resourceJDCloudRDSDatabase() *schema.Resource {
 
 	return &schema.Resource{
 		Create: resourceJDCloudRDSDatabaseCreate,
 		Read:   resourceJDCloudRDSDatabaseRead,
-		Update: resourceJDCloudRDSDatabaseUpdate,
 		Delete: resourceJDCloudRDSDatabaseDelete,
 
 		Schema: map[string]*schema.Schema{
 			"instance_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 			"db_name": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 			"character_set": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 		},
 	}
@@ -41,64 +49,53 @@ func resourceJDCloudRDSDatabaseCreate(d *schema.ResourceData, meta interface{}) 
 	rdsClient := client.NewRdsClient(config.Credential)
 
 	req := apis.NewCreateDatabaseRequest(config.Region, d.Get("instance_id").(string), d.Get("db_name").(string), d.Get("character_set").(string))
-	resp, err := rdsClient.CreateDatabase(req)
 
-	if err != nil {
-		return fmt.Errorf("[ERROR] resourceJDCloudRDSDatabaseCreate failed %s ", err.Error())
-	}
+	return resource.Retry(time.Minute, func() *resource.RetryError {
 
-	if resp.Error.Code == RESOURCE_NOT_FOUND {
-		d.SetId("")
-		return nil
-	}
+		resp, err := rdsClient.CreateDatabase(req)
 
-	if resp.Error.Code != REQUEST_COMPLETED {
-		return fmt.Errorf("[ERROR] resourceJDCloudRDSDatabaseCreate failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
-	}
-
-	d.SetId(resp.RequestID)
-	return nil
-}
-
-func resourceJDCloudRDSDatabaseRead(d *schema.ResourceData, meta interface{}) error {
-
-	resp, err := keepReading(d.Get("instance_id").(string), meta)
-
-	if err != nil {
-		return fmt.Errorf("[ERROR] resourceJDCloudRDSDatabaseRead failed %s ", err.Error())
-	}
-
-	if resp.Error.Code == RESOURCE_NOT_FOUND {
-		d.SetId("")
-		return nil
-	}
-
-	if resp.Error.Code != REQUEST_COMPLETED {
-		return fmt.Errorf("[ERROR] resourceJDCloudRDSDatabaseRead failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
-	}
-
-	for _, db := range resp.Result.Databases {
-		if d.Get("db_name").(string) == db.DbName {
+		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
+			d.SetId(resp.RequestID)
 			return nil
 		}
-	}
 
-	d.SetId("")
-	return nil
+		if connectionError(err) {
+			return resource.RetryableError(formatConnectionErrorMessage())
+		} else {
+			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
+		}
+	})
+}
+
+func resourceJDCloudRDSDatabaseRead(d *schema.ResourceData, m interface{}) error {
+
+	config := m.(*JDCloudConfig)
+	rdsClient := client.NewRdsClient(config.Credential)
+	req := apis.NewDescribeDatabasesRequest(config.Region, d.Get("instance_id").(string))
+
+	return resource.Retry(time.Minute, func() *resource.RetryError {
+
+		resp, err := rdsClient.DescribeDatabases(req)
+
+		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
+			d.SetId(resp.RequestID)
+			return nil
+		}
+
+		if resp.Error.Code == RESOURCE_NOT_FOUND {
+			d.SetId("")
+			return nil
+		}
+
+		if connectionError(err) {
+			return resource.RetryableError(formatConnectionErrorMessage())
+		} else {
+			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
+		}
+	})
 }
 
 func resourceJDCloudRDSDatabaseUpdate(d *schema.ResourceData, meta interface{}) error {
-
-	if d.HasChange("instance_id") || d.HasChange("db_name") || d.HasChange("character_set") {
-		originId, _ := d.GetChange("instance_id")
-		originDb, _ := d.GetChange("db_name")
-		originSet, _ := d.GetChange("character_set")
-		d.Set("instance_id", originId)
-		d.Set("db_name", originDb)
-		d.Set("character_set", originSet)
-		return fmt.Errorf("[ERROR] resourceJDCloudRDSDatabaseUpdate failed,Attributes cannot be modified")
-	}
-
 	return nil
 }
 
@@ -108,17 +105,27 @@ func resourceJDCloudRDSDatabaseDelete(d *schema.ResourceData, meta interface{}) 
 	rdsClient := client.NewRdsClient(config.Credential)
 
 	req := apis.NewDeleteDatabaseRequest(config.Region, d.Get("instance_id").(string), d.Get("db_name").(string))
-	resp, err := rdsClient.DeleteDatabase(req)
 
-	if err != nil {
-		return fmt.Errorf("[ERROR] resourceJDCloudRDSDatabaseDelete failed %s ", err.Error())
-	}
+	return resource.Retry(time.Minute, func() *resource.RetryError {
 
-	if resp.Error.Code != REQUEST_COMPLETED {
-		return fmt.Errorf("[ERROR] resourceJDCloudRDSDatabaseDelete failed  code:%d staus:%s message:%s ,result:%#v", resp.Error.Code, resp.Error.Status, resp.Error.Message, resp.Result)
-	}
+		resp, err := rdsClient.DeleteDatabase(req)
 
-	return nil
+		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
+			d.SetId(resp.RequestID)
+			return nil
+		}
+
+		if resp.Error.Code == RESOURCE_NOT_FOUND {
+			d.SetId("")
+			return nil
+		}
+
+		if connectionError(err) {
+			return resource.RetryableError(formatConnectionErrorMessage())
+		} else {
+			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
+		}
+	})
 }
 
 // Reading Database often leads to connection error, this function will reconnect for at most 3 times

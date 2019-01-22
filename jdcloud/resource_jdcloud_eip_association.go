@@ -2,9 +2,11 @@ package jdcloud
 
 import (
 	"fmt"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vm/apis"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vm/client"
+	"time"
 )
 
 func resourceJDCloudAssociateElasticIp() *schema.Resource {
@@ -38,18 +40,21 @@ func resourceAssociateElasticIpCreate(d *schema.ResourceData, meta interface{}) 
 
 	vmClient := client.NewVmClient(config.Credential)
 	rq := apis.NewAssociateElasticIpRequest(config.Region, instanceID, elasticIpId)
-	resp, err := vmClient.AssociateElasticIp(rq)
+	return resource.Retry(time.Minute, func() *resource.RetryError {
 
-	if err != nil {
-		return fmt.Errorf("[ERROR] resourceAssociateElasticIpCreate failed %s ", err.Error())
-	}
-	if resp.Error.Code != REQUEST_COMPLETED {
-		return fmt.Errorf("[ERROR] resourceAssociateElasticIpCreate code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
-	}
+		resp, err := vmClient.AssociateElasticIp(rq)
 
-	d.SetId(resp.RequestID)
+		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
+			d.SetId(resp.RequestID)
+			return nil
+		}
 
-	return nil
+		if connectionError(err) {
+			return resource.RetryableError(formatConnectionErrorMessage())
+		} else {
+			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
+		}
+	})
 }
 func resourceAssociateElasticIpRead(d *schema.ResourceData, meta interface{}) error {
 
@@ -77,16 +82,21 @@ func resourceAssociateElasticIpDelete(d *schema.ResourceData, meta interface{}) 
 	instanceID := d.Get("instance_id").(string)
 	elasticIpId := d.Get("elastic_ip_id").(string)
 	rq := apis.NewDisassociateElasticIpRequest(config.Region, instanceID, elasticIpId)
-
 	vmClient := client.NewVmClient(config.Credential)
-	resp, err := vmClient.DisassociateElasticIp(rq)
 
-	if err != nil {
-		return fmt.Errorf("[DEBUG] resourceAssociateElasticIpDelete failed %s ", err.Error())
-	}
-	if resp.Error.Code != REQUEST_COMPLETED {
-		return fmt.Errorf("[DEBUG] resourceAssociateElasticIpDelete  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
-	}
+	return resource.Retry(time.Minute, func() *resource.RetryError {
 
-	return nil
+		resp, err := vmClient.DisassociateElasticIp(rq)
+
+		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
+			d.SetId("")
+			return nil
+		}
+
+		if connectionError(err) {
+			return resource.RetryableError(formatConnectionErrorMessage())
+		} else {
+			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
+		}
+	})
 }

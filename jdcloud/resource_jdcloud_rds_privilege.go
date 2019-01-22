@@ -2,11 +2,12 @@ package jdcloud
 
 import (
 	"fmt"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/rds/apis"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/rds/client"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/rds/models"
-	"log"
+	"time"
 )
 
 func typeSetToAccountStructList(set *schema.Set) []models.AccountPrivilege {
@@ -39,15 +40,20 @@ func performDetachDB(d *schema.ResourceData, m interface{}, list []string) error
 	config := m.(*JDCloudConfig)
 	rdsClient := client.NewRdsClient(config.Credential)
 	req := apis.NewRevokePrivilegeRequest(config.Region, d.Get("instance_id").(string), d.Get("username").(string), list)
-	resp, err := rdsClient.RevokePrivilege(req)
+	return resource.Retry(time.Minute, func() *resource.RetryError {
 
-	if err != nil {
-		return nil
-	}
-	if resp.Error.Code != REQUEST_COMPLETED {
-		return fmt.Errorf("[ERROR] performDetachDB failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
-	}
-	return nil
+		resp, err := rdsClient.RevokePrivilege(req)
+
+		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
+			return nil
+		}
+
+		if connectionError(err) {
+			return resource.RetryableError(formatConnectionErrorMessage())
+		} else {
+			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
+		}
+	})
 }
 
 func performAttachDB(d *schema.ResourceData, m interface{}, attachSet *schema.Set) error {
@@ -56,16 +62,21 @@ func performAttachDB(d *schema.ResourceData, m interface{}, attachSet *schema.Se
 	rdsClient := client.NewRdsClient(config.Credential)
 
 	req := apis.NewGrantPrivilegeRequest(config.Region, d.Get("instance_id").(string), d.Get("username").(string), typeSetToAccountStructList(attachSet))
-	resp, err := rdsClient.GrantPrivilege(req)
 
-	if err != nil {
-		return nil
-	}
-	if resp.Error.Code != REQUEST_COMPLETED {
-		return fmt.Errorf("[ERROR] performAttachDB failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
-	}
+	return resource.Retry(time.Minute, func() *resource.RetryError {
 
-	return nil
+		resp, err := rdsClient.GrantPrivilege(req)
+
+		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
+			return nil
+		}
+
+		if connectionError(err) {
+			return resource.RetryableError(formatConnectionErrorMessage())
+		} else {
+			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
+		}
+	})
 }
 
 func resourceJDCloudRDSPrivilege() *schema.Resource {
@@ -104,6 +115,7 @@ func resourceJDCloudRDSPrivilege() *schema.Resource {
 				Type:     schema.TypeSet,
 				Required: true,
 				Elem:     privilegeSchema,
+				MinItems: 1,
 			},
 		},
 	}
@@ -121,12 +133,9 @@ func resourceJDCloudRDSPrivilegeCreate(d *schema.ResourceData, m interface{}) er
 
 func resourceJDCloudRDSPrivilegeRead(d *schema.ResourceData, meta interface{}) error {
 
-	log.Printf("popo 1")
 	config := meta.(*JDCloudConfig)
 	rdsClient := client.NewRdsClient(config.Credential)
-	log.Printf("popo 2 %#v,%#v", d.Get("username").(string), d.Id())
 	req := apis.NewDescribeAccountsRequest(config.Region, d.Get("instance_id").(string))
-	log.Printf("popo 3")
 	resp, err := rdsClient.DescribeAccounts(req)
 	if err != nil {
 		return fmt.Errorf("[ERROR] resourceJDCloudRDSPrivilegeRead failed %s ", err.Error())
@@ -168,7 +177,7 @@ func resourceJDCloudRDSPrivilegeRead(d *schema.ResourceData, meta interface{}) e
 }
 
 func resourceJDCloudRDSPrivilegeUpdate(d *schema.ResourceData, m interface{}) error {
-
+	d.Partial(true)
 	if d.HasChange("account_privilege") {
 
 		pInterface, cInterface := d.GetChange("account_privilege")
@@ -176,17 +185,16 @@ func resourceJDCloudRDSPrivilegeUpdate(d *schema.ResourceData, m interface{}) er
 		c := cInterface.(*schema.Set)
 		i := p.Intersection(c)
 
-		if err := performDetachDB(d, m, dbNameList(p.Difference(i))); err != nil || len(dbNameList(p.Difference(i))) != 0 {
+		if err := performDetachDB(d, m, dbNameList(p.Difference(i))); err != nil && len(dbNameList(p.Difference(i))) != 0 {
 			return err
 		}
-		if err := performAttachDB(d, m, c.Difference(i)); err != nil || len(dbNameList(c.Difference(i))) != 0 {
+		if err := performAttachDB(d, m, c.Difference(i)); err != nil && len(dbNameList(c.Difference(i))) != 0 {
 			return err
 		}
 
-		d.Set("account_privilege", cInterface)
-		return performAttachDB(d, m, c.Difference(i))
+		d.SetPartial("account_privilege")
 	}
-
+	d.Partial(false)
 	return nil
 }
 
