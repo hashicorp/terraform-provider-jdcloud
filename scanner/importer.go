@@ -30,8 +30,12 @@ type JDCloudConfig struct {
 func tracefile(str_content string) {
 	fd, _ := os.OpenFile(filename, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
 	buf := []byte(str_content)
-	fd.Write(buf)
-	fd.Close()
+	if _, err := fd.Write(buf); err != nil {
+		return
+	}
+	if err := fd.Close(); err != nil {
+		return
+	}
 }
 
 func main() {

@@ -60,7 +60,6 @@ func resourceJDCloudOssBucketUploadCreate(d *schema.ResourceData, meta interface
 	if err != nil {
 		return fmt.Errorf("[ERROR] Failed to open file namely %s, Error message-%s", fileName, err)
 	}
-	defer file.Close()
 
 	uploader := getUploader(meta)
 	respUpload, errUpload := uploader.Upload(&s3manager.UploadInput{
@@ -68,6 +67,11 @@ func resourceJDCloudOssBucketUploadCreate(d *schema.ResourceData, meta interface
 		Key:    aws.String(filepath.Base(fileName)),
 		Body:   file,
 	})
+
+	if err := file.Close(); err != nil {
+		return err
+	}
+
 	if errUpload != nil || respUpload.Location == "" {
 		return fmt.Errorf("[ERROR] Failed to upload file: %s", errUpload.Error())
 	}

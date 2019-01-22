@@ -54,7 +54,6 @@ func performDetachDB(d *schema.ResourceData, m interface{}, list []string) error
 			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
 		}
 	})
-	return nil
 }
 
 func performAttachDB(d *schema.ResourceData, m interface{}, attachSet *schema.Set) error {
