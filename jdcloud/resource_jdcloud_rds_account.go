@@ -2,9 +2,11 @@ package jdcloud
 
 import (
 	"fmt"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/rds/apis"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/rds/client"
+	"time"
 )
 
 func resourceJDCloudRDSAccount() *schema.Resource {
@@ -40,18 +42,22 @@ func resourceJDCloudRDSAccountCreate(d *schema.ResourceData, meta interface{}) e
 	rdsClient := client.NewRdsClient(config.Credential)
 
 	req := apis.NewCreateAccountRequest(config.Region, d.Get("instance_id").(string), d.Get("username").(string), d.Get("password").(string))
-	resp, err := rdsClient.CreateAccount(req)
 
-	if err != nil {
-		return fmt.Errorf("[ERROR] resourceJDCloudRDSAccountCreate failed %s ", err.Error())
-	}
+	return resource.Retry(5*time.Minute, func() *resource.RetryError {
 
-	if resp.Error.Code != REQUEST_COMPLETED {
-		return fmt.Errorf("[ERROR] resourceJDCloudRDSAccountCreate failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
-	}
+		resp, err := rdsClient.CreateAccount(req)
 
-	d.SetId(resp.RequestID)
-	return nil
+		if err == nil {
+			d.SetId(resp.RequestID)
+			return nil
+		}
+
+		if connectionError(err) {
+			return resource.RetryableError(formatConnectionErrorMessage())
+		} else {
+			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
+		}
+	})
 }
 
 func resourceJDCloudRDSAccountRead(d *schema.ResourceData, meta interface{}) error {
@@ -89,17 +95,21 @@ func resourceJDCloudRDSAccountDelete(d *schema.ResourceData, meta interface{}) e
 
 	config := meta.(*JDCloudConfig)
 	rdsClient := client.NewRdsClient(config.Credential)
-
 	req := apis.NewDeleteAccountRequest(config.Region, d.Get("instance_id").(string), d.Get("username").(string))
-	resp, err := rdsClient.DeleteAccount(req)
 
-	if err != nil {
-		return fmt.Errorf("[ERROR] resourceJDCloudRDSAccountDelete failed %s ", err.Error())
-	}
+	return resource.Retry(5*time.Minute, func() *resource.RetryError {
 
-	if resp.Error.Code != REQUEST_COMPLETED {
-		return fmt.Errorf("[ERROR] resourceJDCloudRDSAccountDelete failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
-	}
+		resp, err := rdsClient.DeleteAccount(req)
 
-	return nil
+		if err == nil {
+			d.SetId(resp.RequestID)
+			return nil
+		}
+
+		if connectionError(err) {
+			return resource.RetryableError(formatConnectionErrorMessage())
+		} else {
+			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
+		}
+	})
 }

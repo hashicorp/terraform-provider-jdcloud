@@ -9,11 +9,14 @@ FEATURES:
 
 BUG FIXES:
 
+* Field `minimum_amount` is set for *Schema.TypeSet [GH-22]
 * Unable to set ACL when OSS bucket is created [GH-17]
 * No validation on `subnet_id` and `vpc_id` when creating RDS instance[GH-15]
 
 IMPROVEMENTS:
 
+* Retry function is introduced to avoid bad network condition issues[GH-22]
+* `Oss` and `OssUpload` test file has been impleted[GH-22]
 * Code format modified. Errors will be returned when trying to invoke `d.Set("List/Set",List/Set)` [GH-17]
 * `*schema.TypeList` -> `*schema.TypeSet` [GH-17]
 * GNUMakefile introduced [GH-17]

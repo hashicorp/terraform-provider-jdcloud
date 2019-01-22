@@ -43,10 +43,10 @@ func resourceRouteTableCreate(d *schema.ResourceData, m interface{}) error {
 	config := m.(*JDCloudConfig)
 	conn := client.NewVpcClient(config.Credential)
 
-	req := apis.NewCreateRouteTableRequestWithAllParams( config.Region,
-		                                                 d.Get("vpc_id").(string),
-		                                                 d.Get("route_table_name").(string),
-		                                                 GetStringAddr(d, "description"))
+	req := apis.NewCreateRouteTableRequestWithAllParams(config.Region,
+		d.Get("vpc_id").(string),
+		d.Get("route_table_name").(string),
+		GetStringAddr(d, "description"))
 
 	return resource.Retry(time.Minute, func() *resource.RetryError {
 
@@ -104,9 +104,9 @@ func resourceRouteTableUpdate(d *schema.ResourceData, meta interface{}) error {
 	if d.HasChange("route_table_name") || d.HasChange("description") {
 
 		req := apis.NewModifyRouteTableRequestWithAllParams(config.Region,
-															d.Id(),
-															GetStringAddr(d, "route_table_name"),
-															GetStringAddr(d, "description"), )
+			d.Id(),
+			GetStringAddr(d, "route_table_name"),
+			GetStringAddr(d, "description"))
 
 		err := resource.Retry(time.Minute, func() *resource.RetryError {
 

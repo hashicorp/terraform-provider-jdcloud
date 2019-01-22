@@ -120,7 +120,7 @@ func formatConnectionErrorMessage() error {
 
 func formatErrorMessage(respError core.ErrorResponse, e error) error {
 
-	pc, _, _, _ := runtime.Caller(1)
+	pc, _, line, _ := runtime.Caller(1)
 	nameFull := runtime.FuncForPC(pc).Name()
 	nameEnd := filepath.Base(nameFull)
 	funcName := strings.Split(nameEnd, ".")[1]
@@ -128,12 +128,13 @@ func formatErrorMessage(respError core.ErrorResponse, e error) error {
 	template := ` [ERROR] Operation failed. Details are:
 
      + FunctionName :    %c[1;40;37m%s%c[0m 
+     + LineNumber :      %d
      + RequestError:     %#v 
      + Code:             %d 
      + Status:           %s
      + Message:          %s`
 
-	errorMessage := fmt.Sprintf(template, 0x1B, funcName, 0x1B, e, respError.Code, respError.Status, respError.Message)
+	errorMessage := fmt.Sprintf(template, 0x1B, funcName, 0x1B, line, e, respError.Code, respError.Status, respError.Message)
 	return fmt.Errorf(errorMessage)
 }
 
@@ -156,4 +157,13 @@ func formatArraySetErrorMessage(e error) error {
 
 	errorMessage := fmt.Sprintf(template, 0x1B, funcName, 0x1B, e)
 	return fmt.Errorf(errorMessage)
+}
+
+/*
+	For some times, when attributes can not be modified,
+	we would like to ignore these modification
+*/
+
+func ignoreModify(k, old, new string, d *schema.ResourceData) bool {
+	return true
 }

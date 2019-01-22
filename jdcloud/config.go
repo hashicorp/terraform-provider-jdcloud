@@ -61,7 +61,7 @@ const (
 	VM_DELETING       = "deleting"
 	VM_TERMINATED     = "terminated"
 	VM_ERROR          = "error"
-	VM_DELETED        = "deleted" //actual,there is no such state
+	VM_DELETED        = ""
 
 	KEYPAIRS_PERM = 0600
 	KEYPAIRS_PRIV = 0400

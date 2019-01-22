@@ -2,6 +2,7 @@ package jdcloud
 
 import (
 	"fmt"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vm/apis"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vm/client"
@@ -53,17 +54,20 @@ func resourceJDCloudNetworkInterfaceAttachCreate(d *schema.ResourceData, meta in
 		req.AutoDelete = &autoDelete
 	}
 
-	resp, err := vmClient.AttachNetworkInterface(req)
+	return resource.Retry(time.Minute, func() *resource.RetryError {
 
-	if err != nil {
-		return fmt.Errorf("[ERROR] resourceJDCloudNetworkInterfaceAttachCreate failed %s ", err.Error())
-	}
+		resp, err := vmClient.AttachNetworkInterface(req)
 
-	if resp.Error.Code != REQUEST_COMPLETED {
-		return fmt.Errorf("[ERROR] resourceJDCloudNetworkInterfaceAttachCreate  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
-	}
-	d.SetId(resp.RequestID)
-	return nil
+		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
+			d.SetId(resp.RequestID)
+			return nil
+		}
+		if connectionError(err) {
+			return resource.RetryableError(formatConnectionErrorMessage())
+		} else {
+			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
+		}
+	})
 }
 
 func resourceJDCloudNetworkInterfaceAttachRead(d *schema.ResourceData, meta interface{}) error {
@@ -74,34 +78,84 @@ func resourceJDCloudNetworkInterfaceAttachRead(d *schema.ResourceData, meta inte
 	vpcClient := vpc.NewVpcClient(config.Credential)
 	req := vpcApis.NewDescribeNetworkInterfaceRequest(config.Region, networkInterfaceId)
 
-	resp, err := vpcClient.DescribeNetworkInterface(req)
+	return resource.Retry(time.Minute, func() *resource.RetryError {
 
-	if err != nil {
-		return fmt.Errorf("[ERROR] resourceJDCloudNetworkInterfaceAttachRead Failed, reasons:%s", err.Error())
-	}
+		resp, err := vpcClient.DescribeNetworkInterface(req)
 
-	if resp.Result.NetworkInterface.InstanceId == "" {
-		log.Printf("Resource not found, probably have been deleted")
-		d.SetId("")
-		return nil
-	}
+		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
+			d.SetId(resp.RequestID)
+			return nil
+		}
 
-	if resp.Error.Code != REQUEST_COMPLETED {
-		return fmt.Errorf("[ERROR] failed in resourceJDCloudNetworkAclRead code:%d message:%s", resp.Error.Code, resp.Error.Message)
-	}
+		if resp.Result.NetworkInterface.InstanceId == "" {
+			log.Printf("Resource not found, probably have been deleted")
+			d.SetId("")
+			return nil
+		}
 
-	return nil
+		if connectionError(err) {
+			return resource.RetryableError(formatConnectionErrorMessage())
+		} else {
+			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
+		}
+	})
 }
 
 // Both of their ids will be attached immediately after the request has been sent.
 func resourceJDCloudNetworkInterfaceAttachDelete(d *schema.ResourceData, meta interface{}) error {
 
-	if err := waitForCreatingComplete(d, meta); err != nil {
+	config := meta.(*JDCloudConfig)
+	instanceId := d.Get("instance_id").(string)
+	networkInterfaceId := d.Get("network_interface_id").(string)
+	vmClient := client.NewVmClient(config.Credential)
+	req := apis.NewDetachNetworkInterfaceRequest(config.Region, instanceId, networkInterfaceId)
+
+	err := resource.Retry(5*time.Minute, func() *resource.RetryError {
+
+		resp, err := vmClient.DetachNetworkInterface(req)
+
+		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
+			return nil
+		}
+
+		if connectionError(err) || resp.Error.Code == REQUEST_INVALID {
+			return resource.RetryableError(formatConnectionErrorMessage())
+		} else {
+			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
+		}
+	})
+
+	if err != nil {
 		return err
 	}
 
-	return waitForDetachComplete(d, meta)
+	reqDes := vpcApis.NewDescribeNetworkInterfaceRequest(config.Region, networkInterfaceId)
+	vpcClient := vpc.NewVpcClient(config.Credential)
+
+	return resource.Retry( 5*time.Minute , func() *resource.RetryError {
+
+		resp, err := vpcClient.DescribeNetworkInterface(reqDes)
+
+		if err == nil && resp.Error.Code == REQUEST_COMPLETED && resp.Result.NetworkInterface.InstanceId == "" {
+			d.SetId("")
+			return nil
+		}
+
+		if resp.Error.Code==RESOURCE_NOT_FOUND{
+			log.Printf("Resource not found, probably have been deleted")
+			d.SetId("")
+			return nil
+		}
+
+		if connectionError(err) || resp.Result.NetworkInterface.InstanceId != "" {
+			return resource.RetryableError(formatConnectionErrorMessage())
+		} else {
+			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
+		}
+	})
 }
+
+// Discarded - Expected to be removed in the future
 
 func waitForCreatingComplete(d *schema.ResourceData, meta interface{}) error {
 

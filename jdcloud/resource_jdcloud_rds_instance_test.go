@@ -19,7 +19,7 @@ resource "jdcloud_rds_instance" "tftest"{
   az = "cn-north-1a"
   vpc_id = "vpc-npvvk4wr5j"
   subnet_id = "subnet-j8jrei2981"
-  charge_mode = "postpaid_by_usage"
+  charge_mode = "postpaid_by_duration"
   charge_unit = "month"
   charge_duration = "1"
 }

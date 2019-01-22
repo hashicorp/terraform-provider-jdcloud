@@ -2,11 +2,13 @@ package jdcloud
 
 import (
 	"fmt"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/apis"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/client"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/models"
 	"log"
+	"time"
 )
 
 func resourceJDCloudNetworkInterface() *schema.Resource {
@@ -53,6 +55,7 @@ func resourceJDCloudNetworkInterface() *schema.Resource {
 			"secondary_ip_addresses": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
+				MinItems: 1,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
@@ -67,6 +70,7 @@ func resourceJDCloudNetworkInterface() *schema.Resource {
 				// Computed : Can be provided by computed
 				Optional: true,
 				Computed: true,
+				MinItems: 1,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
@@ -111,40 +115,47 @@ func resourceJDCloudNetworkInterfaceCreate(d *schema.ResourceData, meta interfac
 	}
 
 	sg := false
-	if _, sg = d.GetOk("security_groups"); sg {
+	if _, ok := d.GetOk("security_groups"); ok {
 		req.SecurityGroups = typeSetToStringArray(d.Get("security_groups").(*schema.Set))
 	}
 
 	vpcClient := client.NewVpcClient(config.Credential)
-	resp, err := vpcClient.CreateNetworkInterface(req)
+
+	err := resource.Retry(5*time.Minute, func() *resource.RetryError {
+
+		resp, err := vpcClient.CreateNetworkInterface(req)
+
+		if err == nil {
+			d.SetId(resp.Result.NetworkInterfaceId)
+			d.Set("network_interface_id", resp.Result.NetworkInterfaceId)
+
+			d.SetPartial("az")
+			d.SetPartial("subnet_id")
+			d.SetPartial("description")
+			d.SetPartial("sanity_check")
+			d.SetPartial("primary_ip_address")
+			d.SetPartial("secondary_ip_count")
+			d.SetPartial("network_interface_id")
+			d.SetPartial("network_interface_name")
+			d.SetPartial("secondary_ip_addresses")
+			return nil
+		}
+
+		if connectionError(err) {
+			return resource.RetryableError(formatConnectionErrorMessage())
+		} else {
+			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
+		}
+	})
 
 	if err != nil {
-		return fmt.Errorf("[ERROR] resourceJDCloudNetworkInterfaceCreate failed %s ", err.Error())
+		return err
 	}
-
-	if resp.Error.Code != REQUEST_COMPLETED {
-		return fmt.Errorf("[ERROR] resourceJDCloudNetworkInterfaceCreate failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
-	}
-
-	d.SetId(resp.Result.NetworkInterfaceId)
-	d.Set("network_interface_id", resp.Result.NetworkInterfaceId)
-
-	d.SetPartial("az")
-	d.SetPartial("subnet_id")
-	d.SetPartial("description")
-	d.SetPartial("sanity_check")
-	d.SetPartial("primary_ip_address")
-	d.SetPartial("secondary_ip_count")
-	d.SetPartial("network_interface_id")
-	d.SetPartial("network_interface_name")
-	d.SetPartial("secondary_ip_addresses")
 
 	// Default sgID is set and retrieved via "READ"
 	if sg {
-		errNIRead := resourceJDCloudNetworkInterfaceRead(d, meta)
-		if errNIRead != nil {
-			log.Printf("[WARN] NI has been created but failed to update info, commmand 'Terraform refresh'")
-			log.Printf("[WARN] to update your local info again'")
+		if errNIRead := resourceJDCloudNetworkInterfaceRead(d, meta); errNIRead != nil {
+			return errNIRead
 		}
 		d.SetPartial("security_groups")
 	}
@@ -159,59 +170,63 @@ func resourceJDCloudNetworkInterfaceRead(d *schema.ResourceData, meta interface{
 	networkInterfaceClient := client.NewVpcClient(config.Credential)
 
 	req := apis.NewDescribeNetworkInterfaceRequest(config.Region, d.Id())
-	resp, err := networkInterfaceClient.DescribeNetworkInterface(req)
 
-	if err != nil {
-		return err
-	}
+	return resource.Retry(5*time.Minute, func() *resource.RetryError {
 
-	if resp.Error.Code == RESOURCE_NOT_FOUND {
-		log.Printf("Resource not found, probably have been deleted")
-		d.SetId("")
-		return nil
-	}
+		resp, err := networkInterfaceClient.DescribeNetworkInterface(req)
 
-	if resp.Error.Code != REQUEST_COMPLETED {
-		return fmt.Errorf("[ERROR] resourceJDCloudNetworkInterfaceRead failed error code:%d, message:%s", resp.Error.Code, resp.Error.Message)
-	}
+		if err == nil {
 
-	if resp.Result.NetworkInterface.Az != "" {
-		d.Set("az", resp.Result.NetworkInterface.Az)
-	}
+			if resp.Result.NetworkInterface.Az != "" {
+				d.Set("az", resp.Result.NetworkInterface.Az)
+			}
 
-	if resp.Result.NetworkInterface.Description != "" {
-		d.Set("description", resp.Result.NetworkInterface.Description)
-	}
+			if resp.Result.NetworkInterface.Description != "" {
+				d.Set("description", resp.Result.NetworkInterface.Description)
+			}
 
-	if resp.Result.NetworkInterface.NetworkInterfaceName != "" {
-		d.Set("network_interface_name", resp.Result.NetworkInterface.NetworkInterfaceName)
-	}
+			if resp.Result.NetworkInterface.NetworkInterfaceName != "" {
+				d.Set("network_interface_name", resp.Result.NetworkInterface.NetworkInterfaceName)
+			}
 
-	if resp.Result.NetworkInterface.SanityCheck != REQUEST_COMPLETED {
-		d.Set("sanity_check", resp.Result.NetworkInterface.SanityCheck)
-	}
+			if resp.Result.NetworkInterface.SanityCheck != REQUEST_COMPLETED {
+				d.Set("sanity_check", resp.Result.NetworkInterface.SanityCheck)
+			}
 
-	if resp.Result.NetworkInterface.PrimaryIp.ElasticIpAddress != "" {
-		d.Set("primary_ip_address", resp.Result.NetworkInterface.PrimaryIp.ElasticIpAddress)
-	}
+			if resp.Result.NetworkInterface.PrimaryIp.ElasticIpAddress != "" {
+				d.Set("primary_ip_address", resp.Result.NetworkInterface.PrimaryIp.ElasticIpAddress)
+			}
+			if len(resp.Result.NetworkInterface.SecondaryIps) != d.Get("secondary_ip_count").(int)+d.Get("secondary_ip_addresses.#").(int) {
+				if errSetIp := d.Set("secondary_ip_addresses", ipList(resp.Result.NetworkInterface.SecondaryIps)); errSetIp != nil {
+					return resource.NonRetryableError(formatArraySetErrorMessage(errSetIp))
+				}
+			}
 
-	if len(resp.Result.NetworkInterface.SecondaryIps) != d.Get("secondary_ip_count").(int)+d.Get("secondary_ip_addresses.#").(int) {
-		if errSetIp := d.Set("secondary_ip_addresses", ipList(resp.Result.NetworkInterface.SecondaryIps)); errSetIp != nil {
-			return fmt.Errorf("[ERROR] resourceJDCloudNetworkInterfaceRead Failed in setting secondary ips,reasons: %s", errSetIp.Error())
+			// sg - Exclude default sg
+			sgRemote := resp.Result.NetworkInterface.NetworkSecurityGroupIds
+			sgLocal := typeSetToStringArray(d.Get("security_groups").(*schema.Set))
+
+			if len(sgLocal) == RESOURCE_EMPTY && len(sgRemote) > 1 {
+				if errSetSg := d.Set("security_groups", resp.Result.NetworkInterface.NetworkSecurityGroupIds[1:]); errSetSg != nil {
+					return resource.NonRetryableError(formatArraySetErrorMessage(errSetSg))
+				}
+			}
+
+			return nil
 		}
-	}
 
-	// sg - Exclude default sg
-	sgRemote := resp.Result.NetworkInterface.NetworkSecurityGroupIds
-	sgLocal := typeSetToStringArray(d.Get("security_groups").(*schema.Set))
-
-	if len(sgLocal) == RESOURCE_EMPTY && len(sgRemote) > 1 {
-		if errSetSg := d.Set("security_groups", resp.Result.NetworkInterface.NetworkSecurityGroupIds[1:]); errSetSg != nil {
-			return fmt.Errorf("[ERROR] resourceJDCloudNetworkInterfaceRead Failed in setting sg,reasons: %s", errSetSg.Error())
+		if resp.Error.Code == RESOURCE_NOT_FOUND {
+			log.Printf("Resource not found, probably have been deleted")
+			d.SetId("")
+			return nil
 		}
-	}
 
-	return nil
+		if connectionError(err) {
+			return resource.RetryableError(formatConnectionErrorMessage())
+		} else {
+			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
+		}
+	})
 }
 
 func resourceJDCloudNetworkInterfaceUpdate(d *schema.ResourceData, meta interface{}) error {

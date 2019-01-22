@@ -15,9 +15,10 @@ const TestAccDiskConfig = `
 resource "jdcloud_disk" "disk_test_1" {
   az           = "cn-north-1a"
   name         = "test_disk"
-  description  = "test"
+  description  = "test123"
   disk_type    = "ssd"
   disk_size_gb = 20
+  charge_mode = "postpaid_by_duration"
 }
 `
 

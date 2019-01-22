@@ -35,10 +35,6 @@ func resourceJDCloudNetworkAcl() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
-			"created_time": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
 		},
 	}
 }
@@ -95,7 +91,6 @@ func resourceJDCloudNetworkAclRead(d *schema.ResourceData, meta interface{}) err
 	d.Set("name", resp.Result.NetworkAcl.NetworkAclName)
 	d.Set("vpc_id", resp.Result.NetworkAcl.VpcId)
 	d.Set("description", resp.Result.NetworkAcl.Description)
-	d.Set("created_time", resp.Result.NetworkAcl.CreatedTime)
 
 	return nil
 }

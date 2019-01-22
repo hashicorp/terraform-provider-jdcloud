@@ -2,10 +2,12 @@ package jdcloud
 
 import (
 	"fmt"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/apis"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/client"
 	vpc "github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/models"
+	"time"
 )
 
 func typeSetToSgRuleList(s *schema.Set) []vpc.AddSecurityGroupRules {
@@ -32,39 +34,52 @@ func typeSetToSgRuleList(s *schema.Set) []vpc.AddSecurityGroupRules {
 }
 
 func performSgRuleAttach(d *schema.ResourceData, m interface{}, s *schema.Set) error {
+	d.Partial(true)
 
 	config := m.(*JDCloudConfig)
-	vpcClient := client.NewVpcClient(config.Credential)
-
+	conn := client.NewVpcClient(config.Credential)
 	req := apis.NewAddNetworkSecurityGroupRulesRequest(config.Region, d.Get("security_group_id").(string), typeSetToSgRuleList(s))
-	resp, err := vpcClient.AddNetworkSecurityGroupRules(req)
 
-	if err != nil {
-		return fmt.Errorf("[ERROR] performSgRuleAttach failed %s ", err.Error())
-	}
-	if resp.Error.Code != REQUEST_COMPLETED {
-		return fmt.Errorf("[ERROR] performSgRuleAttach failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
-	}
+	return resource.Retry(time.Minute, func() *resource.RetryError {
 
-	return nil
+		resp, err := conn.AddNetworkSecurityGroupRules(req)
+
+		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
+			d.SetPartial("security_group_rules")
+			d.Partial(false)
+			return nil
+		}
+
+		if connectionError(err) {
+			return resource.RetryableError(formatConnectionErrorMessage())
+		} else {
+			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
+		}
+	})
 }
 
 func performSgRuleDetach(d *schema.ResourceData, m interface{}, s *schema.Set) error {
 
 	config := m.(*JDCloudConfig)
-	vpcClient := client.NewVpcClient(config.Credential)
-
+	conn := client.NewVpcClient(config.Credential)
 	req := apis.NewRemoveNetworkSecurityGroupRulesRequest(config.Region, d.Get("security_group_id").(string), ruleIdList(s))
-	resp, err := vpcClient.RemoveNetworkSecurityGroupRules(req)
 
-	if err != nil {
-		return fmt.Errorf("[ERROR] performSgRuleDetach failed %s ", err.Error())
-	}
-	if resp.Error.Code != REQUEST_COMPLETED {
-		return fmt.Errorf("[ERROR] performSgRuleDetach failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
-	}
+	return resource.Retry(time.Minute, func() *resource.RetryError {
 
-	return nil
+		resp, err := conn.RemoveNetworkSecurityGroupRules(req)
+
+		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
+			d.SetPartial("security_group_rules")
+			d.Partial(false)
+			return nil
+		}
+
+		if connectionError(err) {
+			return resource.RetryableError(formatConnectionErrorMessage())
+		} else {
+			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
+		}
+	})
 }
 
 func resourceJDCloudNetworkSecurityGroupRules() *schema.Resource {
@@ -81,12 +96,14 @@ func resourceJDCloudNetworkSecurityGroupRules() *schema.Resource {
 			"security_group_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 
 			"security_group_rules": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
 				Computed: true,
+				MinItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 
@@ -188,7 +205,7 @@ func resourceJDCloudNetworkSecurityGroupRulesRead(d *schema.ResourceData, meta i
 }
 
 func resourceJDCloudNetworkSecurityGroupRulesUpdate(d *schema.ResourceData, m interface{}) error {
-
+	d.Partial(true)
 	if d.HasChange("security_group_rules") {
 
 		pInterface, cInterface := d.GetChange("security_group_rules")
@@ -199,16 +216,16 @@ func resourceJDCloudNetworkSecurityGroupRulesUpdate(d *schema.ResourceData, m in
 		detachList := ruleIdList(p.Difference(i))
 		attachList := typeSetToSgRuleList(c.Difference(i))
 
-		if err := performSgRuleDetach(d, m, p.Difference(i)); len(detachList) != 0 || err != nil {
+		if err := performSgRuleDetach(d, m, p.Difference(i)); len(detachList) != 0 && err != nil {
 			return err
 		}
-		if err := performSgRuleAttach(d, m, c.Difference(i)); len(attachList) != 0 || err != nil {
+		if err := performSgRuleAttach(d, m, c.Difference(i)); len(attachList) != 0 && err != nil {
 			return err
 		}
 
-		d.Set("security_group_rules", cInterface)
+		d.SetPartial("security_group_rules")
 	}
-
+	d.Partial(false)
 	return nil
 }
 

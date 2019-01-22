@@ -11,7 +11,7 @@ import (
 
 // TODO
 // minimum amount
-//// Validate Func
+// Validate Func
 // Supress Func
 // Sensitive Func
 

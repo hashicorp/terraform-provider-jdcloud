@@ -2,6 +2,7 @@ package jdcloud
 
 import (
 	"fmt"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/charge/models"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/rds/apis"
@@ -37,10 +38,12 @@ func resourceJDCloudRDSInstance() *schema.Resource {
 			"engine": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 			"engine_version": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 			"instance_class": &schema.Schema{
 				Type:     schema.TypeString,
@@ -53,14 +56,17 @@ func resourceJDCloudRDSInstance() *schema.Resource {
 			"az": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 			"vpc_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 			"subnet_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 			"rds_id": &schema.Schema{
 				Type:     schema.TypeString,
@@ -85,14 +91,17 @@ func resourceJDCloudRDSInstance() *schema.Resource {
 			"charge_mode": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 			"charge_unit": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				ForceNew: true,
 			},
 			"charge_duration": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
+				ForceNew: true,
 			},
 		},
 	}
@@ -137,21 +146,49 @@ func resourceJDCloudRDSInstanceCreate(d *schema.ResourceData, meta interface{}) 
 	}
 
 	rdsClient := client.NewRdsClient(config.Credential)
-	resp, err := rdsClient.CreateInstance(req)
+
+	err := resource.Retry(5*time.Minute, func() *resource.RetryError {
+
+		resp, err := rdsClient.CreateInstance(req)
+
+		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
+			d.SetId(resp.Result.InstanceId)
+			return nil
+		}
+
+		if connectionError(err) {
+			return resource.RetryableError(formatConnectionErrorMessage())
+		} else {
+			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
+		}
+	})
+
 	if err != nil {
-		return fmt.Errorf("[ERROR] resourceJDCloudRDSCreate failed %s ", err.Error())
+		return err
 	}
-	if resp.Error.Code != REQUEST_COMPLETED {
-		return fmt.Errorf("[ERROR] resourceJDCloudRDSCreate failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
+	reqStatus := apis.NewDescribeInstanceAttributesRequest(config.Region, d.Id())
+	timeOut := resource.Retry(10*time.Minute, func() *resource.RetryError {
+
+		resp, err := rdsClient.DescribeInstanceAttributes(reqStatus)
+		if err == nil && resp.Error.Code == REQUEST_COMPLETED && resp.Result.DbInstanceAttributes.InstanceStatus == RDS_READY {
+			return nil
+		}
+
+		// Process way too faster than network, sometimes RDS instance has been created and
+		// shown to be "CREATING", and appears to be your Instance not exsits with err code 400
+		if connectionError(err) || resp.Error.Code == REQUEST_INVALID ||
+			resp.Result.DbInstanceAttributes.InstanceStatus != RDS_READY {
+			return resource.RetryableError(formatConnectionErrorMessage())
+		} else {
+			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
+		}
+
+	})
+	if timeOut != nil {
+		return timeOut
 	}
 
-	if RDS_READY := waitForRDS(resp.Result.InstanceId, meta, RDS_READY); RDS_READY != nil {
-		return RDS_READY
-	}
-
-	d.SetId(resp.Result.InstanceId)
 	d.Set("rds_id", d.Id())
-
 	d.SetPartial("instance_name")
 	d.SetPartial("engine")
 	d.SetPartial("engine_version")
@@ -184,32 +221,38 @@ func resourceJDCloudRDSInstanceRead(d *schema.ResourceData, meta interface{}) er
 	config := meta.(*JDCloudConfig)
 	req := apis.NewDescribeInstanceAttributesRequest(config.Region, d.Id())
 	rdsClient := client.NewRdsClient(config.Credential)
-	resp, err := rdsClient.DescribeInstanceAttributes(req)
 
-	if err != nil {
-		return fmt.Errorf("[ERROR] resourceJDCloudRDSRead failed %s ", err.Error())
-	}
-	if resp.Error.Code == RESOURCE_NOT_FOUND || resp.Error.Code == REQUEST_INVALID {
-		return nil
-	}
-	if resp.Error.Code != REQUEST_COMPLETED {
-		return fmt.Errorf("[ERROR] resourceJDCloudRDSRead failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
-	}
+	return resource.Retry(2*time.Minute, func() *resource.RetryError {
 
-	d.Set("instance_name", resp.Result.DbInstanceAttributes.InstanceName)
-	d.Set("instance_class", resp.Result.DbInstanceAttributes.InstanceClass)
-	d.Set("instance_storage_gb", resp.Result.DbInstanceAttributes.InstanceStorageGB)
-	d.Set("internal_domain_name", resp.Result.DbInstanceAttributes.InternalDomainName)
-	d.Set("public_domain_name", resp.Result.DbInstanceAttributes.PublicDomainName)
-	d.Set("instance_port", resp.Result.DbInstanceAttributes.InstancePort)
-	d.Set("connection_mode", resp.Result.DbInstanceAttributes.ConnectionMode)
-	d.Set("engine", resp.Result.DbInstanceAttributes.Engine)
-	d.Set("engine_version", resp.Result.DbInstanceAttributes.EngineVersion)
-	d.Set("az", resp.Result.DbInstanceAttributes.AzId[0])
-	d.Set("vpc_id", resp.Result.DbInstanceAttributes.VpcId)
-	d.Set("subnet_id", resp.Result.DbInstanceAttributes.SubnetId)
+		resp, err := rdsClient.DescribeInstanceAttributes(req)
 
-	return nil
+		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
+			d.Set("instance_name", resp.Result.DbInstanceAttributes.InstanceName)
+			d.Set("instance_class", resp.Result.DbInstanceAttributes.InstanceClass)
+			d.Set("instance_storage_gb", resp.Result.DbInstanceAttributes.InstanceStorageGB)
+			d.Set("internal_domain_name", resp.Result.DbInstanceAttributes.InternalDomainName)
+			d.Set("public_domain_name", resp.Result.DbInstanceAttributes.PublicDomainName)
+			d.Set("instance_port", resp.Result.DbInstanceAttributes.InstancePort)
+			d.Set("connection_mode", resp.Result.DbInstanceAttributes.ConnectionMode)
+			d.Set("engine", resp.Result.DbInstanceAttributes.Engine)
+			d.Set("engine_version", resp.Result.DbInstanceAttributes.EngineVersion)
+			d.Set("az", resp.Result.DbInstanceAttributes.AzId[0])
+			d.Set("vpc_id", resp.Result.DbInstanceAttributes.VpcId)
+			d.Set("subnet_id", resp.Result.DbInstanceAttributes.SubnetId)
+			return nil
+		}
+
+		if resp.Error.Code == RESOURCE_NOT_FOUND || resp.Error.Code == REQUEST_INVALID {
+			d.SetId("")
+			return nil
+		}
+
+		if connectionError(err) {
+			return resource.RetryableError(formatConnectionErrorMessage())
+		} else {
+			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
+		}
+	})
 }
 
 func resourceJDCloudRDSInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
@@ -244,7 +287,7 @@ func resourceJDCloudRDSInstanceUpdate(d *schema.ResourceData, meta interface{}) 
 	}
 
 	d.Partial(false)
-	return noOtherAttributesModified(d)
+	return nil
 }
 
 func resourceJDCloudRDSInstanceDelete(d *schema.ResourceData, meta interface{}) error {
@@ -252,19 +295,52 @@ func resourceJDCloudRDSInstanceDelete(d *schema.ResourceData, meta interface{}) 
 	config := meta.(*JDCloudConfig)
 	rdsClient := client.NewRdsClient(config.Credential)
 	req := apis.NewDeleteInstanceRequest(config.Region, d.Id())
-	resp, err := rdsClient.DeleteInstance(req)
+
+	// Send an DELETE request
+	err := resource.Retry(5*time.Minute, func() *resource.RetryError {
+
+		resp, err := rdsClient.DeleteInstance(req)
+
+		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
+			return nil
+		}
+
+		if connectionError(err) || resp.Error.Code == REQUEST_INVALID {
+			return resource.RetryableError(formatConnectionErrorMessage())
+		} else {
+			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
+		}
+	})
 
 	if err != nil {
-		return fmt.Errorf("[ERROR] resourceJDCloudRDSDelete failed %s ", err.Error())
+		return err
 	}
-	if resp.Error.Code != REQUEST_COMPLETED && !invalidRequestDealing(resp.Error.Code, d, meta) {
-		return fmt.Errorf("[ERROR] resourceJDCloudRDSDelete failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
-	}
+	// Wait until this Instance has been completely deleted
+	reqStatus := apis.NewDescribeInstanceAttributesRequest(config.Region, d.Id())
+	return resource.Retry(10*time.Minute, func() *resource.RetryError {
 
-	id := d.Id()
-	d.SetId("")
-	return waitForRDS(id, meta, RDS_DELETED)
+		resp, err := rdsClient.DescribeInstanceAttributes(reqStatus)
+		if resp.Result.DbInstanceAttributes.InstanceStatus == RDS_DELETED {
+			d.SetId("")
+			return nil
+		}
+
+		// Not suppose to happen, Just in case
+		if resp.Error.Code == RESOURCE_NOT_FOUND {
+			d.SetId("")
+			return nil
+		}
+
+		if connectionError(err) || resp.Error.Code == REQUEST_INVALID || resp.Result.DbInstanceAttributes.InstanceStatus != RDS_DELETED {
+			return resource.RetryableError(formatConnectionErrorMessage())
+		} else {
+			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
+		}
+
+	})
 }
+
+// DISCARDED FUNCTIONS - expected to be deleted in the near future :-)
 
 func waitForRDS(id string, meta interface{}, expectedStatus string) error {
 
@@ -292,6 +368,27 @@ func waitForRDS(id string, meta interface{}, expectedStatus string) error {
 
 }
 
+func errDealing(err error, failCount *int) bool {
+
+	if err != nil {
+
+		if s, _ := regexp.MatchString(CONNECT_FAILED, err.Error()); !s || *failCount > MAX_RECONNECT_COUNT {
+			return false
+		}
+
+		*failCount++
+		time.Sleep(10 * time.Second)
+		return true
+	}
+
+	*failCount = 0
+	return true
+}
+
+func timeOut(currentTime int) bool {
+	return int(time.Now().Unix())-currentTime > RDS_TIMEOUT
+}
+
 func noOtherAttributesModified(d *schema.ResourceData) error {
 	remainingAttr := []string{"charge_duration", "charge_unit", "charge_mode", "connection_mode",
 		"internal_domain_name", "rds_id", "subnet_id", "vpc_id", "az", "instance_name",
@@ -311,23 +408,6 @@ func noOtherAttributesModified(d *schema.ResourceData) error {
 	}
 }
 
-func errDealing(err error, failCount *int) bool {
-
-	if err != nil {
-
-		if s, _ := regexp.MatchString(CONNECT_FAILED, err.Error()); !s || *failCount > MAX_RECONNECT_COUNT {
-			return false
-		}
-
-		*failCount++
-		time.Sleep(10 * time.Second)
-		return true
-	}
-
-	*failCount = 0
-	return true
-}
-
 func invalidRequestDealing(c int, d *schema.ResourceData, m interface{}) bool {
 
 	if c != REQUEST_INVALID {
@@ -345,8 +425,4 @@ func invalidRequestDealing(c int, d *schema.ResourceData, m interface{}) bool {
 	}
 
 	return true
-}
-
-func timeOut(currentTime int) bool {
-	return int(time.Now().Unix())-currentTime > RDS_TIMEOUT
 }

@@ -283,7 +283,7 @@ resource "jdcloud_instance" "vm-1" {
 # 1. Create an Instance
 ################################################
 # [WARN] If (charge_mode == prepaid_by_duration)
-# You can not delete it before they expired. "postpaid_by_usage" is recommended
+# You can not delete it before they expired. "postpaid_by_duration" is recommended
 resource "jdcloud_rds_instance" "rds-test"{
   instance_name = "test"
   engine = "MySQL"
@@ -293,7 +293,7 @@ resource "jdcloud_rds_instance" "rds-test"{
   az = "cn-north-1a"
   vpc_id = "vpc-example"
   subnet_id = "subnet-example"
-  charge_mode = "postpaid_by_usage"
+  charge_mode = "postpaid_by_duration"
 }
 
 ################################################
