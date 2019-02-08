@@ -222,7 +222,7 @@ func resourceJDCloudRDSInstanceRead(d *schema.ResourceData, meta interface{}) er
 	req := apis.NewDescribeInstanceAttributesRequest(config.Region, d.Id())
 	rdsClient := client.NewRdsClient(config.Credential)
 
-	return resource.Retry(2*time.Minute, func() *resource.RetryError {
+	return resource.Retry(5*time.Minute, func() *resource.RetryError {
 
 		resp, err := rdsClient.DescribeInstanceAttributes(req)
 

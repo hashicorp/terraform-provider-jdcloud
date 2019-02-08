@@ -1,6 +1,5 @@
 package jdcloud
 
-import "C"
 import (
 	"fmt"
 	"github.com/hashicorp/terraform/helper/resource"
