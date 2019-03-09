@@ -86,6 +86,9 @@ func resourceRouteTableAssociationRead(d *schema.ResourceData, meta interface{})
 
 func resourceRouteTableAssociationUpdate(d *schema.ResourceData, m interface{}) error {
 
+	d.Partial(true)
+	defer d.Partial(false)
+
 	if d.HasChange("subnet_id") {
 
 		pInterface, cInterface := d.GetChange("subnet_id")
@@ -99,9 +102,13 @@ func resourceRouteTableAssociationUpdate(d *schema.ResourceData, m interface{}) 
 		if err := performSubnetDetach(d, m, detachList); err != nil && len(detachList) != 0 {
 			return err
 		}
+		d.SetPartial("subnet_id")
+
 		if err := performSubnetAttach(d, m, attachList); err != nil && len(attachList) != 0 {
 			return err
 		}
+		d.SetPartial("subnet_id")
+
 	}
 
 	return nil

@@ -177,24 +177,27 @@ func resourceJDCloudRDSPrivilegeRead(d *schema.ResourceData, meta interface{}) e
 }
 
 func resourceJDCloudRDSPrivilegeUpdate(d *schema.ResourceData, m interface{}) error {
+
 	d.Partial(true)
+	defer d.Partial(false)
+
 	if d.HasChange("account_privilege") {
 
 		pInterface, cInterface := d.GetChange("account_privilege")
 		p := pInterface.(*schema.Set)
 		c := cInterface.(*schema.Set)
 		i := p.Intersection(c)
-
 		if err := performDetachDB(d, m, dbNameList(p.Difference(i))); err != nil && len(dbNameList(p.Difference(i))) != 0 {
 			return err
 		}
+		d.SetPartial("account_privilege")
+
 		if err := performAttachDB(d, m, c.Difference(i)); err != nil && len(dbNameList(c.Difference(i))) != 0 {
 			return err
 		}
-
 		d.SetPartial("account_privilege")
+
 	}
-	d.Partial(false)
 	return nil
 }
 

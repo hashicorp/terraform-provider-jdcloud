@@ -10,6 +10,7 @@ FEATURES:
 BUG FIXES:
 
 * Field `minimum_amount` is set for *Schema.TypeSet [GH-22]
+* When updating *Schema.TypeSet field and failed on the halfway, `SetPartial` is added to correctly modify `tfstate`[GH-22]
 * Unable to set ACL when OSS bucket is created [GH-17]
 * No validation on `subnet_id` and `vpc_id` when creating RDS instance[GH-15]
 

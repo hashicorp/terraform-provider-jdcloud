@@ -230,7 +230,9 @@ func resourceJDCloudNetworkInterfaceRead(d *schema.ResourceData, meta interface{
 }
 
 func resourceJDCloudNetworkInterfaceUpdate(d *schema.ResourceData, meta interface{}) error {
+
 	d.Partial(true)
+	defer d.Partial(false)
 
 	if d.HasChange("network_interface_name") || d.HasChange("security_groups") || d.HasChange("description") {
 
@@ -268,6 +270,9 @@ func resourceJDCloudNetworkInterfaceUpdate(d *schema.ResourceData, meta interfac
 		if err := performSecondaryIpDetach(d, meta, p.Difference(i)); len(typeSetToStringArray(p.Difference(i))) != 0 && err != nil {
 			return err
 		}
+		d.SetPartial("secondary_ip_addresses")
+		d.SetPartial("secondary_ip_count")
+
 		if err := performSecondaryIpAttach(d, meta, c.Difference(i), d.Get("secondary_ip_count").(int)); len(typeSetToStringArray(c.Difference(i))) != 0 && err != nil {
 			return err
 		}
@@ -276,7 +281,6 @@ func resourceJDCloudNetworkInterfaceUpdate(d *schema.ResourceData, meta interfac
 		d.SetPartial("secondary_ip_count")
 	}
 
-	d.Partial(false)
 	return nil
 }
 

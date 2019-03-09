@@ -226,6 +226,9 @@ func resourceRouteTableRulesRead(d *schema.ResourceData, m interface{}) error {
 
 func resourceRouteTableRulesUpdate(d *schema.ResourceData, m interface{}) error {
 
+	d.Partial(true)
+	defer d.Partial(false)
+
 	if d.HasChange("rule_specs") {
 
 		pInterface, cInterface := d.GetChange("rule_specs")
@@ -239,9 +242,13 @@ func resourceRouteTableRulesUpdate(d *schema.ResourceData, m interface{}) error 
 		if err := performRuleDetach(d, m, detachList); err != nil && len(detachList) != 0 {
 			return err
 		}
+		d.SetPartial("rule_specs")
+
 		if err := performRuleAttach(d, m, attachList); err != nil && len(attachList) != 0 {
 			return err
 		}
+		d.SetPartial("rule_specs")
+
 	}
 
 	return resourceRouteTableRulesRead(d, m)
