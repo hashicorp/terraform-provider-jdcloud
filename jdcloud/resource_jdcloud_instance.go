@@ -713,7 +713,10 @@ func resourceJDCloudInstanceRead(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceJDCloudInstanceUpdate(d *schema.ResourceData, m interface{}) error {
+
 	d.Partial(true)
+	defer d.Partial(false)
+
 	config := m.(*JDCloudConfig)
 	vmClient := client.NewVmClient(config.Credential)
 
@@ -784,14 +787,14 @@ func resourceJDCloudInstanceUpdate(d *schema.ResourceData, m interface{}) error 
 		if err := performCloudDiskDetach(d, m, p.Difference(i)); len(typeSetToDiskList(p.Difference(i))) != 0 && err != nil {
 			return err
 		}
+		d.SetPartial("data_disk")
+
 		if err := performCloudDiskAttach(d, m, c.Difference(i)); len(typeSetToDiskList(c.Difference(i))) != 0 && err != nil {
 			return err
 		}
-
 		d.SetPartial("data_disk")
 	}
 
-	d.Partial(false)
 	return nil
 }
 
