@@ -333,6 +333,46 @@ resource "jdcloud_rds_privilege" "pri-test" {
   ]
 }
 
+# ---------------------------------------------------------- INSTANCE-TEMPLATE
+####################################################################################################
+# Full parameters ->
+#
+#   + instance_type : g.n2.medium/g.n2.large...Just different type of instance , by default its g.n2.medium
+#   + image_id : If you would like to start your instance from an image , fill in here, by default its Ubuntu:16.04
+#   + ip_service_provider : [BGP/nonBGP] , by default it's set to BGP
+#   + charge_mode : [bandwith/flow] , by default it's set to bandwith
+#   + subnet_id : Each instance is supposed to exists under a subnet, fill its id here
+#   + security_group_ids : You can make your instance exists under multuple SGs, fill them here as an array
+#   + local_disk/data_disk
+#       - disk_category : [local/cloud] : For system disk, local disk is recommended
+#       - disk_type : [premium-hdd/ssd] : For system disk, we would recommend premium-hdd
+#                                         For data disk , ssd, since premium-hdd ususally out of stock
+#       - auto_delete: [true/false] : Disks will be deleted automatically once it's been detached from instance
+#       - disk_size : [20~1000] - Must be multiples of 10, that's 20,30,40... by default it is set  to 40GB
+#       - device_name : [vda/vdb/vdc....] - Attach point of disk, points must be unique among all disks
+#                                       we would recommend to leave it blank if you're not farmiliar with it
+#       - snapshot_id : If you would like to build a template from snapshot, fill in its id here
+####################################################################################################
+resource "jdcloud_instance_template" "instance_template" {
+  "template_name" = "<Name it as you like>"
+  "password" = "<Give it a password>"
+  "instance_type" = "g.n2.medium"
+  "image_id" = "img-example"
+  "password" = "DevOps2018"
+  "bandwidth" = 5
+  "ip_service_provider" = "BGP"
+  "charge_mode" = "bandwith"
+  "subnet_id" = "subnet-exmaple"
+  "security_group_ids" = ["sg-example"]
+  "system_disk" = {
+    "disk_category" = "local"
+    "disk_type" = ""
+  }
+  "data_disks" = {
+    disk_category = "cloud"
+  }
+
+}
 # ---------------------------------------------------------- AVAILABILITY-GROUP
 # Parameters and candidates
 #     1. [AZ] is an array which, candidates lists as follows ["cn-north-1a","cn-north-1b","cn-east-1b","cn-east-1a","cn-south-1a"]

@@ -41,6 +41,7 @@ func resourceJDCloudInstanceTemplate() *schema.Resource {
 			"disk_size": &schema.Schema{
 				Type:         schema.TypeInt,
 				Optional:     true,
+				Default:      40,
 				ValidateFunc: validateDiskSize(),
 			},
 			"snapshot_id": &schema.Schema{
@@ -63,13 +64,11 @@ func resourceJDCloudInstanceTemplate() *schema.Resource {
 			},
 			"instance_type": &schema.Schema{
 				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "g.n2.medium",
+				Required: true,
 			},
 			"image_id": &schema.Schema{
 				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "img-chn8lfcn6j",
+				Required: true,
 			},
 			"password": &schema.Schema{
 				Type:      schema.TypeString,
