@@ -1,7 +1,6 @@
 package jdcloud
 
 import (
-	"fmt"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vm/apis"
@@ -28,10 +27,16 @@ func resourceJDCloudInstanceTemplate() *schema.Resource {
 			},
 
 			// Disk-Spec
+			"disk_category": &schema.Schema{
+				Type:         schema.TypeString,
+				Required:     true,
+				ValidateFunc: validateStringCandidates("local", "cloud"),
+			},
 			"disk_type": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "ssd",
+				Type:         schema.TypeString,
+				Optional:     true,
+				Default:      "ssd",
+				ValidateFunc: validateStringCandidates("ssd", "premium-hdd"),
 			},
 			"disk_size": &schema.Schema{
 				Type:         schema.TypeInt,
@@ -58,11 +63,13 @@ func resourceJDCloudInstanceTemplate() *schema.Resource {
 			},
 			"instance_type": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
+				Default:  "g.n2.medium",
 			},
 			"image_id": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
+				Default:  "img-chn8lfcn6j",
 			},
 			"password": &schema.Schema{
 				Type:      schema.TypeString,
@@ -70,17 +77,19 @@ func resourceJDCloudInstanceTemplate() *schema.Resource {
 				Sensitive: true,
 			},
 			"bandwidth": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
+				Type:     schema.TypeInt,
+				Optional: true,
+				Default:  1,
 			},
-			"provider": &schema.Schema{
+			"ip_service_provider": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "BGP",
 			},
 			"charge_mode": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
+				Default:  "bandwith",
 			},
 			"subnet_id": &schema.Schema{
 				Type:     schema.TypeString,
@@ -94,22 +103,19 @@ func resourceJDCloudInstanceTemplate() *schema.Resource {
 					Type: schema.TypeString,
 				},
 			},
-			"primary_network_interface": &schema.Schema{
-				Type:     schema.TypeSet,
-				Required: true,
-				MaxItems: 1,
-			},
 			"system_disk": &schema.Schema{
 				Type:     schema.TypeSet,
+				Elem:     diskSchema,
 				Required: true,
+				ForceNew: true,
 				MaxItems: 1,
 				MinItems: 1,
-				Elem:     diskSchema,
 			},
 			"data_disks": &schema.Schema{
 				Type:     schema.TypeSet,
-				Required: true,
+				Optional: true,
 				Elem:     diskSchema,
+				MinItems: 1,
 			},
 		},
 	}
@@ -119,14 +125,15 @@ func resourceJDCloudInstanceTemplateCreate(d *schema.ResourceData, m interface{}
 
 	config := m.(*JDCloudConfig)
 	vmClient := client.NewVmClient(config.Credential)
-	req := apis.NewCreateInstanceTemplateRequest(config.Region, &vm.InstanceTemplateSpec{
+
+	templateSpec := &vm.InstanceTemplateSpec{
 		InstanceType: d.Get("instance_type").(string),
 		ImageId:      d.Get("image_id").(string),
 		Password:     d.Get("password").(string),
 		KeyNames:     []string{},
 		ElasticIp: vm.InstanceTemplateElasticIpSpec{
 			BandwidthMbps: d.Get("bandwidth").(int),
-			Provider:      d.Get("provider").(string),
+			Provider:      d.Get("ip_service_provider").(string),
 			ChargeMode:    d.Get("charge_mode").(string),
 		},
 		PrimaryNetworkInterface: vm.InstanceTemplateNetworkInterfaceAttachmentSpec{
@@ -138,9 +145,16 @@ func resourceJDCloudInstanceTemplateCreate(d *schema.ResourceData, m interface{}
 				SanityCheck:    DEFAULT_SANITY_CHECK,
 			},
 		},
-		SystemDisk: typeSetToDiskTemplateList(d.Get("system_disk").(*schema.Set))[0],
-		DataDisks:  typeSetToDiskTemplateList(d.Get("data_disks").(*schema.Set)),
-	}, d.Get("template_name").(string))
+	}
+
+	if _, ok := d.GetOk("system_disk"); ok {
+		templateSpec.SystemDisk = typeSetToDiskTemplateList(d.Get("system_disk").(*schema.Set))[0]
+	}
+	if _, ok := d.GetOk("data_disks"); ok {
+		templateSpec.DataDisks = typeSetToDiskTemplateList(d.Get("data_disks").(*schema.Set))
+	}
+
+	req := apis.NewCreateInstanceTemplateRequest(config.Region, templateSpec, d.Get("template_name").(string))
 
 	err := resource.Retry(2*time.Minute, func() *resource.RetryError {
 
@@ -262,6 +276,7 @@ func typeSetToDiskTemplateList(s *schema.Set) []vm.InstanceTemplateDiskAttachmen
 	for _, d := range s.List() {
 		m := d.(map[string]interface{})
 		disk := vm.InstanceTemplateDiskAttachmentSpec{
+			DiskCategory: m["disk_category"].(string),
 			CloudDiskSpec: vm.InstanceTemplateDiskSpec{
 				DiskType:   m["disk_type"].(string),
 				DiskSizeGB: m["disk_size"].(int),
@@ -281,18 +296,4 @@ func typeSetToDiskTemplateList(s *schema.Set) []vm.InstanceTemplateDiskAttachmen
 	}
 
 	return ret
-}
-
-func validateDiskSize() schema.SchemaValidateFunc {
-	return func(v interface{}, k string) (ws []string, errors []error) {
-
-		diskSize := v.(int)
-		if diskSize < MIN_DISK_SIZE || diskSize > MAX_DISK_SIZE {
-			errors = append(errors, fmt.Errorf("[ERROR] Valid disk size varies from 20~100, yours: %#v", diskSize))
-		}
-		if diskSize%10 != 0 {
-			errors = append(errors, fmt.Errorf("[ERROR] Valid disk size must be in multiples of [10], that is,10,20,30..."))
-		}
-		return
-	}
 }

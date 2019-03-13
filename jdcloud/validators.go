@@ -167,3 +167,35 @@ func formatArraySetErrorMessage(e error) error {
 func ignoreModify(k, old, new string, d *schema.ResourceData) bool {
 	return true
 }
+
+func validateDiskSize() schema.SchemaValidateFunc {
+	return func(v interface{}, k string) (ws []string, errors []error) {
+
+		diskSize := v.(int)
+		if diskSize < MIN_DISK_SIZE || diskSize > MAX_DISK_SIZE {
+			errors = append(errors, fmt.Errorf("[ERROR] Valid disk size varies from 20~100, yours: %#v", diskSize))
+		}
+		if diskSize%10 != 0 {
+			errors = append(errors, fmt.Errorf("[ERROR] Valid disk size must be in multiples of [10], that is,10,20,30..."))
+		}
+		return
+	}
+}
+
+func validateStringCandidates(c ...string) schema.SchemaValidateFunc {
+	return func(v interface{}, k string) (ws []string, errors []error) {
+
+		target := v.(string)
+		invalid := true
+
+		for _, candidate := range c {
+			if target == candidate {
+				invalid = false
+			}
+		}
+		if invalid {
+			errors = append(errors, fmt.Errorf("[ERROR] Your parameters seems invalid, \n\n\t Candidates: %v,\n\t Yours:%v", c, target))
+		}
+		return
+	}
+}
