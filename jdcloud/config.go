@@ -72,11 +72,11 @@ const (
 	RDS_MAX_RECONNECT = 6
 	CONNECT_FAILED    = "Client.Timeout exceeded"
 
-	DEFAULT_DEVICE_INDEX = 1
+	DEFAULT_DEVICE_INDEX                  = 1
 	DEFAULT_NETWORK_INTERFACE_AUTO_DELETE = true
-	DEFAULT_SANITY_CHECK = 1
-	MIN_DISK_SIZE = 20
-	MAX_DISK_SIZE = 1000
+	DEFAULT_SANITY_CHECK                  = 1
+	MIN_DISK_SIZE                         = 20
+	MAX_DISK_SIZE                         = 1000
 )
 
 func initConfig(d *schema.ResourceData) (interface{}, error) {

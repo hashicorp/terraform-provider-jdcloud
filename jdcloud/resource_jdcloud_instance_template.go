@@ -5,8 +5,8 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vm/apis"
-	vm "github.com/jdcloud-api/jdcloud-sdk-go/services/vm/models"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vm/client"
+	vm "github.com/jdcloud-api/jdcloud-sdk-go/services/vm/models"
 	"strconv"
 	"time"
 )
@@ -31,11 +31,11 @@ func resourceJDCloudInstanceTemplate() *schema.Resource {
 			"disk_type": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				Default: "ssd",
+				Default:  "ssd",
 			},
 			"disk_size": &schema.Schema{
-				Type:     schema.TypeInt,
-				Optional: true,
+				Type:         schema.TypeInt,
+				Optional:     true,
 				ValidateFunc: validateDiskSize(),
 			},
 			"snapshot_id": &schema.Schema{
@@ -65,8 +65,8 @@ func resourceJDCloudInstanceTemplate() *schema.Resource {
 				Required: true,
 			},
 			"password": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
+				Type:      schema.TypeString,
+				Required:  true,
 				Sensitive: true,
 			},
 			"bandwidth": &schema.Schema{
@@ -111,7 +111,6 @@ func resourceJDCloudInstanceTemplate() *schema.Resource {
 				Required: true,
 				Elem:     diskSchema,
 			},
-
 		},
 	}
 }
@@ -120,7 +119,7 @@ func resourceJDCloudInstanceTemplateCreate(d *schema.ResourceData, m interface{}
 
 	config := m.(*JDCloudConfig)
 	vmClient := client.NewVmClient(config.Credential)
-	req := apis.NewCreateInstanceTemplateRequest(config.Region,&vm.InstanceTemplateSpec{
+	req := apis.NewCreateInstanceTemplateRequest(config.Region, &vm.InstanceTemplateSpec{
 		InstanceType: d.Get("instance_type").(string),
 		ImageId:      d.Get("image_id").(string),
 		Password:     d.Get("password").(string),
@@ -141,7 +140,7 @@ func resourceJDCloudInstanceTemplateCreate(d *schema.ResourceData, m interface{}
 		},
 		SystemDisk: typeSetToDiskTemplateList(d.Get("system_disk").(*schema.Set))[0],
 		DataDisks:  typeSetToDiskTemplateList(d.Get("data_disks").(*schema.Set)),
-	},d.Get("template_name").(string))
+	}, d.Get("template_name").(string))
 
 	err := resource.Retry(2*time.Minute, func() *resource.RetryError {
 
@@ -167,12 +166,12 @@ func resourceJDCloudInstanceTemplateRead(d *schema.ResourceData, m interface{}) 
 
 	config := m.(*JDCloudConfig)
 	vmClient := client.NewVmClient(config.Credential)
-	req := apis.NewDescribeInstanceTemplateRequest(config.Region,d.Id())
+	req := apis.NewDescribeInstanceTemplateRequest(config.Region, d.Id())
 	err := resource.Retry(2*time.Minute, func() *resource.RetryError {
 
 		resp, err := vmClient.DescribeInstanceTemplate(req)
 		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
-			d.Set("template_name",resp.Result.InstanceTemplate.Name)
+			d.Set("template_name", resp.Result.InstanceTemplate.Name)
 			return nil
 		}
 
@@ -199,11 +198,11 @@ func resourceJDCloudInstanceTemplateUpdate(d *schema.ResourceData, m interface{}
 	if d.HasChange("template_name") {
 		config := m.(*JDCloudConfig)
 		vmClient := client.NewVmClient(config.Credential)
-		req := apis.NewUpdateInstanceTemplateRequestWithAllParams(config.Region,d.Id(),nil,stringAddr(d.Get("template_name")))
+		req := apis.NewUpdateInstanceTemplateRequestWithAllParams(config.Region, d.Id(), nil, stringAddr(d.Get("template_name")))
 
 		err := resource.Retry(2*time.Minute, func() *resource.RetryError {
 
-			resp,err := vmClient.UpdateInstanceTemplate(req)
+			resp, err := vmClient.UpdateInstanceTemplate(req)
 			if err == nil && resp.Error.Code == REQUEST_COMPLETED {
 				return nil
 			}
@@ -226,15 +225,14 @@ func resourceJDCloudInstanceTemplateUpdate(d *schema.ResourceData, m interface{}
 	return nil
 }
 
-
 func resourceJDCloudInstanceTemplateDelete(d *schema.ResourceData, m interface{}) error {
 	config := m.(*JDCloudConfig)
 	vmClient := client.NewVmClient(config.Credential)
-	req := apis.NewDeleteInstanceTemplateRequest(config.Region,d.Id())
+	req := apis.NewDeleteInstanceTemplateRequest(config.Region, d.Id())
 
 	err := resource.Retry(2*time.Minute, func() *resource.RetryError {
 
-		resp,err := vmClient.DeleteInstanceTemplate(req)
+		resp, err := vmClient.DeleteInstanceTemplate(req)
 		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
 			d.SetId("")
 			return nil
@@ -253,7 +251,7 @@ func resourceJDCloudInstanceTemplateDelete(d *schema.ResourceData, m interface{}
 }
 
 func stringToInt(s string) int {
-	i,_ := strconv.Atoi(s)
+	i, _ := strconv.Atoi(s)
 	return i
 }
 
@@ -265,8 +263,8 @@ func typeSetToDiskTemplateList(s *schema.Set) []vm.InstanceTemplateDiskAttachmen
 		m := d.(map[string]interface{})
 		disk := vm.InstanceTemplateDiskAttachmentSpec{
 			CloudDiskSpec: vm.InstanceTemplateDiskSpec{
-				DiskType:m["disk_type"].(string),
-				DiskSizeGB:m["disk_size"].(int),
+				DiskType:   m["disk_type"].(string),
+				DiskSizeGB: m["disk_size"].(int),
 			},
 		}
 
@@ -290,10 +288,10 @@ func validateDiskSize() schema.SchemaValidateFunc {
 
 		diskSize := v.(int)
 		if diskSize < MIN_DISK_SIZE || diskSize > MAX_DISK_SIZE {
-			errors = append(errors,fmt.Errorf("[ERROR] Valid disk size varies from 20~100, yours: %#v",diskSize))
+			errors = append(errors, fmt.Errorf("[ERROR] Valid disk size varies from 20~100, yours: %#v", diskSize))
 		}
-		if diskSize%10!=0{
-			errors = append(errors,fmt.Errorf("[ERROR] Valid disk size must be in multiples of [10], that is,10,20,30..."))
+		if diskSize%10 != 0 {
+			errors = append(errors, fmt.Errorf("[ERROR] Valid disk size must be in multiples of [10], that is,10,20,30..."))
 		}
 		return
 	}

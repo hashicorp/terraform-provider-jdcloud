@@ -17,7 +17,7 @@
 package apis
 
 import (
-	"git.jd.com/jcloud-api-gateway/jcloud-sdk-go/core"
+	"github.com/jdcloud-api/jdcloud-sdk-go/core"
 )
 
 type UpdateInstanceTemplateRequest struct {
