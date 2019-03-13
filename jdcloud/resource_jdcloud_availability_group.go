@@ -121,9 +121,7 @@ func resourceJDCloudAvailabilityGroupRead(d *schema.ResourceData, meta interface
 		resp, err := agClient.DescribeAg(req)
 
 		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
-
 			d.Set("availability_group_name", resp.Result.Ag.Name)
-			d.Set("instance_template_id", resp.Result.Ag.InstanceTemplateId)
 			d.Set("description", resp.Result.Ag.Description)
 			return nil
 		}

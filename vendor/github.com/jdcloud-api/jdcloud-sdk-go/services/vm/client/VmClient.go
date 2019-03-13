@@ -220,6 +220,47 @@ func (c *VmClient) DescribeInstancePrivateIpAddress(request *vm.DescribeInstance
 	return jdResp, err
 }
 
+
+/* 查询启动模板详情
+ */
+func (c *VmClient) DescribeInstanceTemplate(request *vm.DescribeInstanceTemplateRequest) (*vm.DescribeInstanceTemplateResponse, error) {
+	if request == nil {
+		return nil, errors.New("Request object is nil. ")
+	}
+	resp, err := c.Send(request, c.ServiceName)
+	if err != nil {
+		return nil, err
+	}
+
+	jdResp := &vm.DescribeInstanceTemplateResponse{}
+	err = json.Unmarshal(resp, jdResp)
+	if err != nil {
+		return nil, err
+	}
+
+	return jdResp, err
+}
+
+/* 修改一个启动模板的信息，包括名称、描述
+ */
+func (c *VmClient) UpdateInstanceTemplate(request *vm.UpdateInstanceTemplateRequest) (*vm.UpdateInstanceTemplateResponse, error) {
+	if request == nil {
+		return nil, errors.New("Request object is nil. ")
+	}
+	resp, err := c.Send(request, c.ServiceName)
+	if err != nil {
+		return nil, err
+	}
+
+	jdResp := &vm.UpdateInstanceTemplateResponse{}
+	err = json.Unmarshal(resp, jdResp)
+	if err != nil {
+		return nil, err
+	}
+
+	return jdResp, err
+}
+
 /* 查询镜像信息列表。<br>
 通过此接口可以查询到京东云官方镜像、第三方镜像、私有镜像、或其他用户共享给您的镜像。<br>
 此接口支持分页查询，默认每页20条。
