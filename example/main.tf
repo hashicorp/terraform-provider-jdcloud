@@ -333,6 +333,20 @@ resource "jdcloud_rds_privilege" "pri-test" {
   ]
 }
 
+# ---------------------------------------------------------- AVAILABILITY-GROUP
+# Parameters and candidates
+#     1. [AZ] is an array which, candidates lists as follows ["cn-north-1a","cn-north-1b","cn-east-1b","cn-east-1a","cn-south-1a"]
+#     2. [AG_TYPE] is a string, candidates are : "kvm", "docker"
+# [Ag_name] and [Description] are updatable while the remaining not.
+#
+resource "jdcloud_availability_group" "ag_01" {
+  availability_group_name = "example_ag_name"
+  az = ["cn-north-1a","cn-north-1b"]
+  instance_template_id = "example_template_id"
+  description  = "This is an example description"
+  ag_type = "docker"
+}
+
 # ---------------------------------------------------------- KEY-PAIRS
 
 resource "jdcloud_key_pairs" "key-1" {

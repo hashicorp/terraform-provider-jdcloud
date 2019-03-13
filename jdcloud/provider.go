@@ -29,6 +29,7 @@ func Provider() *schema.Provider {
 			"jdcloud_rds_database":                 resourceJDCloudRDSDatabase(),
 			"jdcloud_rds_privilege":                resourceJDCloudRDSPrivilege(),
 			"jdcloud_network_acl":                  resourceJDCloudNetworkAcl(),
+			"jdcloud_availability_group":           resourceJDCloudAvailabilityGroup(),
 		},
 		Schema: map[string]*schema.Schema{
 			"access_key": &schema.Schema{
