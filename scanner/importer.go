@@ -11,7 +11,8 @@ import (
 )
 
 const filename = "jdcloud.tf"
-const CONNECT_FAILED    = "Client.Timeout exceeded"
+const CONNECT_FAILED = "Client.Timeout exceeded"
+
 var (
 	resourceMap map[string]string
 	region      = os.Getenv("region")
@@ -100,7 +101,6 @@ func formatErrorMessage(respError core.ErrorResponse, e error) error {
 	return fmt.Errorf(errorMessage)
 }
 
-
 func main() {
 
 	resourceMap = make(map[string]string)
@@ -113,6 +113,6 @@ func main() {
 	//copyEIP()
 	//copyDisk()
 	//copyInstance()
-	copyRDS()
+	//copyRDS()
 	//copyOSS()
 }

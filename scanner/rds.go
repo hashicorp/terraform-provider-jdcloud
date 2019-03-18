@@ -47,7 +47,7 @@ resource "jdcloud_rds_privilege" "%s" {
 }
 `
 
-func generatePrivList(instanceID string ,dbIDList []models.AccountPrivilege) string {
+func generatePrivList(instanceID string, dbIDList []models.AccountPrivilege) string {
 
 	if len(dbIDList) == 0 {
 		return "[]"
@@ -62,7 +62,7 @@ func generatePrivList(instanceID string ,dbIDList []models.AccountPrivilege) str
 	return ret + "]"
 }
 
-func getAllInstances() (resp *apis.DescribeInstancesResponse,err error) {
+func getAllInstances() (resp *apis.DescribeInstancesResponse, err error) {
 
 	req := apis.NewDescribeInstancesRequest(region)
 	c := client.NewRdsClient(config.Credential)
@@ -78,9 +78,9 @@ func getAllInstances() (resp *apis.DescribeInstancesResponse,err error) {
 			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
 		}
 	})
-	return resp,err
+	return resp, err
 }
-func performRDSInstanceCopy(instanceID string) (resp *apis.DescribeInstanceAttributesResponse,err error) {
+func performRDSInstanceCopy(instanceID string) (resp *apis.DescribeInstanceAttributesResponse, err error) {
 
 	req := apis.NewDescribeInstanceAttributesRequest(region, instanceID)
 	c := client.NewRdsClient(config.Credential)
@@ -97,9 +97,9 @@ func performRDSInstanceCopy(instanceID string) (resp *apis.DescribeInstanceAttri
 			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
 		}
 	})
-	return resp,err
+	return resp, err
 }
-func performRDSDBCopy(instanceID string) (resp *apis.DescribeDatabasesResponse,err error) {
+func performRDSDBCopy(instanceID string) (resp *apis.DescribeDatabasesResponse, err error) {
 
 	reqDB := apis.NewDescribeDatabasesRequest(region, instanceID)
 	c := client.NewRdsClient(config.Credential)
@@ -115,9 +115,9 @@ func performRDSDBCopy(instanceID string) (resp *apis.DescribeDatabasesResponse,e
 			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
 		}
 	})
-	return resp,err
+	return resp, err
 }
-func performRDSAccountCopy(instanceID string) (resp *apis.DescribeAccountsResponse,err error) {
+func performRDSAccountCopy(instanceID string) (resp *apis.DescribeAccountsResponse, err error) {
 
 	reqAcc := apis.NewDescribeAccountsRequest(config.Region, instanceID)
 	c := client.NewRdsClient(config.Credential)
@@ -133,24 +133,24 @@ func performRDSAccountCopy(instanceID string) (resp *apis.DescribeAccountsRespon
 			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
 		}
 	})
-	return resp,err
+	return resp, err
 }
 
 func copyRDS() {
 
 	// Get-All available instances
 	resp, err := getAllInstances()
-	if err != nil || resp.Error.Code!= 0 {
-		fmt.Println(formatErrorMessage(resp.Error,err))
+	if err != nil || resp.Error.Code != 0 {
+		fmt.Println(formatErrorMessage(resp.Error, err))
 		return
 	}
 
 	for index, vm := range resp.Result.DbInstances {
 		// RDS - Instance
 		resourceName := fmt.Sprintf("rds-%d", index)
-		resp,err := performRDSInstanceCopy(vm.InstanceId)
-		if err != nil || resp.Error.Code!= 0 {
-			fmt.Println(formatErrorMessage(resp.Error,err))
+		resp, err := performRDSInstanceCopy(vm.InstanceId)
+		if err != nil || resp.Error.Code != 0 {
+			fmt.Println(formatErrorMessage(resp.Error, err))
 			return
 		}
 
@@ -168,8 +168,8 @@ func copyRDS() {
 
 		// RDS-Database
 		respDB, err := performRDSDBCopy(vm.InstanceId)
-		if err != nil || respDB.Error.Code!= 0 {
-			fmt.Println(formatErrorMessage(resp.Error,err))
+		if err != nil || respDB.Error.Code != 0 {
+			fmt.Println(formatErrorMessage(resp.Error, err))
 			return
 		}
 		for count, d := range respDB.Result.Databases {
@@ -177,24 +177,19 @@ func copyRDS() {
 			tracefile(fmt.Sprintf(rdsDBTemplate, resourceDbName, resourceName, d.DbName, d.CharacterSetName))
 		}
 
-
 		// RDS-Account
-		respAcc,err := performRDSAccountCopy(vm.InstanceId)
-		if err != nil || respAcc.Error.Code!= 0 {
-			fmt.Println(formatErrorMessage(resp.Error,err))
+		respAcc, err := performRDSAccountCopy(vm.InstanceId)
+		if err != nil || respAcc.Error.Code != 0 {
+			fmt.Println(formatErrorMessage(resp.Error, err))
 			return
 		}
 		for count, a := range respAcc.Result.Accounts {
 			// RDS-Account
-			tracefile(fmt.Sprintf(rdsAccTemplate,
-				fmt.Sprintf("rds-acc-%d-%d", index, count),
-				resourceName, a.AccountName))
+			tracefile(fmt.Sprintf(rdsAccTemplate, fmt.Sprintf("rds-acc-%d-%d", index, count), resourceName, a.AccountName))
 			// RDS - Account Privilege
-			tracefile(fmt.Sprintf(rdsPrivilege,
-				fmt.Sprintf("rds-priv-%d-%d", index, count),
-				resourceName,
-				a.AccountName,
-				generatePrivList(vm.InstanceId,a.AccountPrivileges)))
+			if len(a.AccountPrivileges) > 0 {
+				tracefile(fmt.Sprintf(rdsPrivilege, fmt.Sprintf("rds-priv-%d-%d", index, count), resourceName, a.AccountName, generatePrivList(vm.InstanceId, a.AccountPrivileges)))
+			}
 		}
 	}
 

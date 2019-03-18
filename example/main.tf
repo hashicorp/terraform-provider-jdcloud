@@ -190,7 +190,7 @@ resource "jdcloud_eip_association" "eip-association-TEST-1"{
 # public-read: Owner has full control, other people can read from this but no writing is allowed
 # public-read-write: Everyone can read/write from this bucket
 resource "jdcloud_oss_bucket" "jd-bucket-2" {
-  bucket = "example"
+  bucket_name = "example"
   acl = "private"
 }
 
