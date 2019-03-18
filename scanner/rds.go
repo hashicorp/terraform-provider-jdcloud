@@ -47,7 +47,7 @@ resource "jdcloud_rds_privilege" "%s" {
 }
 `
 
-func generatePrivList(dbIDList []models.AccountPrivilege) string {
+func generatePrivList(instanceID string ,dbIDList []models.AccountPrivilege) string {
 
 	if len(dbIDList) == 0 {
 		return "[]"
@@ -55,9 +55,7 @@ func generatePrivList(dbIDList []models.AccountPrivilege) string {
 
 	ret := "[\n\t"
 	for _, dbID := range dbIDList {
-		resource := fmt.Sprintf("{db_name = \"%s\",privilege = \"%s\"},\n\t",
-			fmt.Sprintf("${jdcloud_rds_database.%s.id}", *dbID.DbName),
-			*dbID.Privilege)
+		resource := fmt.Sprintf("{db_name = \"%s\",privilege = \"%s\"},\n\t", *dbID.DbName, *dbID.Privilege)
 		ret = ret + resource
 	}
 
@@ -196,7 +194,7 @@ func copyRDS() {
 				fmt.Sprintf("rds-priv-%d-%d", index, count),
 				resourceName,
 				a.AccountName,
-				generatePrivList(a.AccountPrivileges)))
+				generatePrivList(vm.InstanceId,a.AccountPrivileges)))
 		}
 	}
 
