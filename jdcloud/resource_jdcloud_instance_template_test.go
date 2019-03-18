@@ -2,34 +2,28 @@ package jdcloud
 
 import (
 	"fmt"
-	"github.com/hashicorp/terraform/terraform"
-	"strconv"
-
-	//	"fmt"
 	"github.com/hashicorp/terraform/helper/resource"
-//	"strconv"
-	"testing"
-	"time"
-
-	//	"time"
+	"github.com/hashicorp/terraform/terraform"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vm/apis"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vm/client"
+	"strconv"
+	"testing"
+	"time"
 )
 
-const TestAccInstanceTemplateConfig=`
+const TestAccInstanceTemplateConfig = `
 resource "jdcloud_instance_template" "instance_template" {
   "template_name" = "terraform_auto_change_name"
- "instance_type" = "g.n2.medium"
- "image_id" = "img-chn8lfcn6j"
+  "instance_type" = "g.n2.medium"
+  "image_id" = "img-chn8lfcn6j"
   "password" = "DevOps2018"
- "bandwidth" = 5
- "ip_service_provider" = "BGP"
- "charge_mode" = "bandwith"
+  "bandwidth" = 5
+  "ip_service_provider" = "BGP"
+  "charge_mode" = "bandwith"
   "subnet_id" = "subnet-ge9rox69ul"
   "security_group_ids" = ["sg-eans7e93el"]
   "system_disk" = {
     disk_category = "local"
-
   }
   "data_disks" = {
     disk_category = "cloud"
@@ -56,7 +50,7 @@ func TestAccJDCloudInstanceTemplate_basic(t *testing.T) {
 	})
 }
 
-func testAccIfTemplateExists(templateName string,templateId *string) resource.TestCheckFunc {
+func testAccIfTemplateExists(templateName string, templateId *string) resource.TestCheckFunc {
 
 	return func(stateInfo *terraform.State) error {
 
@@ -92,17 +86,17 @@ func testAccIfTemplateExists(templateName string,templateId *string) resource.Te
 				}
 
 				if resp.Result.InstanceTemplate.InstanceTemplateData.PrimaryNetworkInterface.NetworkInterface.SubnetId != localTemplateInfo.Primary.Attributes["subnet_id"] {
-					resource.NonRetryableError(fmt.Errorf("[E] testAccIfAgExists failed, local.subnet_id(%s) != remote subnet_id(%s)", localTemplateInfo.Primary.Attributes["availability_group_name"],resp.Result.InstanceTemplate.InstanceTemplateData.PrimaryNetworkInterface.NetworkInterface.SubnetId))
+					resource.NonRetryableError(fmt.Errorf("[E] testAccIfAgExists failed, local.subnet_id(%s) != remote subnet_id(%s)", localTemplateInfo.Primary.Attributes["availability_group_name"], resp.Result.InstanceTemplate.InstanceTemplateData.PrimaryNetworkInterface.NetworkInterface.SubnetId))
 				}
 
-				localSgLength,_ := strconv.Atoi(localTemplateInfo.Primary.Attributes["security_group_ids"])
+				localSgLength, _ := strconv.Atoi(localTemplateInfo.Primary.Attributes["security_group_ids"])
 				if len(resp.Result.InstanceTemplate.InstanceTemplateData.PrimaryNetworkInterface.NetworkInterface.SecurityGroups) != localSgLength {
-					resource.NonRetryableError(fmt.Errorf("[E] testAccIfAgExists failed, local.security_group_ids(%d) != remote security_group_ids(%d)",localSgLength,len(resp.Result.InstanceTemplate.InstanceTemplateData.PrimaryNetworkInterface.NetworkInterface.SecurityGroups)))
+					resource.NonRetryableError(fmt.Errorf("[E] testAccIfAgExists failed, local.security_group_ids(%d) != remote security_group_ids(%d)", localSgLength, len(resp.Result.InstanceTemplate.InstanceTemplateData.PrimaryNetworkInterface.NetworkInterface.SecurityGroups)))
 				}
 
-				localDiskDataLength,_ := strconv.Atoi(localTemplateInfo.Primary.Attributes["data_disks"])
+				localDiskDataLength, _ := strconv.Atoi(localTemplateInfo.Primary.Attributes["data_disks"])
 				if len(resp.Result.InstanceTemplate.InstanceTemplateData.DataDisks) != localDiskDataLength {
-					resource.NonRetryableError(fmt.Errorf("[E] testAccIfAgExists failed, local.data_disks(%d) != remote data_disks(%d)",localDiskDataLength,len(resp.Result.InstanceTemplate.InstanceTemplateData.DataDisks)))
+					resource.NonRetryableError(fmt.Errorf("[E] testAccIfAgExists failed, local.data_disks(%d) != remote data_disks(%d)", localDiskDataLength, len(resp.Result.InstanceTemplate.InstanceTemplateData.DataDisks)))
 				}
 				return nil
 			}
@@ -122,7 +116,7 @@ func testAccIfTemplateExists(templateName string,templateId *string) resource.Te
 	}
 }
 
-func testAccIfTemplateDestroyed (templateId *string) resource.TestCheckFunc {
+func testAccIfTemplateDestroyed(templateId *string) resource.TestCheckFunc {
 	return func(stateInfo *terraform.State) error {
 
 		if *templateId == "" {
@@ -158,4 +152,3 @@ func testAccIfTemplateDestroyed (templateId *string) resource.TestCheckFunc {
 		return nil
 	}
 }
-

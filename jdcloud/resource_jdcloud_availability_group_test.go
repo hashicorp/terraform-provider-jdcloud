@@ -73,9 +73,9 @@ func testAccIfAgExists(agName string, agId *string) resource.TestCheckFunc {
 				if resp.Result.Ag.AgType != localAgInfo.Primary.Attributes["ag_type"] {
 					resource.NonRetryableError(fmt.Errorf("[E] testAccIfAgExists failed, local.ag_type(%s) != remote ag_type(%s)", localAgInfo.Primary.Attributes["ag_type"], resp.Result.Ag.AgType))
 				}
-				localAzLength,_ := strconv.Atoi(localAgInfo.Primary.Attributes["az.#"])
+				localAzLength, _ := strconv.Atoi(localAgInfo.Primary.Attributes["az.#"])
 				if len(resp.Result.Ag.Azs) != localAzLength {
-						resource.NonRetryableError(fmt.Errorf("[E] testAccIfAgExists failed, local.az(%s) != remote az(%s)", localAgInfo.Primary.Attributes["az.#"], resp.Result.Ag.Azs))
+					resource.NonRetryableError(fmt.Errorf("[E] testAccIfAgExists failed, local.az(%s) != remote az(%s)", localAgInfo.Primary.Attributes["az.#"], resp.Result.Ag.Azs))
 				}
 				return nil
 			}
@@ -123,7 +123,6 @@ func testAccIfAgDestroyed(agId *string) resource.TestCheckFunc {
 				return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
 			}
 		})
-
 
 		if err != nil {
 			return err
