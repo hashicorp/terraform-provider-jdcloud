@@ -2,6 +2,8 @@
 
 FEATURES:
 
+* `Availability-Group` and `Instance-Template` [GH-28]
+* Updated to Go1.12, `go.mod` and `go.sum` has been generated [GH-28] 
 * Scanner, back up your current infrastructure and save into a configuration file [GH-21]
 * Importer for various resources is introduced [GH-17]
 * Website files prepared [GH-18]
@@ -9,6 +11,7 @@ FEATURES:
 
 BUG FIXES:
 
+* Multiple bugs fixed in `Scanner` [GH-28]
 * Field `minimum_amount` is set for *Schema.TypeSet [GH-22]
 * When updating *Schema.TypeSet field and failed on the halfway, `SetPartial` is added to correctly modify `tfstate`[GH-22]
 * Unable to set ACL when OSS bucket is created [GH-17]

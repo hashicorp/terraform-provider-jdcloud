@@ -11,6 +11,6 @@ require (
 	github.com/satori/go.uuid v1.2.0
 )
 
-replace github.com/jdcloud-api/jdcloud-sdk-go => /root/src/github.com/jdclouddevelopers/jdcloud-sdk-go
+replace github.com/jdcloud-api/jdcloud-sdk-go => ./vendor/github.com/jdcloud-api/jdcloud-sdk-go/
 
-replace github.com/satori/go.uuid => /root/src/github.com/jdclouddevelopers/satori/go.uuid
+replace github.com/satori/go.uuid => ./vendor/github.com/satori/go.uuid
