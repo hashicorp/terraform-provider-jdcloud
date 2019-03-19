@@ -64,6 +64,7 @@ func resourceJDCloudDisk() *schema.Resource {
 			"charge_mode": {
 				Type:     schema.TypeString,
 				Optional: true,
+				//ValidateFunc: validateStringCandidates("prepaid_by_duration", "postpaid_by_usage", "postpaid_by_duration"),
 				ForceNew: true,
 			},
 			"charge_unit": {
@@ -143,14 +144,13 @@ func resourceJDCloudDiskCreate(d *schema.ResourceData, meta interface{}) error {
 		Target:     []string{DISK_AVAILABLE},
 		Refresh:    diskStatusRefreshFunc(reqRefresh, diskClient),
 		Timeout:    3 * time.Minute,
-		Delay:      10 * time.Second,
+		Delay:      3 * time.Second,
 		MinTimeout: 10 * time.Second,
 	}
 
 	if _, err = stateConf.WaitForState(); err != nil {
 		return fmt.Errorf("[E] Failed in creatingDisk/Waiting disk,err message:%v", err)
 	}
-
 	// This part is added since attribute "description"
 	// Can only be via DiskUpdate rather than "create"
 	return resourceJDCloudDiskUpdate(d, meta)
@@ -161,7 +161,6 @@ func resourceJDCloudDiskRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*JDCloudConfig)
 	diskClient := client.NewDiskClient(config.Credential)
 	req := apis.NewDescribeDiskRequestWithAllParams(config.Region, d.Id())
-
 	err := resource.Retry(time.Minute, func() *resource.RetryError {
 		resp, err := diskClient.DescribeDisk(req)
 		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
@@ -249,7 +248,7 @@ func resourceJDCloudDiskDelete(d *schema.ResourceData, meta interface{}) error {
 		Target:     []string{DISK_DELETED},
 		Refresh:    diskStatusRefreshFunc(reqRefresh, diskClient),
 		Timeout:    3 * time.Minute,
-		Delay:      10 * time.Second,
+		Delay:      3 * time.Second,
 		MinTimeout: 10 * time.Second,
 	}
 
@@ -297,11 +296,11 @@ func waitForDisk(d *schema.ResourceData, meta interface{}, id string, expectedSt
 
 func diskStatusRefreshFunc(req *apis.DescribeDiskRequest, c *client.DiskClient) resource.StateRefreshFunc {
 	return func() (diskItem interface{}, diskState string, e error) {
-
 		err := resource.Retry(3*time.Minute, func() *resource.RetryError {
 			resp, err := c.DescribeDisk(req)
 			if err == nil && resp.Error.Code == REQUEST_COMPLETED {
 				diskState = resp.Result.Disk.Status
+				diskItem = resp.Result.Disk
 				return nil
 			}
 			if connectionError(err) {
@@ -315,6 +314,6 @@ func diskStatusRefreshFunc(req *apis.DescribeDiskRequest, c *client.DiskClient) 
 			return nil, "", err
 		}
 
-		return nil, diskState, nil
+		return diskItem, diskState, nil
 	}
 }

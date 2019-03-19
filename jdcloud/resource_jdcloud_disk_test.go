@@ -22,30 +22,8 @@ resource "jdcloud_disk" "terraform_disk_test" {
   charge_mode = "postpaid_by_duration"
 }
 `
-
-	TestAccDiskConfig = `
-resource "jdcloud_disk" "disk_test_1" {
-  az           = "cn-north-1a"
-  name         = "test_disk"
-  description  = "test123"
-  disk_type    = "ssd"
-  disk_size_gb = 20
-  charge_mode = "postpaid_by_duration"
-}
-`
-
-	TestAccDiskConfigWithNewName = `
-resource "jdcloud_disk" "disk_test_1" {
-  az           = "cn-north-1a"
-  name         = "test_disk_with_new_name"
-  description  = "test123"
-  disk_type    = "ssd"
-  disk_size_gb = 20
-  charge_mode = "postpaid_by_duration"
-}
-`
 )
-
+// This function test -> `DiskCreate` & `DiskUpdate`
 func TestAccJDCloudDisk_basic(t *testing.T) {
 
 	var diskId string
@@ -60,13 +38,13 @@ func TestAccJDCloudDisk_basic(t *testing.T) {
 			{
 				Config: generateDiskConfig("a_normal_disk", "Auto generated normal disk, nothing special"),
 				Check: resource.ComposeTestCheckFunc(
-					testAccIfDiskExists("jdcloud_disk.disk_test_1", &diskId),
+					testAccIfDiskExists("jdcloud_disk.terraform_disk_test", &diskId),
 				),
 			},
 			{
 				Config: generateDiskConfig("normal_disk_with_new_name", "Still the same one, just different name"),
 				Check: resource.ComposeTestCheckFunc(
-					testAccIfDiskExists("jdcloud_disk.disk_test_1", &diskId),
+					testAccIfDiskExists("jdcloud_disk.terraform_disk_test", &diskId),
 				),
 			},
 		},
@@ -91,7 +69,7 @@ func testAccIfDiskExists(diskName string, diskId *string) resource.TestCheckFunc
 
 		req := apis.NewDescribeDiskRequest(diskConfig.Region, *diskId)
 		resp, err := diskClient.DescribeDisk(req)
-
+		fmt.Printf("creating-%v",resp.Result.Disk)
 		if err != nil {
 			return err
 		}

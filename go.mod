@@ -14,3 +14,5 @@ require (
 replace github.com/jdcloud-api/jdcloud-sdk-go => ./vendor/github.com/jdcloud-api/jdcloud-sdk-go/
 
 replace github.com/satori/go.uuid => ./vendor/github.com/satori/go.uuid
+
+replace github.com/jdclouddevelopers/terraform-provider-jdcloud => ./
