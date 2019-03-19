@@ -40,6 +40,8 @@ const (
 	MAX_DISK_COUNT          = 1
 	DISK_AVAILABLE          = "available"
 	DISK_DELETED            = "deleted"
+	DISK_DELETING           = "deleting"
+	DISK_CREATING           = "creating"
 	DISK_TIMEOUT            = 60
 	DISK_ATTACHMENT_TIMEOUT = 60
 	DISK_ATTACHED           = "attached"
@@ -76,7 +78,7 @@ const (
 	DEFAULT_NETWORK_INTERFACE_AUTO_DELETE = true
 	DEFAULT_SANITY_CHECK                  = 1
 	MIN_DISK_SIZE                         = 20
-	MAX_DISK_SIZE                         = 1000
+	MAX_DISK_SIZE                         = 3000
 )
 
 func initConfig(d *schema.ResourceData) (interface{}, error) {

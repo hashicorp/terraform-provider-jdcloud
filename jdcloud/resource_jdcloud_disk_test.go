@@ -11,7 +11,19 @@ import (
 	"testing"
 )
 
-const TestAccDiskConfig = `
+const (
+	testAccDiskTemplate = `
+resource "jdcloud_disk" "terraform_disk_test" {
+  az           = "cn-north-1a"
+  name         = "%s"
+  description  = "%s"
+  disk_type    = "ssd"
+  disk_size_gb = 20
+  charge_mode = "postpaid_by_duration"
+}
+`
+
+	TestAccDiskConfig = `
 resource "jdcloud_disk" "disk_test_1" {
   az           = "cn-north-1a"
   name         = "test_disk"
@@ -22,19 +34,38 @@ resource "jdcloud_disk" "disk_test_1" {
 }
 `
 
+	TestAccDiskConfigWithNewName = `
+resource "jdcloud_disk" "disk_test_1" {
+  az           = "cn-north-1a"
+  name         = "test_disk_with_new_name"
+  description  = "test123"
+  disk_type    = "ssd"
+  disk_size_gb = 20
+  charge_mode = "postpaid_by_duration"
+}
+`
+)
+
 func TestAccJDCloudDisk_basic(t *testing.T) {
 
 	var diskId string
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckDiskDestroy(&diskId),
+		PreCheck:      func() { testAccPreCheck(t) },
+		Providers:     testAccProviders,
+		IDRefreshName: "jdcloud_disk.terraform_disk_test",
+		CheckDestroy:  testAccCheckDiskDestroy(&diskId),
+
 		Steps: []resource.TestStep{
 			{
-				Config: TestAccDiskConfig,
+				Config: generateDiskConfig("a_normal_disk", "Auto generated normal disk, nothing special"),
 				Check: resource.ComposeTestCheckFunc(
-
+					testAccIfDiskExists("jdcloud_disk.disk_test_1", &diskId),
+				),
+			},
+			{
+				Config: generateDiskConfig("normal_disk_with_new_name", "Still the same one, just different name"),
+				Check: resource.ComposeTestCheckFunc(
 					testAccIfDiskExists("jdcloud_disk.disk_test_1", &diskId),
 				),
 			},
@@ -48,10 +79,10 @@ func testAccIfDiskExists(diskName string, diskId *string) resource.TestCheckFunc
 
 		localDiskInfo, ok := stateInfo.RootModule().Resources[diskName]
 		if ok == false {
-			return fmt.Errorf("[ERROR] testAccIfDiskExists failed, we can not find a disk namely:{%s} in terraform.State", diskName)
+			return fmt.Errorf("[ERROR] testAccIfDiskExists, DiskNotFound namely {%s} not found ", diskName)
 		}
 		if localDiskInfo.Primary.ID == "" {
-			return fmt.Errorf("[ERROR] testAccIfDiskExists failed,operation failed, Disk is created but ID not set")
+			return fmt.Errorf("[ERROR] testAccIfDiskExists, Disk is created but ID not set")
 		}
 		*diskId = localDiskInfo.Primary.ID
 
@@ -107,4 +138,8 @@ func testAccCheckDiskDestroy(diskId *string) resource.TestCheckFunc {
 
 		return nil
 	}
+}
+
+func generateDiskConfig(name, description string) string {
+	return fmt.Sprintf(testAccDiskTemplate, name, description)
 }

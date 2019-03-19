@@ -363,7 +363,7 @@ resource "jdcloud_instance_template" "instance_template" {
   "ip_service_provider" = "BGP"
   "charge_mode" = "bandwith"
   "subnet_id" = "subnet-exmaple"
-  "security_group_ids" = ["sg-example"]
+  "security_group_ids" = [" sg-example"]
   "system_disk" = {
     "disk_category" = "local"
     "disk_type" = ""

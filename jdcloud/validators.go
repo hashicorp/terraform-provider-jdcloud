@@ -173,7 +173,7 @@ func validateDiskSize() schema.SchemaValidateFunc {
 
 		diskSize := v.(int)
 		if diskSize < MIN_DISK_SIZE || diskSize > MAX_DISK_SIZE {
-			errors = append(errors, fmt.Errorf("[ERROR] Valid disk size varies from 20~100, yours: %#v", diskSize))
+			errors = append(errors, fmt.Errorf("[ERROR] Valid disk size varies from 20~3000, yours: %#v", diskSize))
 		}
 		if diskSize%10 != 0 {
 			errors = append(errors, fmt.Errorf("[ERROR] Valid disk size must be in multiples of [10], that is,10,20,30..."))
@@ -185,9 +185,13 @@ func validateDiskSize() schema.SchemaValidateFunc {
 func validateStringCandidates(c ...string) schema.SchemaValidateFunc {
 	return func(v interface{}, k string) (ws []string, errors []error) {
 
-		target := v.(string)
-		invalid := true
+		target, ok := v.(string)
+		if !ok {
+			errors = append(errors, fmt.Errorf("[ERROR] Your parameters seems invalid, Parameter has to be a string , Yours:%v", target))
+			return
+		}
 
+		invalid := true
 		for _, candidate := range c {
 			if target == candidate {
 				invalid = false
