@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vm/apis"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vm/client"
+	"time"
 )
 
 const instanceTemplate = `
@@ -48,11 +50,32 @@ resource "jdcloud_disk_attachment" "%s"{
 }
 `
 
-func copyInstance() {
+func performInstanceCopy() (resp *apis.DescribeInstancesResponse, err error) {
 
 	c := client.NewVmClient(config.Credential)
 	req := apis.NewDescribeInstancesRequest(region)
-	resp, _ := c.DescribeInstances(req)
+
+	err = resource.Retry(time.Minute, func() *resource.RetryError {
+		resp, err = c.DescribeInstances(req)
+		if err == nil && resp.Error.Code == 0 {
+			return nil
+		}
+		if connectionError(err) {
+			return resource.RetryableError(formatConnectionErrorMessage())
+		} else {
+			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
+		}
+	})
+	return resp, err
+}
+
+func copyInstance() {
+
+	resp, err := performInstanceCopy()
+	if err != nil {
+		fmt.Printf("%v \n", err)
+		return
+	}
 
 	for index, vm := range resp.Result.Instances {
 
@@ -117,7 +140,9 @@ func copyInstance() {
 		// Disk
 		for index2, disk := range vm.DataDisks {
 			dName := fmt.Sprintf("disk-Association-%d-%d", index, index2)
-			tracefile(fmt.Sprintf(diskAssoTemplate, dName, resourceName, resourceMap[disk.CloudDisk.DiskId]))
+			if resourceMap[disk.CloudDisk.DiskId] != "" {
+				tracefile(fmt.Sprintf(diskAssoTemplate, dName, resourceName, resourceMap[disk.CloudDisk.DiskId]))
+			}
 		}
 	}
 }

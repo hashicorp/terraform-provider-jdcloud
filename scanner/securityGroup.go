@@ -2,8 +2,11 @@ package main
 
 import (
 	"fmt"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/apis"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/client"
+	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/models"
+	"time"
 )
 
 const sgTemplate = `
@@ -30,14 +33,62 @@ const sgRuleLowerPart = `
 }
 `
 
+func performSingleSGCopy(req *apis.DescribeNetworkSecurityGroupsRequest) (resp *apis.DescribeNetworkSecurityGroupsResponse, err error) {
+	c := client.NewVpcClient(config.Credential)
+	err = resource.Retry(time.Minute, func() *resource.RetryError {
+		resp, err = c.DescribeNetworkSecurityGroups(req)
+		if err == nil && resp.Error.Code == 0 {
+			return nil
+		}
+		if connectionError(err) {
+			return resource.RetryableError(formatConnectionErrorMessage())
+		} else {
+			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
+		}
+	})
+	return
+}
+
+func performSGCopy() (sgArray []models.NetworkSecurityGroup, err error) {
+
+	pageSize := 100
+	c := client.NewVpcClient(config.Credential)
+	req := apis.NewDescribeNetworkSecurityGroupsRequest(region)
+
+	err = resource.Retry(5*time.Minute, func() *resource.RetryError {
+		resp, err := c.DescribeNetworkSecurityGroups(req)
+		if err == nil && resp.Error.Code == 0 {
+			totalCount := resp.Result.TotalCount
+			for page := 1; page <= totalCount/100+1; page++ {
+				reqPage := apis.NewDescribeNetworkSecurityGroupsRequestWithAllParams(region, &page, &pageSize, nil)
+				resp, err = performSingleSGCopy(reqPage)
+				if err != nil {
+					return resource.NonRetryableError(err)
+				}
+				for _, item := range resp.Result.NetworkSecurityGroups {
+					sgArray = append(sgArray, item)
+				}
+			}
+			return nil
+		}
+		if connectionError(err) {
+			return resource.RetryableError(formatConnectionErrorMessage())
+		} else {
+			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
+		}
+	})
+	return
+}
+
 func copySecurityGroup() {
 
-	c := client.NewVpcClient(config.Credential)
+	sgArray, err := performSGCopy()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 
-	req := apis.NewDescribeNetworkSecurityGroupsRequest(region)
-	resp, _ := c.DescribeNetworkSecurityGroups(req)
-
-	for index, sg := range resp.Result.NetworkSecurityGroups {
+	for index, sg := range sgArray {
 
 		// sg - Copy
 		resourceName := fmt.Sprintf("sg-%d", index)
