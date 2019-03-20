@@ -117,7 +117,7 @@ func resourceJDCloudDiskCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	req := apis.NewCreateDisksRequest(config.Region, &diskSpec, MAX_DISK_COUNT, diskClientTokenDefault())
-	err := resource.Retry(time.Minute, func() *resource.RetryError {
+	err := RetryWithParamsSpecified(3*time.Second, 2*time.Second, time.Minute, func() *resource.RetryError {
 
 		resp, err := diskClient.CreateDisks(req)
 

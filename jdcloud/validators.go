@@ -2,6 +2,7 @@ package jdcloud
 
 import (
 	"fmt"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/jdcloud-api/jdcloud-sdk-go/core"
 	vpcApis "github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/apis"
@@ -12,6 +13,8 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
+	"sync"
+	"time"
 )
 
 func validateStringInSlice(validSlice []string, ignoreCase bool) schema.SchemaValidateFunc {
@@ -207,6 +210,56 @@ func validateStringCandidates(c ...string) schema.SchemaValidateFunc {
 
 func generateDiskIndex(i interface{}) int {
 	return rand.Intn(100)
+}
+
+// Nothing special, we modified the refresh frequency here
+// This function is used rather than resource.Retry since under some
+// bad network condition 500 ms is too short for a request to return
+func RetryWithParamsSpecified(delay, frequency, timeout time.Duration, f resource.RetryFunc) error {
+	var resultErr error
+	var resultErrMu sync.Mutex
+
+	c := &resource.StateChangeConf{
+		Delay:      delay,
+		Pending:    []string{"retryableerror"},
+		Target:     []string{"success"},
+		Timeout:    timeout,
+		MinTimeout: frequency,
+		Refresh: func() (interface{}, string, error) {
+			rerr := f()
+
+			resultErrMu.Lock()
+			defer resultErrMu.Unlock()
+
+			if rerr == nil {
+				resultErr = nil
+				return 42, "success", nil
+			}
+
+			resultErr = rerr.Err
+
+			if rerr.Retryable {
+				return 42, "retryableerror", nil
+			}
+			return nil, "quit", rerr.Err
+		},
+	}
+
+	_, waitErr := c.WaitForState()
+
+	// Need to acquire the lock here to be able to avoid race using resultErr as
+	// the return value
+	resultErrMu.Lock()
+	defer resultErrMu.Unlock()
+
+	// resultErr may be nil because the wait timed out and resultErr was never
+	// set; this is still an error
+	if resultErr == nil {
+		return waitErr
+	}
+	// resultErr takes precedence over waitErr if both are set because it is
+	// more likely to be useful
+	return resultErr
 }
 
 //func commonRetryFunc(t time.Duration,command func()(interface{},error)) error {
