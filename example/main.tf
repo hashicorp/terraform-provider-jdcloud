@@ -363,6 +363,7 @@ resource "jdcloud_instance_template" "instance_template" {
   "instance_type" = "g.n2.medium"
   "image_id" = "img-example"
   "bandwidth" = 5
+  "description" = "GrandJDcloud"
   "ip_service_provider" = "BGP"
   "charge_mode" = "bandwith"
   "subnet_id" = "subnet-exmaple"
