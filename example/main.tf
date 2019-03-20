@@ -215,6 +215,8 @@ resource "jdcloud_instance" "vm-1" {
   ################################################
   # 1. VM Config
   ################################################
+  # Password is a optional field. By missing this
+  # Field,passwords will be sent by email and SMS
   az = "cn-north-1a"
   instance_name = "my-vm-1"
   instance_type = "c.n1.large"
@@ -338,7 +340,9 @@ resource "jdcloud_rds_privilege" "pri-test" {
 # Full parameters ->
 #
 #   + instance_type : g.n2.medium/g.n2.large...Just different type of instance , by default its g.n2.medium
+#   + password : Optional, if you leave it blank. password will be sent to you by email and SMS.
 #   + image_id : If you would like to start your instance from an image , fill in here, by default its Ubuntu:16.04
+#   + bandwidth: Optional. if you leave it blank, no public IP will be assigned to this instance
 #   + ip_service_provider : [BGP/nonBGP] , by default it's set to BGP
 #   + charge_mode : [bandwith/flow] , by default it's set to bandwith
 #   + subnet_id : Each instance is supposed to exists under a subnet, fill its id here
@@ -358,7 +362,6 @@ resource "jdcloud_instance_template" "instance_template" {
   "password" = "<Give it a password>"
   "instance_type" = "g.n2.medium"
   "image_id" = "img-example"
-  "password" = "DevOps2018"
   "bandwidth" = 5
   "ip_service_provider" = "BGP"
   "charge_mode" = "bandwith"

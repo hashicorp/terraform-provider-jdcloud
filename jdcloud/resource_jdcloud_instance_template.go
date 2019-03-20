@@ -72,13 +72,12 @@ func resourceJDCloudInstanceTemplate() *schema.Resource {
 			},
 			"password": &schema.Schema{
 				Type:      schema.TypeString,
-				Required:  true,
+				Optional:  true,
 				Sensitive: true,
 			},
 			"bandwidth": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
-				Default:  1,
 			},
 			"ip_service_provider": &schema.Schema{
 				Type:     schema.TypeString,
@@ -128,13 +127,7 @@ func resourceJDCloudInstanceTemplateCreate(d *schema.ResourceData, m interface{}
 	templateSpec := &vm.InstanceTemplateSpec{
 		InstanceType: d.Get("instance_type").(string),
 		ImageId:      d.Get("image_id").(string),
-		Password:     d.Get("password").(string),
 		KeyNames:     []string{},
-		ElasticIp: vm.InstanceTemplateElasticIpSpec{
-			BandwidthMbps: d.Get("bandwidth").(int),
-			Provider:      d.Get("ip_service_provider").(string),
-			ChargeMode:    d.Get("charge_mode").(string),
-		},
 		PrimaryNetworkInterface: vm.InstanceTemplateNetworkInterfaceAttachmentSpec{
 			DeviceIndex: DEFAULT_DEVICE_INDEX,
 			AutoDelete:  DEFAULT_NETWORK_INTERFACE_AUTO_DELETE,
@@ -146,6 +139,16 @@ func resourceJDCloudInstanceTemplateCreate(d *schema.ResourceData, m interface{}
 		},
 	}
 
+	if _, ok := d.GetOk("bandwidth"); ok {
+		templateSpec.ElasticIp = vm.InstanceTemplateElasticIpSpec{
+			BandwidthMbps: d.Get("bandwidth").(int),
+			Provider:      d.Get("ip_service_provider").(string),
+			ChargeMode:    d.Get("charge_mode").(string),
+		}
+	}
+	if _, ok := d.GetOk("password"); ok {
+		templateSpec.Password = d.Get("password").(string)
+	}
 	if _, ok := d.GetOk("system_disk"); ok {
 		templateSpec.SystemDisk = typeSetToDiskTemplateList(d.Get("system_disk").(*schema.Set))[0]
 	}

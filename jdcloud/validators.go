@@ -203,3 +203,5 @@ func validateStringCandidates(c ...string) schema.SchemaValidateFunc {
 		return
 	}
 }
+
+//func casualRetryFunc()

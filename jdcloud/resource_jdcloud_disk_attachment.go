@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	diskApis "github.com/jdcloud-api/jdcloud-sdk-go/services/disk/apis"
+	diskClient "github.com/jdcloud-api/jdcloud-sdk-go/services/disk/client"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vm/apis"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vm/client"
 	vm "github.com/jdcloud-api/jdcloud-sdk-go/services/vm/models"
@@ -50,7 +52,7 @@ func resourceJDCloudDiskAttachment() *schema.Resource {
 }
 
 func resourceJDCloudDiskAttachmentCreate(d *schema.ResourceData, meta interface{}) error {
-	d.Partial(true)
+
 	config := meta.(*JDCloudConfig)
 	instanceID := d.Get("instance_id").(string)
 	diskID := d.Get("disk_id").(string)
@@ -66,19 +68,12 @@ func resourceJDCloudDiskAttachmentCreate(d *schema.ResourceData, meta interface{
 
 	vmClient := client.NewVmClient(config.Credential)
 
-	err := resource.Retry(5*time.Minute, func() *resource.RetryError {
+	err := resource.Retry(time.Minute, func() *resource.RetryError {
 
 		resp, err := vmClient.AttachDisk(req)
-
 		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
-			d.SetPartial("disk_id")
-			d.SetPartial("instance_id")
-			d.SetPartial("device_name")
-			d.SetPartial("auto_delete")
-			d.SetId(resp.RequestID)
 			return nil
 		}
-
 		if connectionError(err) {
 			return resource.RetryableError(formatConnectionErrorMessage())
 		} else {
@@ -90,11 +85,22 @@ func resourceJDCloudDiskAttachmentCreate(d *schema.ResourceData, meta interface{
 		return err
 	}
 
-	if errAttaching := waitForDiskAttaching(d, meta, instanceID, diskID, DISK_ATTACHED); errAttaching != nil {
-		return errAttaching
+	//Attaching Disk usually takes seconds. Let's wait for it
+	reqRefresh := diskApis.NewDescribeDiskRequest(config.Region, diskID)
+	c := diskClient.NewDiskClient(config.Credential)
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{DISK_AVAILABLE},
+		Target:     []string{DISK_ATTACHED},
+		Refresh:    diskStatusRefreshFunc(reqRefresh, c),
+		Timeout:    3 * time.Minute,
+		Delay:      3 * time.Second,
+		MinTimeout: 10 * time.Second,
+	}
+	if _, err = stateConf.WaitForState(); err != nil {
+		return fmt.Errorf("[E] Failed in AttachingDisk/Waiting disk,err message:%v", err)
 	}
 
-	return nil
+	return resourceJDCloudDiskAttachmentRead(d, meta)
 }
 
 func resourceJDCloudDiskAttachmentRead(d *schema.ResourceData, meta interface{}) error {
