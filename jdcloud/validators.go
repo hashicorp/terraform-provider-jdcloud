@@ -204,4 +204,10 @@ func validateStringCandidates(c ...string) schema.SchemaValidateFunc {
 	}
 }
 
-//func casualRetryFunc()
+//func commonRetryFunc(t time.Duration,command func()(interface{},error)) error {
+//	return resource.Retry(t,func() *resource.RetryError{
+//
+//		resp,err := command()
+//		if err == nil &&
+//	})
+//}

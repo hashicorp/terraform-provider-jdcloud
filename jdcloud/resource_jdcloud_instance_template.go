@@ -70,6 +70,10 @@ func resourceJDCloudInstanceTemplate() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
+			"description": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 			"password": &schema.Schema{
 				Type:      schema.TypeString,
 				Optional:  true,
@@ -123,6 +127,8 @@ func resourceJDCloudInstanceTemplateCreate(d *schema.ResourceData, m interface{}
 
 	config := m.(*JDCloudConfig)
 	vmClient := client.NewVmClient(config.Credential)
+	logger := vmLogger{}
+	vmClient.SetLogger(logger)
 
 	templateSpec := &vm.InstanceTemplateSpec{
 		InstanceType: d.Get("instance_type").(string),
@@ -140,7 +146,7 @@ func resourceJDCloudInstanceTemplateCreate(d *schema.ResourceData, m interface{}
 	}
 
 	if _, ok := d.GetOk("bandwidth"); ok {
-		templateSpec.ElasticIp = vm.InstanceTemplateElasticIpSpec{
+		templateSpec.ElasticIp = &vm.InstanceTemplateElasticIpSpec{
 			BandwidthMbps: d.Get("bandwidth").(int),
 			Provider:      d.Get("ip_service_provider").(string),
 			ChargeMode:    d.Get("charge_mode").(string),
@@ -155,8 +161,10 @@ func resourceJDCloudInstanceTemplateCreate(d *schema.ResourceData, m interface{}
 	if _, ok := d.GetOk("data_disks"); ok {
 		templateSpec.DataDisks = typeSetToDiskTemplateList(d.Get("data_disks").(*schema.Set))
 	}
-
 	req := apis.NewCreateInstanceTemplateRequest(config.Region, templateSpec, d.Get("template_name").(string))
+	if _, ok := d.GetOk("description"); ok {
+		req.Description = GetStringAddr(d, "description")
+	}
 
 	err := resource.Retry(2*time.Minute, func() *resource.RetryError {
 
