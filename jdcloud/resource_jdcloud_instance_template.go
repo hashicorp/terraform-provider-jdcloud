@@ -6,6 +6,7 @@ import (
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vm/apis"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vm/client"
 	vm "github.com/jdcloud-api/jdcloud-sdk-go/services/vm/models"
+	"log"
 	"strconv"
 	"time"
 )
@@ -48,6 +49,12 @@ func resourceJDCloudInstanceTemplate() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+			//"internal_id": &schema.Schema{
+			//	Type:     schema.TypeString,
+			//	Optional: true,
+			//Sensitive: true,
+			//Default: diskClientTokenDefault(),
+			//},
 		},
 	}
 
@@ -117,7 +124,7 @@ func resourceJDCloudInstanceTemplate() *schema.Resource {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem:     diskSchema,
-				MinItems: 1,
+				Set:      generateDiskIndex,
 			},
 		},
 	}
@@ -304,6 +311,7 @@ func typeSetToDiskTemplateList(s *schema.Set) []vm.InstanceTemplateDiskAttachmen
 		}
 		ret = append(ret, disk)
 	}
+	log.Printf("nishizhu234", ret)
 
 	return ret
 }

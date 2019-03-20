@@ -7,6 +7,7 @@ import (
 	vpcApis "github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/apis"
 	vpcClient "github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/client"
 	"github.com/satori/go.uuid"
+	"math/rand"
 	"path/filepath"
 	"regexp"
 	"runtime"
@@ -202,6 +203,10 @@ func validateStringCandidates(c ...string) schema.SchemaValidateFunc {
 		}
 		return
 	}
+}
+
+func generateDiskIndex(i interface{}) int {
+	return rand.Intn(100)
 }
 
 //func commonRetryFunc(t time.Duration,command func()(interface{},error)) error {

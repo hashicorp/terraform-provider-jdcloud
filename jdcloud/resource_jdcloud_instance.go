@@ -538,6 +538,7 @@ func resourceJDCloudInstance() *schema.Resource {
 				MinItems: 1,
 				Optional: true,
 				Elem:     diskSchema,
+				Set:      generateDiskIndex,
 			},
 		},
 	}
