@@ -163,6 +163,12 @@ func resourceJDCloudDiskRead(d *schema.ResourceData, meta interface{}) error {
 	req := apis.NewDescribeDiskRequestWithAllParams(config.Region, d.Id())
 	err := resource.Retry(time.Minute, func() *resource.RetryError {
 		resp, err := diskClient.DescribeDisk(req)
+
+		if resp.Result.Disk.Status == DISK_DELETED {
+			d.SetId("")
+			return nil
+		}
+
 		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
 
 			d.Set("az", resp.Result.Disk.Az)
@@ -172,11 +178,6 @@ func resourceJDCloudDiskRead(d *schema.ResourceData, meta interface{}) error {
 			d.Set("snapshot_id", resp.Result.Disk.SnapshotId)
 			d.Set("charge_mode", resp.Result.Disk.Charge.ChargeMode)
 			d.Set("disk_size_gb", resp.Result.Disk.DiskSizeGB)
-			return nil
-		}
-
-		if resp.Result.Disk.Status == DISK_DELETED {
-			d.SetId("")
 			return nil
 		}
 

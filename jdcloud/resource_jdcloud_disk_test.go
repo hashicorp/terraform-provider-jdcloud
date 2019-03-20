@@ -23,6 +23,7 @@ resource "jdcloud_disk" "terraform_disk_test" {
 }
 `
 )
+
 // This function test -> `DiskCreate` & `DiskUpdate`
 func TestAccJDCloudDisk_basic(t *testing.T) {
 
@@ -69,7 +70,7 @@ func testAccIfDiskExists(diskName string, diskId *string) resource.TestCheckFunc
 
 		req := apis.NewDescribeDiskRequest(diskConfig.Region, *diskId)
 		resp, err := diskClient.DescribeDisk(req)
-		fmt.Printf("creating-%v",resp.Result.Disk)
+		fmt.Printf("creating-%v", resp.Result.Disk)
 		if err != nil {
 			return err
 		}
