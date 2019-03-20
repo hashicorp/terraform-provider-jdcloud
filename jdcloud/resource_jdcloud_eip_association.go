@@ -1,11 +1,13 @@
 package jdcloud
 
 import (
-	"fmt"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vm/apis"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vm/client"
+	vpcApis "github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/apis"
+	vpcClient "github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/client"
+	"log"
 	"time"
 )
 
@@ -40,7 +42,7 @@ func resourceAssociateElasticIpCreate(d *schema.ResourceData, meta interface{}) 
 
 	vmClient := client.NewVmClient(config.Credential)
 	rq := apis.NewAssociateElasticIpRequest(config.Region, instanceID, elasticIpId)
-	return resource.Retry(time.Minute, func() *resource.RetryError {
+	err := resource.Retry(time.Minute, func() *resource.RetryError {
 
 		resp, err := vmClient.AssociateElasticIp(rq)
 
@@ -55,25 +57,40 @@ func resourceAssociateElasticIpCreate(d *schema.ResourceData, meta interface{}) 
 			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
 		}
 	})
+
+	if err != nil {
+		return err
+	}
+
+	return resourceAssociateElasticIpRead(d, meta)
 }
 func resourceAssociateElasticIpRead(d *schema.ResourceData, meta interface{}) error {
 
 	config := meta.(*JDCloudConfig)
 	instanceID := d.Get("instance_id").(string)
 	elasticIpId := d.Get("elastic_ip_id").(string)
+	c := vpcClient.NewVpcClient(config.Credential)
+	req := vpcApis.NewDescribeElasticIpRequest(config.Region, elasticIpId)
 
-	vmClient := client.NewVmClient(config.Credential)
-	req := apis.NewDescribeInstanceRequest(config.Region, instanceID)
-	resp, err := vmClient.DescribeInstance(req)
+	return resource.Retry(time.Minute, func() *resource.RetryError {
+		resp, err := c.DescribeElasticIp(req)
+		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
+			d.Set("elastic_ip_id", resp.Result.ElasticIp.ElasticIpId)
+			d.Set("instance_id", resp.Result.ElasticIp.InstanceId)
+			return nil
+		}
 
-	if err != nil {
-		return fmt.Errorf("[ERROR] resourceAssociateElasticIpRead failed %s ", err.Error())
-	}
-	if resp.Result.Instance.ElasticIpId != elasticIpId {
-		d.SetId("")
-	}
+		if resp.Result.ElasticIp.InstanceId != instanceID {
+			log.Printf("[WARN] EIP=%s removed locally", resp.Result.ElasticIp.ElasticIpAddress)
+			d.SetId("")
+		}
 
-	return nil
+		if connectionError(err) {
+			return resource.RetryableError(formatConnectionErrorMessage())
+		} else {
+			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
+		}
+	})
 }
 
 func resourceAssociateElasticIpDelete(d *schema.ResourceData, meta interface{}) error {

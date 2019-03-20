@@ -1,7 +1,6 @@
 package jdcloud
 
 import (
-	"fmt"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/charge/models"
@@ -34,6 +33,7 @@ func resourceJDCloudEIP() *schema.Resource {
 			"elastic_ip_address": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 				ForceNew: true,
 			},
 		},
@@ -54,7 +54,7 @@ func resourceJDCloudEIPCreate(d *schema.ResourceData, meta interface{}) error {
 		req.ElasticIpAddress = GetStringAddr(d, "elastic_ip_address")
 	}
 
-	return resource.Retry(20*time.Second, func() *resource.RetryError {
+	err := resource.Retry(20*time.Second, func() *resource.RetryError {
 
 		resp, err := vpcClient.CreateElasticIps(req)
 
@@ -69,6 +69,12 @@ func resourceJDCloudEIPCreate(d *schema.ResourceData, meta interface{}) error {
 			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
 		}
 	})
+
+	if err != nil {
+		return err
+	}
+
+	return resourceJDCloudEIPRead(d, meta)
 }
 
 func resourceJDCloudEIPRead(d *schema.ResourceData, meta interface{}) error {
@@ -76,21 +82,28 @@ func resourceJDCloudEIPRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*JDCloudConfig)
 	req := apis.NewDescribeElasticIpRequest(config.Region, d.Id())
 	vpcClient := client.NewVpcClient(config.Credential)
-	resp, err := vpcClient.DescribeElasticIp(req)
 
-	if err != nil {
-		return fmt.Errorf("[ERROR] resourceJDCloudEIPRead failed %s ", err.Error())
-	}
-	if resp.Error.Code == RESOURCE_NOT_FOUND {
-		d.SetId("")
-		return nil
-	}
+	return resource.Retry(time.Minute, func() *resource.RetryError {
+		resp, err := vpcClient.DescribeElasticIp(req)
+		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
 
-	if resp.Error.Code != REQUEST_COMPLETED {
-		return fmt.Errorf("[ERROR] resourceJDCloudEIPRead failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
-	}
+			d.Set("elastic_ip_address", resp.Result.ElasticIp.ElasticIpAddress)
+			d.Set("bandwidth_mbps", resp.Result.ElasticIp.BandwidthMbps)
+			d.Set("eip_provider", resp.Result.ElasticIp.Provider)
 
-	return nil
+			return nil
+		}
+		if resp.Error.Code == RESOURCE_NOT_FOUND {
+			d.SetId("")
+			return nil
+		}
+
+		if connectionError(err) {
+			return resource.RetryableError(formatConnectionErrorMessage())
+		} else {
+			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
+		}
+	})
 }
 
 func resourceJDCloudEIPDelete(d *schema.ResourceData, meta interface{}) error {
