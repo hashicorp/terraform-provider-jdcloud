@@ -2,6 +2,7 @@ package jdcloud
 
 import (
 	"fmt"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	commonModels "github.com/jdcloud-api/jdcloud-sdk-go/services/common/models"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vm/apis"
@@ -9,6 +10,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"time"
 )
 
 func resourceJDCloudKeyPairs() *schema.Resource {
@@ -54,72 +56,84 @@ func resourceJDCloudKeyPairsCreate(d *schema.ResourceData, meta interface{}) err
 
 	if publicKey, ok := d.GetOk("public_key"); ok {
 
-		rq := apis.NewImportKeypairRequest(config.Region, keyName, publicKey.(string))
+		e := resource.Retry(time.Minute, func() *resource.RetryError {
+			rq := apis.NewImportKeypairRequest(config.Region, keyName, publicKey.(string))
+			resp, err := vmClient.ImportKeypair(rq)
 
-		resp, err := vmClient.ImportKeypair(rq)
+			if err == nil && resp.Error.Code == REQUEST_COMPLETED {
+				d.SetId(resp.RequestID)
+			}
+			if err == nil && resp.Error.Code != REQUEST_COMPLETED {
+				return resource.NonRetryableError(fmt.Errorf("[ERROR] import key pairs failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message))
+			}
 
-		if err != nil {
-			return fmt.Errorf("[ERROR] import key pairs failed %s ", err.Error())
+			if connectionError(err) {
+				return resource.RetryableError(err)
+			} else {
+				return resource.NonRetryableError(err)
+			}
+		})
+		if e != nil {
+			return e
 		}
-
-		if resp.Error.Code != REQUEST_COMPLETED {
-			return fmt.Errorf("[ERROR] import key pairs failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
-		}
-
-		d.SetId(resp.RequestID)
 
 	} else {
 
-		rq := apis.NewCreateKeypairRequest(config.Region, keyName)
-		resp, err := vmClient.CreateKeypair(rq)
+		e := resource.Retry(time.Minute, func() *resource.RetryError {
+			rq := apis.NewCreateKeypairRequest(config.Region, keyName)
+			resp, err := vmClient.CreateKeypair(rq)
 
-		if err != nil {
-			return fmt.Errorf("[DEBUG] create key pairs failed %s ", err.Error())
-		}
+			if err == nil && resp.Error.Code == REQUEST_COMPLETED {
 
-		if resp.Error.Code != REQUEST_COMPLETED {
-			return fmt.Errorf("[DEBUG] create key pairs failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
-		}
+				// Though setting anything except id is not recommended
+				// Private Key can only be retrieved in creating
+				d.Set("private_key", resp.Result.PrivateKey)
 
-		d.SetId(resp.Result.KeyName)
-		d.Set("key_finger_print", resp.Result.KeyFingerprint)
-		d.Set("private_key", resp.Result.PrivateKey)
+				if file, ok := d.GetOk("key_file"); ok {
 
-		if file, ok := d.GetOk("key_file"); ok {
+					errIO := ioutil.WriteFile(file.(string), []byte(resp.Result.PrivateKey), KEYPAIRS_PERM)
+					if errIO != nil {
+						return resource.NonRetryableError(fmt.Errorf("[ERROR] resourceJDCloudKeyPairsCreate failed with error message:%s", errIO.Error()))
+					}
 
-			errIO := ioutil.WriteFile(file.(string), []byte(resp.Result.PrivateKey), KEYPAIRS_PERM)
-			if errIO != nil {
-				return fmt.Errorf("[ERROR] resourceJDCloudKeyPairsCreate failed with error message:%s", errIO.Error())
+					errChmod := os.Chmod(file.(string), KEYPAIRS_PRIV)
+					if errChmod != nil {
+						return resource.NonRetryableError(fmt.Errorf("[ERROR] resourceJDCloudKeyPairsCreate failed with error message:%s", errChmod.Error()))
+					}
+				}
+				d.SetId(resp.Result.KeyName)
+			}
+			if err == nil && resp.Error.Code != REQUEST_COMPLETED {
+				return resource.NonRetryableError(fmt.Errorf("[DEBUG] create key pairs failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message))
 			}
 
-			errChmod := os.Chmod(file.(string), KEYPAIRS_PRIV)
-			if errChmod != nil {
-				return fmt.Errorf("[ERROR] resourceJDCloudKeyPairsCreate failed with error message:%s", errChmod.Error())
+			if connectionError(err) {
+				return resource.RetryableError(err)
+			} else {
+				return resource.NonRetryableError(fmt.Errorf("[DEBUG] create key pairs failed %s ", err.Error()))
 			}
-		}
+		})
 
+		if e != nil {
+			return e
+		}
 	}
-
-	return nil
+	return resourceJDCloudKeyPairsRead(d, meta)
 }
 
 func resourceJDCloudKeyPairsRead(d *schema.ResourceData, meta interface{}) error {
 
 	config := meta.(*JDCloudConfig)
-	keyName := d.Get("key_name").(string)
-
 	vmClient := client.NewVmClient(config.Credential)
-
-	var filter commonModels.Filter
-	filter.Name = "keyNames"
-	filter.Values = append(filter.Values, keyName)
-
-	var filters []commonModels.Filter
-
-	filters = append(filters, filter)
+	filters := []commonModels.Filter{
+		commonModels.Filter{
+			Name:   "keyNames",
+			Values: []string{d.Get("key_name").(string)},
+		},
+	}
 	req := apis.NewDescribeKeypairsRequestWithAllParams(config.Region, nil, nil, filters)
-
 	resp, err := vmClient.DescribeKeypairs(req)
+
 	if err != nil {
 		return fmt.Errorf("[DEBUG] resourceJDCloudKeyPairsUpdate failed %s", err.Error())
 	}
@@ -135,6 +149,7 @@ func resourceJDCloudKeyPairsRead(d *schema.ResourceData, meta interface{}) error
 	}
 
 	d.Set("key_finger_print", resp.Result.Keypairs[0].KeyFingerprint)
+	d.Set("key_name", resp.Result.Keypairs[0].KeyName)
 	return nil
 }
 
