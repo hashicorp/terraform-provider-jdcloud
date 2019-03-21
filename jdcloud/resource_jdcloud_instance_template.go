@@ -6,7 +6,6 @@ import (
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vm/apis"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vm/client"
 	vm "github.com/jdcloud-api/jdcloud-sdk-go/services/vm/models"
-	"strconv"
 	"time"
 )
 
@@ -278,11 +277,6 @@ func resourceJDCloudInstanceTemplateDelete(d *schema.ResourceData, m interface{}
 		return err
 	}
 	return nil
-}
-
-func stringToInt(s string) int {
-	i, _ := strconv.Atoi(s)
-	return i
 }
 
 func typeListToDiskTemplateList(s []interface{}) []vm.InstanceTemplateDiskAttachmentSpec {

@@ -274,7 +274,7 @@ resource "jdcloud_instance" "vm-1" {
     az = "cn-north-1a"
     disk_name = "vm1-datadisk-1"
     description = "test"
-    disk_type = "premium-hdd"
+    disk_type = "ssd"
     disk_size_gb = 50
   }
 }
