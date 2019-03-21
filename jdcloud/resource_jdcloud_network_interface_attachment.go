@@ -83,7 +83,10 @@ func resourceJDCloudNetworkInterfaceAttachRead(d *schema.ResourceData, meta inte
 		resp, err := vpcClient.DescribeNetworkInterface(req)
 
 		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
-			d.SetId(resp.RequestID)
+
+			d.Set("network_interface_id",resp.Result.NetworkInterface.NetworkInterfaceId)
+			d.Set("instance_id",resp.Result.NetworkInterface.InstanceId)
+
 			return nil
 		}
 
