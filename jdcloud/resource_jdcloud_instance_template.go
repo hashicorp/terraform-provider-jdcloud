@@ -20,34 +20,40 @@ func resourceJDCloudInstanceTemplate() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  true,
+				ForceNew: true,
 			},
 			"device_name": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
+				ForceNew: true,
 			},
 
 			// Disk-Spec
 			"disk_category": &schema.Schema{
 				Type:         schema.TypeString,
 				Required:     true,
+				ForceNew:     true,
 				ValidateFunc: validateStringCandidates("local", "cloud"),
 			},
 			"disk_type": &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
+				ForceNew:     true,
 				Default:      "ssd",
 				ValidateFunc: validateStringCandidates("ssd", "premium-hdd"),
 			},
 			"disk_size": &schema.Schema{
 				Type:         schema.TypeInt,
 				Optional:     true,
+				ForceNew:     true,
 				Default:      40,
 				ValidateFunc: validateDiskSize(),
 			},
 			"snapshot_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				ForceNew: true,
 			},
 		},
 	}
@@ -107,7 +113,7 @@ func resourceJDCloudInstanceTemplate() *schema.Resource {
 				},
 			},
 			"system_disk": &schema.Schema{
-				Type:     schema.TypeSet,
+				Type:     schema.TypeList,
 				Elem:     diskSchema,
 				Required: true,
 				ForceNew: true,
@@ -115,7 +121,7 @@ func resourceJDCloudInstanceTemplate() *schema.Resource {
 				MinItems: 1,
 			},
 			"data_disks": &schema.Schema{
-				Type:     schema.TypeSet,
+				Type:     schema.TypeList,
 				Optional: true,
 				Elem:     diskSchema,
 			},
@@ -156,10 +162,10 @@ func resourceJDCloudInstanceTemplateCreate(d *schema.ResourceData, m interface{}
 		templateSpec.Password = d.Get("password").(string)
 	}
 	if _, ok := d.GetOk("system_disk"); ok {
-		templateSpec.SystemDisk = typeSetToDiskTemplateList(d.Get("system_disk").(*schema.Set))[0]
+		templateSpec.SystemDisk = typeListToDiskTemplateList(d.Get("system_disk").([]interface{}))[0]
 	}
 	if _, ok := d.GetOk("data_disks"); ok {
-		templateSpec.DataDisks = typeSetToDiskTemplateList(d.Get("data_disks").(*schema.Set))
+		templateSpec.DataDisks = typeListToDiskTemplateList(d.Get("data_disks").([]interface{}))
 	}
 	req := apis.NewCreateInstanceTemplateRequest(config.Region, templateSpec, d.Get("template_name").(string))
 	if _, ok := d.GetOk("description"); ok {
@@ -279,11 +285,11 @@ func stringToInt(s string) int {
 	return i
 }
 
-func typeSetToDiskTemplateList(s *schema.Set) []vm.InstanceTemplateDiskAttachmentSpec {
+func typeListToDiskTemplateList(s []interface{}) []vm.InstanceTemplateDiskAttachmentSpec {
 
 	ret := []vm.InstanceTemplateDiskAttachmentSpec{}
 
-	for _, d := range s.List() {
+	for _, d := range s {
 		m := d.(map[string]interface{})
 		disk := vm.InstanceTemplateDiskAttachmentSpec{
 			DiskCategory: m["disk_category"].(string),
