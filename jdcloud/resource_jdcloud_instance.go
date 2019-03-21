@@ -5,8 +5,6 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/jdcloud-api/jdcloud-sdk-go/core"
-	da "github.com/jdcloud-api/jdcloud-sdk-go/services/disk/apis"
-	dc "github.com/jdcloud-api/jdcloud-sdk-go/services/disk/client"
 	dm "github.com/jdcloud-api/jdcloud-sdk-go/services/disk/models"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vm/apis"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vm/client"
@@ -56,24 +54,23 @@ func GetIntAddr(d *schema.ResourceData, key string) *int {
 	return &v
 }
 
-func QueryInstanceDetail(d *schema.ResourceData, m interface{}) (*apis.DescribeInstanceResponse, error) {
+func QueryInstanceDetail(d *schema.ResourceData, m interface{}, instanceId string) (r *apis.DescribeInstanceResponse, e error) {
 
 	config := m.(*JDCloudConfig)
 	vmClient := client.NewVmClient(config.Credential)
-	req := apis.NewDescribeInstanceRequest(config.Region, d.Id())
-	resp := new(apis.DescribeInstanceResponse)
-	err := fmt.Errorf("")
+	req := apis.NewDescribeInstanceRequest(config.Region, instanceId)
+	e = resource.Retry(2*time.Minute, func() *resource.RetryError {
 
-	errRetry := resource.Retry(5*time.Minute, func() *resource.RetryError {
-
-		resp, err = vmClient.DescribeInstance(req)
+		resp, err := vmClient.DescribeInstance(req)
 
 		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
+			r = resp
 			return nil
 		}
 
-		if resp.Error.Code == 404 {
+		if resp.Error.Code == RESOURCE_NOT_FOUND {
 			resp.Result.Instance.Status = VM_DELETED
+			r = resp
 			return nil
 		}
 
@@ -84,12 +81,7 @@ func QueryInstanceDetail(d *schema.ResourceData, m interface{}) (*apis.DescribeI
 		}
 
 	})
-
-	if errRetry != nil {
-		return nil, errRetry
-	} else {
-		return resp, err
-	}
+	return r, e
 }
 
 //----------------------------------------------------------------------------------- VM-RELATED
@@ -251,7 +243,7 @@ func cloudDiskStructIntoMap(ss []vm.InstanceDiskAttachment) []map[string]interfa
 
 func waitCloudDiskId(d *schema.ResourceData, m interface{}) error {
 
-	resp, err := QueryInstanceDetail(d, m)
+	resp, err := QueryInstanceDetail(d, m, d.Id())
 
 	if err != nil || resp.Error.Code != REQUEST_COMPLETED {
 		return err
@@ -259,113 +251,6 @@ func waitCloudDiskId(d *schema.ResourceData, m interface{}) error {
 
 	if errSet := d.Set("data_disk", cloudDiskStructIntoMap(resp.Result.Instance.DataDisks)); err != nil {
 		return errSet
-	}
-
-	return nil
-}
-
-func performCloudDiskDetach(d *schema.ResourceData, m interface{}, set *schema.Set) error {
-
-	config := m.(*JDCloudConfig)
-	vmClient := client.NewVmClient(config.Credential)
-	detachList := diskIdList(set)
-
-	// Keep sending all detach requests
-	for _, id := range detachList {
-
-		req := apis.NewDetachDiskRequest(config.Region, d.Id(), id)
-		resp, err := vmClient.DetachDisk(req)
-
-		if err != nil || resp.Error.Code != REQUEST_COMPLETED {
-			return fmt.Errorf("[ERROR] performCloudDiskDetach Failed, reasons: %s,%s", err.Error(), resp.Error.Message)
-		}
-	}
-
-	// Wait until all requests completed
-	for _, id := range detachList {
-		err := waitForDiskAttaching(d, m, d.Id(), id, DISK_DETACHED)
-		if err != nil {
-			return fmt.Errorf("[ERROR] performCloudDiskDetach Failed, reasons: %s", err.Error())
-		}
-	}
-
-	return nil
-}
-
-func performCloudDiskAttach(d *schema.ResourceData, m interface{}, set *schema.Set) error {
-
-	ids, err := performNewDiskCreate(d, m, diskListTypeCloud(typeSetToDiskList(set)))
-
-	if err != nil {
-		return err
-	}
-
-	if err := performNewDiskAttach(d, m, ids); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func performNewDiskCreate(d *schema.ResourceData, m interface{}, diskSpecsCloud []vm.InstanceDiskAttachmentSpec) ([]string, error) {
-
-	ids := []string{}
-	config := m.(*JDCloudConfig)
-	diskClient := dc.NewDiskClient(config.Credential)
-
-	for _, item := range diskSpecsCloud {
-
-		req := da.NewCreateDisksRequest(
-			config.Region,
-			item.CloudDiskSpec,
-			MAX_DISK_COUNT,
-			diskClientTokenDefault())
-		resp, err := diskClient.CreateDisks(req)
-
-		if err != nil {
-			return nil, fmt.Errorf("[ERROR] performCloudDiskAttach Failed, reasons: %s", err.Error())
-		}
-		if resp.Error.Code != REQUEST_COMPLETED {
-			return nil, fmt.Errorf("[ERROR] performCloudDiskAttach failed  code:%d staus:%s message:%s", resp.Error.Code, resp.Error.Status, resp.Error.Message)
-		}
-
-		ids = append(ids, resp.Result.DiskIds[0])
-	}
-
-	for _, diskId := range ids {
-
-		err := waitForDisk(d, m, diskId, DISK_AVAILABLE)
-		if err != nil {
-			return nil, fmt.Errorf("[ERROR] performCloudDiskAttach Failed, reasons: %s", err.Error())
-		}
-	}
-
-	return ids, nil
-}
-
-func performNewDiskAttach(d *schema.ResourceData, m interface{}, ids []string) error {
-
-	config := m.(*JDCloudConfig)
-	vmClient := client.NewVmClient(config.Credential)
-
-	for _, i := range ids {
-
-		req := apis.NewAttachDiskRequest(config.Region, d.Id(), i)
-		resp, err := vmClient.AttachDisk(req)
-
-		if err != nil {
-			return fmt.Errorf("[ERROR] performNewDiskAttach failed %s ", err.Error())
-		}
-		if resp.Error.Code != REQUEST_COMPLETED {
-			return fmt.Errorf("[ERROR] performNewDiskAttach  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
-		}
-	}
-
-	for _, i := range ids {
-
-		if errAttaching := waitForDiskAttaching(d, m, d.Id(), i, DISK_ATTACHED); errAttaching != nil {
-			return fmt.Errorf("[ERROR] failed in attaching disk,reasons: %s", errAttaching.Error())
-		}
 	}
 
 	return nil
@@ -678,7 +563,7 @@ func resourceJDCloudInstanceCreate(d *schema.ResourceData, m interface{}) error 
 
 func resourceJDCloudInstanceRead(d *schema.ResourceData, m interface{}) error {
 
-	vmInstanceDetail, err := QueryInstanceDetail(d, m)
+	vmInstanceDetail, err := QueryInstanceDetail(d, m, d.Id())
 
 	if err != nil {
 		return fmt.Errorf("query vm instance fail: %s", err)
@@ -750,7 +635,7 @@ func resourceJDCloudInstanceUpdate(d *schema.ResourceData, m interface{}) error 
 			return err
 		}
 
-		vmInstanceDetail, err := QueryInstanceDetail(d, m)
+		vmInstanceDetail, err := QueryInstanceDetail(d, m, d.Id())
 		if err != nil {
 			return err
 		}
@@ -776,31 +661,31 @@ func resourceJDCloudInstanceUpdate(d *schema.ResourceData, m interface{}) error 
 		d.SetPartial("password")
 	}
 
-	if d.HasChange("data_disk") {
-
-		log.Printf("[WARN] Trying to modify the property of data disk, leads to NEW DISK REBUILDING")
-
-		pInterface, cInterface := d.GetChange("data_disk")
-		p := pInterface.(*schema.Set)
-		c := cInterface.(*schema.Set)
-		i := p.Intersection(c)
-
-		if err := performCloudDiskDetach(d, m, p.Difference(i)); len(typeSetToDiskList(p.Difference(i))) != 0 && err != nil {
-			return err
-		}
-		d.SetPartial("data_disk")
-
-		if err := performCloudDiskAttach(d, m, c.Difference(i)); len(typeSetToDiskList(c.Difference(i))) != 0 && err != nil {
-			return err
-		}
-		d.SetPartial("data_disk")
-	}
+	//if d.HasChange("data_disk") {
+	//
+	//	log.Printf("[WARN] Trying to modify the property of data disk, leads to NEW DISK REBUILDING")
+	//
+	//	pInterface, cInterface := d.GetChange("data_disk")
+	//	p := pInterface.(*schema.Set)
+	//	c := cInterface.(*schema.Set)
+	//	i := p.Intersection(c)
+	//
+	//	if err := performCloudDiskDetach(d, m, p.Difference(i)); len(typeSetToDiskList(p.Difference(i))) != 0 && err != nil {
+	//		return err
+	//	}
+	//	d.SetPartial("data_disk")
+	//
+	//	if err := performCloudDiskAttach(d, m, c.Difference(i)); len(typeSetToDiskList(c.Difference(i))) != 0 && err != nil {
+	//		return err
+	//	}
+	//	d.SetPartial("data_disk")
+	//}
 
 	return nil
 }
 
 func resourceJDCloudInstanceDelete(d *schema.ResourceData, m interface{}) error {
-	vmInstanceDetail, err := QueryInstanceDetail(d, m)
+	vmInstanceDetail, err := QueryInstanceDetail(d, m, d.Id())
 	if err != nil {
 		return err
 	}

@@ -10,6 +10,7 @@ import (
 	"github.com/satori/go.uuid"
 	"math/rand"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"runtime"
 	"strings"
@@ -215,12 +216,11 @@ func generateDiskIndex(i interface{}) int {
 // Nothing special, we modified the refresh frequency here
 // This function is used rather than resource.Retry since under some
 // bad network condition 500 ms is too short for a request to return
-func RetryWithParamsSpecified(delay, frequency, timeout time.Duration, f resource.RetryFunc) error {
+func RetryWithParamsSpecified(frequency, timeout time.Duration, f resource.RetryFunc) error {
 	var resultErr error
 	var resultErrMu sync.Mutex
 
 	c := &resource.StateChangeConf{
-		Delay:      delay,
 		Pending:    []string{"retryableerror"},
 		Target:     []string{"success"},
 		Timeout:    timeout,
@@ -262,10 +262,80 @@ func RetryWithParamsSpecified(delay, frequency, timeout time.Duration, f resourc
 	return resultErr
 }
 
-//func commonRetryFunc(t time.Duration,command func()(interface{},error)) error {
-//	return resource.Retry(t,func() *resource.RetryError{
-//
-//		resp,err := command()
-//		if err == nil &&
-//	})
-//}
+/*
+
+client := newClient
+req := apis.NewRequest
+
+func command(){
+	return client.CreateVPC(req)
+}
+*/
+
+func commonRetryFunc(t time.Duration, command func() (interface{}, error)) (resp interface{}, e error) {
+
+	c := &resource.StateChangeConf{
+		Pending:    []string{"retryableerror"},
+		Target:     []string{"success"},
+		Timeout:    t,
+		MinTimeout: 500 * time.Millisecond,
+		Refresh: func() (interface{}, string, error) {
+
+			// returned from API call
+			resp, err := command()
+			val, _ := getVal(resp)
+			retryable, ok := dealWithErr(err)
+
+			if ok {
+				return val, "success", nil
+			}
+
+			if retryable {
+				return 42, "retryableerror", nil
+			}
+
+			return nil, "quit", err
+		},
+	}
+
+	val, waitErr := c.WaitForState()
+	if waitErr != nil {
+		return nil, waitErr
+	}
+	return val, waitErr
+}
+
+type generalResponse struct {
+	RequestID string
+	Error     core.ErrorResponse
+	Result    interface{}
+}
+
+func getVal(i interface{}) (generalResponse, error) {
+	if reflect.ValueOf(i).CanInterface() {
+		return generalResponse{
+			RequestID: reflect.ValueOf(i).Field(0).Interface().(string),
+			Error:     reflect.ValueOf(i).Field(1).Interface().(core.ErrorResponse),
+			Result:    reflect.ValueOf(i).Field(2).Interface(),
+		}, nil
+	}
+	return generalResponse{}, fmt.Errorf("Failed in GetVal/reflect/Interface -> generalResponse")
+}
+
+func dealWithErr(e error) (bool, bool) {
+
+	/*
+		bool_1 : retryable
+		bool_2 : err==nil
+	*/
+
+	if e == nil {
+		return true, true
+	}
+
+	if connectionError(e) {
+		return true, false
+	}
+
+	return false, false
+}

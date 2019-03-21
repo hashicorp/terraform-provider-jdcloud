@@ -42,6 +42,9 @@ const (
 	DISK_DELETED            = "deleted"
 	DISK_DELETING           = "deleting"
 	DISK_CREATING           = "creating"
+	DISK_ATTACHING          = "attaching"
+	DISK_DETACHING          = "detaching"
+	DISK_INUSE              = "in-use"
 	DISK_TIMEOUT            = 60
 	DISK_ATTACHMENT_TIMEOUT = 60
 	DISK_ATTACHED           = "attached"

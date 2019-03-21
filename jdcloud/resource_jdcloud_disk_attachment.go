@@ -4,13 +4,96 @@ import (
 	"fmt"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
-	diskApis "github.com/jdcloud-api/jdcloud-sdk-go/services/disk/apis"
-	diskClient "github.com/jdcloud-api/jdcloud-sdk-go/services/disk/client"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vm/apis"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vm/client"
 	vm "github.com/jdcloud-api/jdcloud-sdk-go/services/vm/models"
 	"time"
 )
+
+//---------------------------------------------------------------------------------	ATTACHMENT-SCHEMA-HELPERS
+
+// This function will return the latest status of a disk level 1 -> Based on QueryInstanceDetail
+// *We've already had a disk status refresher, this one is generated since by checking the
+// attachment status we are going to describe VMs rather than disk itself
+func diskAttachmentStatusRefreshFunc(d *schema.ResourceData, meta interface{}, instanceId, diskId string) resource.StateRefreshFunc {
+	return func() (diskItem interface{}, diskState string, e error) {
+
+		resp, err := QueryInstanceDetail(d, meta, instanceId)
+		if err != nil {
+			return nil, "", err
+		}
+
+		// We've found the expected disk
+		for _, d := range resp.Result.Instance.DataDisks {
+			if d.CloudDisk.DiskId == diskId {
+				return d, d.Status, nil
+			}
+		}
+
+		// We have not found the desired one
+		return nil, "DiskNotFound", fmt.Errorf("DiskNotFound")
+	}
+}
+
+// This function will send a request of attachment,do not wait,just send, level 0
+func performDiskAttach(d *schema.ResourceData, meta interface{}, req *apis.AttachDiskRequest) (requestId string, e error) {
+
+	config := meta.(*JDCloudConfig)
+	c := client.NewVmClient(config.Credential)
+	e = resource.Retry(time.Minute, func() *resource.RetryError {
+
+		resp, err := c.AttachDisk(req)
+		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
+			requestId = resp.RequestID
+			return nil
+		}
+		if connectionError(err) {
+			return resource.RetryableError(formatConnectionErrorMessage())
+		} else {
+			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
+		}
+	})
+	return requestId, e
+}
+
+// This function will send a request of detachment,do not wait,just send, level 0
+func performDiskDetach(d *schema.ResourceData, meta interface{}, req *apis.DetachDiskRequest) error {
+
+	config := meta.(*JDCloudConfig)
+	c := client.NewVmClient(config.Credential)
+	return resource.Retry(time.Minute, func() *resource.RetryError {
+
+		resp, err := c.DetachDisk(req)
+		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
+			return nil
+		}
+		if connectionError(err) {
+			return resource.RetryableError(formatConnectionErrorMessage())
+		} else {
+			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
+		}
+	})
+}
+
+// This function will wait until certain status has been reached, level 2 -> based on diskAttachmentStatusRefreshFunc
+func diskAttachmentWaiter(d *schema.ResourceData, meta interface{}, instanceId, diskId string, pending, target []string) (err error) {
+
+	stateConf := &resource.StateChangeConf{
+		Pending:    pending,
+		Target:     target,
+		Refresh:    diskAttachmentStatusRefreshFunc(d, meta, instanceId, diskId),
+		Delay:      3 * time.Second,
+		Timeout:    2 * time.Minute,
+		MinTimeout: 1 * time.Second,
+	}
+
+	if _, err = stateConf.WaitForState(); err != nil {
+		return fmt.Errorf("[E] Failed in AttachingDisk/WaitingDiskAttaching ,err message:%v", err)
+	}
+	return nil
+}
+
+//---------------------------------------------------------------------------------	ATTACHMENT-SCHEMA-CRUD
 
 func resourceJDCloudDiskAttachment() *schema.Resource {
 
@@ -36,12 +119,17 @@ func resourceJDCloudDiskAttachment() *schema.Resource {
 			"auto_delete": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
+				Computed: true,
 			},
 			"device_name": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 				ForceNew: true,
 			},
+
+			// This field will be used only in deleting
+			// Thus not updated in `Create` and `Read`
 			"force_detach": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -66,79 +154,47 @@ func resourceJDCloudDiskAttachmentCreate(d *schema.ResourceData, meta interface{
 		req.AutoDelete = &autoDelete
 	}
 
-	vmClient := client.NewVmClient(config.Credential)
-
-	err := resource.Retry(time.Minute, func() *resource.RetryError {
-
-		resp, err := vmClient.AttachDisk(req)
-		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
-			return nil
-		}
-		if connectionError(err) {
-			return resource.RetryableError(formatConnectionErrorMessage())
-		} else {
-			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
-		}
-	})
-
-	if err != nil {
-		return err
+	id, e := performDiskAttach(d, meta, req)
+	if e != nil {
+		return e
 	}
 
-	//Attaching Disk usually takes seconds. Let's wait for it
-	reqRefresh := diskApis.NewDescribeDiskRequest(config.Region, diskID)
-	c := diskClient.NewDiskClient(config.Credential)
-	stateConf := &resource.StateChangeConf{
-		Pending:    []string{DISK_AVAILABLE},
-		Target:     []string{DISK_ATTACHED},
-		Refresh:    diskStatusRefreshFunc(reqRefresh, c),
-		Timeout:    3 * time.Minute,
-		Delay:      3 * time.Second,
-		MinTimeout: 10 * time.Second,
-	}
-	if _, err = stateConf.WaitForState(); err != nil {
-		return fmt.Errorf("[E] Failed in AttachingDisk/Waiting disk,err message:%v", err)
+	e = diskAttachmentWaiter(d, meta, instanceID, diskID, []string{DISK_ATTACHING}, []string{DISK_ATTACHED})
+	if e != nil {
+		return e
 	}
 
+	d.SetId(id)
 	return resourceJDCloudDiskAttachmentRead(d, meta)
 }
 
 func resourceJDCloudDiskAttachmentRead(d *schema.ResourceData, meta interface{}) error {
 
-	config := meta.(*JDCloudConfig)
 	instanceID := d.Get("instance_id").(string)
 	diskID := d.Get("disk_id").(string)
 
-	vmClient := client.NewVmClient(config.Credential)
-	req := apis.NewDescribeInstanceRequest(config.Region, instanceID)
-	resp, err := vmClient.DescribeInstance(req)
+	f := diskAttachmentStatusRefreshFunc(d, meta, instanceID, diskID)
+	disk, status, err := f()
 
 	if err != nil {
 		return err
 	}
 
-	if resp.Error.Code == RESOURCE_NOT_FOUND {
+	if status != DISK_ATTACHED {
 		d.SetId("")
 		return nil
 	}
 
-	if resp.Error.Code != REQUEST_COMPLETED {
-		return fmt.Errorf("[ERROR] resourceJDCloudDiskAttachmentRead  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
-	}
+	d.Set("instance_id", instanceID)
+	d.Set("disk_id", diskID)
+	d.Set("device_name", disk.(vm.InstanceDiskAttachment).DeviceName)
+	d.Set("auto_delete", disk.(vm.InstanceDiskAttachment).AutoDelete)
 
-	for _, disk := range resp.Result.Instance.DataDisks {
-		if diskID == disk.CloudDisk.DiskId {
-			d.Set("auto_delete", disk.AutoDelete)
-			return nil
-		}
-	}
-
-	d.SetId("")
 	return nil
 }
 
 func resourceJDCloudDiskAttachmentUpdate(d *schema.ResourceData, meta interface{}) error {
-	d.Partial(true)
+
 	if d.HasChange("auto_delete") {
 
 		config := meta.(*JDCloudConfig)
@@ -158,93 +214,29 @@ func resourceJDCloudDiskAttachmentUpdate(d *schema.ResourceData, meta interface{
 		if resp.Error.Code != REQUEST_COMPLETED {
 			return fmt.Errorf("[ERROR] Failed in resourceJDCloudDiskAttachmentUpdate,Error code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 		}
-		d.SetPartial("auto_delete")
+
 	}
-	d.Partial(false)
+
 	return nil
 }
 
 func resourceJDCloudDiskAttachmentDelete(d *schema.ResourceData, meta interface{}) error {
-	d.Partial(true)
 
 	config := meta.(*JDCloudConfig)
 	instanceID := d.Get("instance_id").(string)
 	diskID := d.Get("disk_id").(string)
 	req := apis.NewDetachDiskRequest(config.Region, instanceID, diskID)
-	vmClient := client.NewVmClient(config.Credential)
 
-	if forceDetachInterface, ok := d.GetOk("force_detach"); ok {
-		forceDetach := forceDetachInterface.(bool)
-		req.Force = &forceDetach
+	e := performDiskDetach(d, meta, req)
+	if e != nil {
+		return e
 	}
 
-	err := resource.Retry(5*time.Minute, func() *resource.RetryError {
-
-		resp, err := vmClient.DetachDisk(req)
-
-		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
-			return nil
-		}
-
-		if connectionError(err) {
-			return resource.RetryableError(formatConnectionErrorMessage())
-		} else {
-			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
-		}
-	})
-	if err != nil {
-		return err
+	e = diskAttachmentWaiter(d, meta, instanceID, diskID, []string{DISK_ATTACHED, DISK_DETACHING}, []string{DISK_DETACHED})
+	if e != nil {
+		return e
 	}
 
-	if errDetaching := waitForDiskAttaching(d, meta, instanceID, diskID, DISK_DETACHED); errDetaching != nil {
-		return fmt.Errorf("[ERROR] Faield in removing resource, reasons are following :%s", errDetaching.Error())
-	}
-
-	d.SetPartial("disk_id")
-	d.SetPartial("instance_id")
-	d.SetPartial("device_name")
-	d.SetPartial("auto_delete")
-
-	d.Partial(false)
 	d.SetId("")
 	return nil
-}
-
-func waitForDiskAttaching(d *schema.ResourceData, meta interface{}, instanceId, diskId string, expectedStatus string) error {
-
-	config := meta.(*JDCloudConfig)
-	vmClient := client.NewVmClient(config.Credential)
-	req := apis.NewDescribeInstanceRequest(config.Region, instanceId)
-
-	return resource.Retry(5*time.Minute, func() *resource.RetryError {
-
-		resp, err := vmClient.DescribeInstance(req)
-
-		found := false
-
-		// Immediately after the disk has been created, even though we've
-		// got the disk_id, doesn't mean we can query its detail
-		// Probably we have to wait for a few seconds ...
-		if resp.Error.Code == REQUEST_COMPLETED {
-
-			for _, disk := range resp.Result.Instance.DataDisks {
-				if diskId == disk.CloudDisk.DiskId && disk.Status == expectedStatus {
-					found = true
-					break
-				}
-			}
-		}
-
-		if err == nil && resp.Error.Code == REQUEST_COMPLETED && found {
-			d.Partial(false)
-			return nil
-		}
-
-		if connectionError(err) || !found {
-			return resource.RetryableError(formatConnectionErrorMessage())
-		} else {
-			d.SetId("")
-			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
-		}
-	})
 }

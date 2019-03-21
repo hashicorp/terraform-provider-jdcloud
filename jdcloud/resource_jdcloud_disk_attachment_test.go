@@ -9,10 +9,11 @@ import (
 	"testing"
 )
 
-const TestAccDiskAttachmentConfig = `
+const TestAccDiskAttachmentTemplate = `
 resource "jdcloud_disk_attachment" "disk-attachment-TEST-1"{
 	instance_id = "i-g6xse7qb0z" 
 	disk_id = "vol-masm0gcxn8"
+	auto_delete = %s
 }
 `
 
@@ -26,7 +27,14 @@ func TestAccJDCloudDiskAttachment_basic(t *testing.T) {
 		CheckDestroy: testAccDiskAttachmentDestroy(&instanceId, &diskId),
 		Steps: []resource.TestStep{
 			{
-				Config: TestAccDiskAttachmentConfig,
+				Config: generateDiskAttachmentConfig("true"),
+				Check: resource.ComposeTestCheckFunc(
+
+					testAccIfDiskAttachmentExists("jdcloud_disk_attachment.disk-attachment-TEST-1", &instanceId, &diskId),
+				),
+			},
+			{
+				Config: generateDiskAttachmentConfig("false"),
 				Check: resource.ComposeTestCheckFunc(
 
 					testAccIfDiskAttachmentExists("jdcloud_disk_attachment.disk-attachment-TEST-1", &instanceId, &diskId),
@@ -93,4 +101,8 @@ func testAccDiskAttachmentDestroy(resourceId *string, diskId *string) resource.T
 		}
 		return nil
 	}
+}
+
+func generateDiskAttachmentConfig(a string) string {
+	return fmt.Sprintf(TestAccDiskAttachmentTemplate, a)
 }
