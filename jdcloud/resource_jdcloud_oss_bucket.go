@@ -7,7 +7,9 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"time"
 )
 
 const (
@@ -35,17 +37,11 @@ func resourceJDCloudOssBucket() *schema.Resource {
 				Optional: true,
 				Default:  "private",
 			},
-			"grant_full_control": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-			},
 		},
 	}
 }
 
 func resourceJDCloudOssBucketCreate(d *schema.ResourceData, m interface{}) error {
-	d.Partial(true)
 
 	bucket := d.Get("bucket_name").(string)
 	client := getOssClient(m)
@@ -53,10 +49,22 @@ func resourceJDCloudOssBucketCreate(d *schema.ResourceData, m interface{}) error
 		Bucket: aws.String(bucket),
 	}
 
-	if _, err := client.CreateBucket(s3Input); err != nil {
-		return fmt.Errorf("[ERROR] resourceJDCloudOssBucketCreate failed,Error message:%s", err.Error())
+	e := resource.Retry(5*time.Minute, func() *resource.RetryError {
+		_, err := client.CreateBucket(s3Input)
+		if awsErr, ok := err.(awserr.Error); ok {
+			if awsErr.Code() == "OperationAborted" {
+				return resource.RetryableError(
+					fmt.Errorf("[WARN] Error creating S3 bucket %s, retrying: %s", bucket, err))
+			}
+		}
+		if err != nil {
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
+	if e != nil {
+		return e
 	}
-	d.SetPartial("bucket_name")
 
 	if _, err := client.PutBucketAcl(&s3.PutBucketAclInput{
 		Bucket: aws.String(bucket),
@@ -64,12 +72,9 @@ func resourceJDCloudOssBucketCreate(d *schema.ResourceData, m interface{}) error
 	}); err != nil {
 		return err
 	}
-	d.SetPartial("acl")
 
 	d.SetId(bucket)
-
-	d.Partial(true)
-	return nil
+	return resourceJDCloudOssBucketRead(d, m)
 }
 
 func resourceJDCloudOssBucketRead(d *schema.ResourceData, m interface{}) error {
@@ -81,20 +86,20 @@ func resourceJDCloudOssBucketRead(d *schema.ResourceData, m interface{}) error {
 	}
 
 	if _, err := client.HeadBucket(s3Input); err != nil {
-		if aerr, ok := err.(awserr.Error); ok && aerr.Code() == s3.ErrCodeNoSuchBucket {
+		if awsError, ok := err.(awserr.RequestFailure); ok && awsError.StatusCode() == RESOURCE_NOT_FOUND {
 			d.SetId("")
+			return nil
 		} else {
 			return err
 		}
 	}
-
 	return nil
 }
 
 func resourceJDCloudOssBucketUpdate(d *schema.ResourceData, m interface{}) error {
-	d.Partial(true)
 
 	if d.HasChange("acl") {
+
 		bucket := d.Get("bucket_name").(string)
 		client := getOssClient(m)
 		s3Input := &s3.PutBucketAclInput{
@@ -106,11 +111,9 @@ func resourceJDCloudOssBucketUpdate(d *schema.ResourceData, m interface{}) error
 			return err
 		}
 
-		d.SetPartial("acl")
 	}
 
-	d.Partial(false)
-	return nil
+	return resourceJDCloudOssBucketRead(d, m)
 }
 
 func resourceJDCloudOssBucketDelete(d *schema.ResourceData, m interface{}) error {

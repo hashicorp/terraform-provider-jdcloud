@@ -78,7 +78,7 @@ func resourceJDCloudOssBucketUploadCreate(d *schema.ResourceData, meta interface
 
 	d.Set("remote_location", respUpload.Location)
 	d.SetId(respUpload.Location)
-	return nil
+	return resourceJDCloudOssBucketUploadRead(d, meta)
 }
 
 func resourceJDCloudOssBucketUploadRead(d *schema.ResourceData, meta interface{}) error {

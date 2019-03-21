@@ -50,7 +50,7 @@ func resourceJDCloudNetworkSecurityGroupCreate(d *schema.ResourceData, meta inte
 		rq.Description = &description
 	}
 
-	return resource.Retry(2*time.Minute, func() *resource.RetryError {
+	e := resource.Retry(2*time.Minute, func() *resource.RetryError {
 
 		resp, err := vpcClient.CreateNetworkSecurityGroup(rq)
 
@@ -65,6 +65,10 @@ func resourceJDCloudNetworkSecurityGroupCreate(d *schema.ResourceData, meta inte
 			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
 		}
 	})
+	if e != nil {
+		return e
+	}
+	return resourceJDCloudNetworkSecurityGroupRead(d, meta)
 }
 
 func resourceJDCloudNetworkSecurityGroupRead(d *schema.ResourceData, meta interface{}) error {
@@ -124,7 +128,7 @@ func resourceJDCloudNetworkSecurityGroupUpdate(d *schema.ResourceData, meta inte
 			}
 		})
 	}
-	return nil
+	return resourceJDCloudNetworkSecurityGroupRead(d, meta)
 }
 
 func resourceJDCloudNetworkSecurityGroupDelete(d *schema.ResourceData, meta interface{}) error {

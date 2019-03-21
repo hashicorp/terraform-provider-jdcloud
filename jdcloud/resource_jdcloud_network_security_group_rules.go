@@ -216,7 +216,7 @@ func resourceJDCloudNetworkSecurityGroupRulesUpdate(d *schema.ResourceData, m in
 		d.SetPartial("security_group_rules")
 	}
 	d.Partial(false)
-	return nil
+	return resourceJDCloudNetworkSecurityGroupRulesRead(d, m)
 }
 
 func resourceJDCloudNetworkSecurityGroupRulesDelete(d *schema.ResourceData, m interface{}) error {
