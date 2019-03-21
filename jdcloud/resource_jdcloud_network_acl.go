@@ -2,10 +2,12 @@ package jdcloud
 
 import (
 	"fmt"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/apis"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/client"
 	"log"
+	"time"
 )
 
 func resourceJDCloudNetworkAcl() *schema.Resource {
@@ -48,23 +50,31 @@ func resourceJDCloudNetworkAclCreate(d *schema.ResourceData, meta interface{}) e
 	networkAclName := d.Get("name").(string)
 
 	req := apis.NewCreateNetworkAclRequest(config.Region, vpcId, networkAclName)
-
 	if _, ok := d.GetOk("description"); ok {
 		req.Description = GetStringAddr(d, "description")
 	}
 
-	resp, err := vpcClient.CreateNetworkAcl(req)
+	e := resource.Retry(time.Minute, func() *resource.RetryError {
+		resp, err := vpcClient.CreateNetworkAcl(req)
 
-	if err != nil {
-		return fmt.Errorf("[ERROR] resourceJDCloudNetworkAclCreate failed %s ", err.Error())
+		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
+			d.SetId(resp.Result.NetworkAclId)
+			return nil
+		}
+		if err == nil && resp.Error.Code != REQUEST_COMPLETED {
+			return resource.NonRetryableError(fmt.Errorf("[ERROR] resourceJDCloudNetworkAclCreate failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message))
+		}
+
+		if connectionError(err) {
+			return resource.RetryableError(err)
+		} else {
+			return resource.NonRetryableError(err)
+		}
+	})
+	if e != nil {
+		return e
 	}
-
-	if resp.Error.Code != REQUEST_COMPLETED {
-		return fmt.Errorf("[ERROR] resourceJDCloudNetworkAclCreate failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
-	}
-	d.SetId(resp.Result.NetworkAclId)
-
-	return nil
+	return resourceJDCloudNetworkAclRead(d, meta)
 }
 
 func resourceJDCloudNetworkAclRead(d *schema.ResourceData, meta interface{}) error {
