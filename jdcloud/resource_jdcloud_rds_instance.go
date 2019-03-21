@@ -182,8 +182,6 @@ func resourceJDCloudRDSInstanceRead(d *schema.ResourceData, meta interface{}) er
 	return resource.Retry(5*time.Minute, func() *resource.RetryError {
 
 		resp, err := rdsClient.DescribeInstanceAttributes(req)
-		log.Printf("nishizhuread %v", resp)
-		log.Printf("currrntly d=%v", d.Get("charge_unit"))
 
 		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
 			log.Printf("1")
@@ -249,7 +247,7 @@ func resourceJDCloudRDSInstanceUpdate(d *schema.ResourceData, meta interface{}) 
 	}
 
 	d.Partial(false)
-	return nil
+	return resourceJDCloudRDSInstanceRead(d, meta)
 }
 
 func resourceJDCloudRDSInstanceDelete(d *schema.ResourceData, meta interface{}) error {

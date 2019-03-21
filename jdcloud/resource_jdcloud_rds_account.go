@@ -43,11 +43,11 @@ func resourceJDCloudRDSAccountCreate(d *schema.ResourceData, meta interface{}) e
 
 	req := apis.NewCreateAccountRequest(config.Region, d.Get("instance_id").(string), d.Get("username").(string), d.Get("password").(string))
 
-	return resource.Retry(5*time.Minute, func() *resource.RetryError {
+	e := resource.Retry(5*time.Minute, func() *resource.RetryError {
 
 		resp, err := rdsClient.CreateAccount(req)
 
-		if err == nil {
+		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
 			d.SetId(resp.RequestID)
 			return nil
 		}
@@ -58,6 +58,11 @@ func resourceJDCloudRDSAccountCreate(d *schema.ResourceData, meta interface{}) e
 			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
 		}
 	})
+
+	if e != nil {
+		return e
+	}
+	return resourceJDCloudRDSAccountRead(d, meta)
 }
 
 func resourceJDCloudRDSAccountRead(d *schema.ResourceData, meta interface{}) error {
@@ -83,6 +88,7 @@ func resourceJDCloudRDSAccountRead(d *schema.ResourceData, meta interface{}) err
 
 	for _, user := range resp.Result.Accounts {
 		if user.AccountName == d.Get("username").(string) {
+			d.Set("username", user.AccountName)
 			return nil
 		}
 	}
@@ -101,8 +107,8 @@ func resourceJDCloudRDSAccountDelete(d *schema.ResourceData, meta interface{}) e
 
 		resp, err := rdsClient.DeleteAccount(req)
 
-		if err == nil {
-			d.SetId(resp.RequestID)
+		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
+			d.SetId("")
 			return nil
 		}
 

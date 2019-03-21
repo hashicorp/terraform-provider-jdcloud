@@ -168,7 +168,6 @@ func resourceJDCloudRouteTableRules() *schema.Resource {
 }
 
 func resourceRouteTableRulesCreate(d *schema.ResourceData, m interface{}) error {
-	d.Partial(true)
 
 	tableId := d.Get("route_table_id").(string)
 	attachList := typeSetToRouteRuleArray(d.Get("rule_specs").(*schema.Set))
@@ -177,18 +176,9 @@ func resourceRouteTableRulesCreate(d *schema.ResourceData, m interface{}) error 
 		return err
 	}
 
-	d.SetPartial("route_table_id")
 	d.SetId(tableId)
-
 	//Rule id can only be retrieved via "read"
-	if err := resourceRouteTableRulesRead(d, m); err != nil {
-		d.SetId("")
-		return err
-	}
-
-	d.SetPartial("rule_specs")
-	d.Partial(false)
-	return nil
+	return resourceRouteTableRulesRead(d, m)
 }
 
 func resourceRouteTableRulesRead(d *schema.ResourceData, m interface{}) error {

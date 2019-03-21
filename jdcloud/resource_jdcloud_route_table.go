@@ -48,7 +48,7 @@ func resourceRouteTableCreate(d *schema.ResourceData, m interface{}) error {
 		d.Get("route_table_name").(string),
 		GetStringAddr(d, "description"))
 
-	return resource.Retry(time.Minute, func() *resource.RetryError {
+	e := resource.Retry(time.Minute, func() *resource.RetryError {
 
 		resp, err := conn.CreateRouteTable(req)
 
@@ -63,6 +63,11 @@ func resourceRouteTableCreate(d *schema.ResourceData, m interface{}) error {
 			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
 		}
 	})
+
+	if e != nil {
+		return e
+	}
+	return resourceRouteTableRead(d, m)
 }
 
 func resourceRouteTableRead(d *schema.ResourceData, meta interface{}) error {
@@ -131,7 +136,7 @@ func resourceRouteTableUpdate(d *schema.ResourceData, meta interface{}) error {
 		d.SetPartial("description")
 	}
 	d.Partial(false)
-	return nil
+	return resourceRouteTableRead(d, meta)
 }
 
 func resourceRouteTableDelete(d *schema.ResourceData, meta interface{}) error {

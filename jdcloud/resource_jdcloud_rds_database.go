@@ -50,7 +50,7 @@ func resourceJDCloudRDSDatabaseCreate(d *schema.ResourceData, meta interface{}) 
 
 	req := apis.NewCreateDatabaseRequest(config.Region, d.Get("instance_id").(string), d.Get("db_name").(string), d.Get("character_set").(string))
 
-	return resource.Retry(time.Minute, func() *resource.RetryError {
+	e := resource.Retry(time.Minute, func() *resource.RetryError {
 
 		resp, err := rdsClient.CreateDatabase(req)
 
@@ -65,6 +65,10 @@ func resourceJDCloudRDSDatabaseCreate(d *schema.ResourceData, meta interface{}) 
 			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
 		}
 	})
+	if e != nil {
+		return e
+	}
+	return resourceJDCloudRDSDatabaseRead(d, meta)
 }
 
 func resourceJDCloudRDSDatabaseRead(d *schema.ResourceData, m interface{}) error {
@@ -78,7 +82,16 @@ func resourceJDCloudRDSDatabaseRead(d *schema.ResourceData, m interface{}) error
 		resp, err := rdsClient.DescribeDatabases(req)
 
 		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
-			d.SetId(resp.RequestID)
+			for _, db := range resp.Result.Databases {
+				if db.DbName == d.Get("db_name").(string) {
+
+					d.Set("db_name", db.DbName)
+					d.Set("character_set", db.CharacterSetName)
+
+					return nil
+				}
+			}
+			d.SetId("")
 			return nil
 		}
 
@@ -95,10 +108,6 @@ func resourceJDCloudRDSDatabaseRead(d *schema.ResourceData, m interface{}) error
 	})
 }
 
-func resourceJDCloudRDSDatabaseUpdate(d *schema.ResourceData, meta interface{}) error {
-	return nil
-}
-
 func resourceJDCloudRDSDatabaseDelete(d *schema.ResourceData, meta interface{}) error {
 
 	config := meta.(*JDCloudConfig)
@@ -111,7 +120,7 @@ func resourceJDCloudRDSDatabaseDelete(d *schema.ResourceData, meta interface{}) 
 		resp, err := rdsClient.DeleteDatabase(req)
 
 		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
-			d.SetId(resp.RequestID)
+			d.SetId("")
 			return nil
 		}
 
