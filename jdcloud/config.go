@@ -73,7 +73,10 @@ const (
 
 	RDS_TIMEOUT       = 300
 	RDS_READY         = "RUNNING"
-	RDS_DELETED       = ""
+	RDS_CREATING      = "BUILDING"
+	RDS_UNCERTAIN     = ""
+	RDS_DELETING      = "DELETING"
+	RDS_DELETED       = "DELETED"
 	RDS_MAX_RECONNECT = 6
 	CONNECT_FAILED    = "Client.Timeout exceeded"
 

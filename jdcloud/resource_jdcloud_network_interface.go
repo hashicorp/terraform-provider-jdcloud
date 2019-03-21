@@ -131,7 +131,7 @@ func resourceJDCloudNetworkInterfaceCreate(d *schema.ResourceData, meta interfac
 		return err
 	}
 
-	return resourceJDCloudNetworkInterfaceRead(d,meta)
+	return resourceJDCloudNetworkInterfaceRead(d, meta)
 }
 
 func resourceJDCloudNetworkInterfaceRead(d *schema.ResourceData, meta interface{}) error {
@@ -283,17 +283,17 @@ func performSecondaryIpDetach(d *schema.ResourceData, m interface{}, set *schema
 
 		resp, err := vpcClient.UnassignSecondaryIps(req)
 
-		if err == nil && resp.Error.Code == REQUEST_COMPLETED{
+		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
 			return nil
 		}
 
-		if err == nil && resp.Error.Code != REQUEST_COMPLETED{
+		if err == nil && resp.Error.Code != REQUEST_COMPLETED {
 			return resource.NonRetryableError(fmt.Errorf("[ERROR] performSecondaryIpDetach failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message))
 		}
 
-		if connectionError(err){
+		if connectionError(err) {
 			return resource.RetryableError(err)
-		}else{
+		} else {
 			return resource.NonRetryableError(err)
 		}
 	})
@@ -309,17 +309,17 @@ func performSecondaryIpAttach(d *schema.ResourceData, m interface{}, set *schema
 
 		req := apis.NewAssignSecondaryIpsRequestWithAllParams(config.Region, d.Id(), &force_tag, typeSetToStringArray(set), &count)
 		resp, err := vpcClient.AssignSecondaryIps(req)
-		if err == nil && resp.Error.Code == REQUEST_COMPLETED{
+		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
 			return nil
 		}
 
-		if err == nil && resp.Error.Code != REQUEST_COMPLETED{
+		if err == nil && resp.Error.Code != REQUEST_COMPLETED {
 			return resource.NonRetryableError(fmt.Errorf("[ERROR] performSecondaryIpAttach failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message))
 		}
 
-		if connectionError(err){
+		if connectionError(err) {
 			return resource.RetryableError(err)
-		}else{
+		} else {
 			return resource.NonRetryableError(err)
 		}
 	})

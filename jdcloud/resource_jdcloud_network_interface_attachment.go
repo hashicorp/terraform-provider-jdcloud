@@ -84,8 +84,8 @@ func resourceJDCloudNetworkInterfaceAttachRead(d *schema.ResourceData, meta inte
 
 		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
 
-			d.Set("network_interface_id",resp.Result.NetworkInterface.NetworkInterfaceId)
-			d.Set("instance_id",resp.Result.NetworkInterface.InstanceId)
+			d.Set("network_interface_id", resp.Result.NetworkInterface.NetworkInterfaceId)
+			d.Set("instance_id", resp.Result.NetworkInterface.InstanceId)
 
 			return nil
 		}
