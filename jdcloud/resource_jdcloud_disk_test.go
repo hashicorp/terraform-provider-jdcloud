@@ -54,6 +54,7 @@ func TestAccJDCloudDisk_basic(t *testing.T) {
 			{
 				Config: generateDiskConfig("normal_disk_with_new_name", "Still the same one, just different name"),
 				Check: resource.ComposeTestCheckFunc(
+					testAccIfDiskExists("jdcloud_disk.terraform_disk_test", &diskId),
 					resource.TestCheckResourceAttr("jdcloud_disk.terraform_disk_test", "az", "cn-north-1a"),
 					resource.TestCheckResourceAttr("jdcloud_disk.terraform_disk_test", "name", "normal_disk_with_new_name"),
 					resource.TestCheckResourceAttr("jdcloud_disk.terraform_disk_test", "description", "Still the same one, just different name"),
