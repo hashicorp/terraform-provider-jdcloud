@@ -9,6 +9,12 @@ import (
 	"testing"
 )
 
+const TestAccRouteTableConfigMin = `
+resource "jdcloud_route_table" "route-table-TEST-1"{
+	route_table_name = "route_table_test"
+	vpc_id = "vpc-npvvk4wr5j"
+}
+`
 const TestAccRouteTableConfig = `
 resource "jdcloud_route_table" "route-table-TEST-1"{
 	route_table_name = "route_table_test"
@@ -34,10 +40,19 @@ func TestAccJDCloudRouteTable_basic(t *testing.T) {
 		CheckDestroy: testAccRouteTableDestroy(&routeTableId),
 		Steps: []resource.TestStep{
 			{
+				Config: TestAccRouteTableConfigMin,
+				Check: resource.ComposeTestCheckFunc(
+
+					testAccIfRouteTableExists("jdcloud_route_table.route-table-TEST-1", &routeTableId),
+					resource.TestCheckResourceAttr("jdcloud_route_table.route-table-TEST-1", "route_table_name", "route_table_test"),
+					resource.TestCheckResourceAttr("jdcloud_route_table.route-table-TEST-1", "vpc_id", "vpc-npvvk4wr5j"),
+					resource.TestCheckNoResourceAttr("jdcloud_route_table.route-table-TEST-1", "description"),
+				),
+			},
+			{
 				Config: TestAccRouteTableConfig,
 				Check: resource.ComposeTestCheckFunc(
 
-					// ROUTE_TABLE_ID validation
 					testAccIfRouteTableExists("jdcloud_route_table.route-table-TEST-1", &routeTableId),
 					resource.TestCheckResourceAttr("jdcloud_route_table.route-table-TEST-1", "route_table_name", "route_table_test"),
 					resource.TestCheckResourceAttr("jdcloud_route_table.route-table-TEST-1", "vpc_id", "vpc-npvvk4wr5j"),
@@ -48,7 +63,6 @@ func TestAccJDCloudRouteTable_basic(t *testing.T) {
 				Config: TestAccRouteTableConfigUpdate,
 				Check: resource.ComposeTestCheckFunc(
 
-					// ROUTE_TABLE_ID validation
 					testAccIfRouteTableExists("jdcloud_route_table.route-table-TEST-1", &routeTableId),
 					resource.TestCheckResourceAttr("jdcloud_route_table.route-table-TEST-1", "route_table_name", "route_table_test2"),
 					resource.TestCheckResourceAttr("jdcloud_route_table.route-table-TEST-1", "vpc_id", "vpc-npvvk4wr5j"),

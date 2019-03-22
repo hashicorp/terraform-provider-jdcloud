@@ -13,7 +13,6 @@ const TestAccNetworkInterfaceAttachmentConfig = `
 resource "jdcloud_network_interface_attachment" "attachment-TEST-1"{
   instance_id = "i-g6xse7qb0z"
   network_interface_id = "port-4nwidjolb3"
-  auto_delete = "true"
 }
 `
 
@@ -31,6 +30,9 @@ func TestAccJDCloudNetworkInterfaceAttachment_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 
 					testAccIfNetworkInterfaceAttachmentExists("jdcloud_network_interface_attachment.attachment-TEST-1", &networkInterfaceId),
+					resource.TestCheckResourceAttr("jdcloud_network_interface_attachment.attachment-TEST-1", "instance_id", "i-g6xse7qb0z"),
+					resource.TestCheckResourceAttr("jdcloud_network_interface_attachment.attachment-TEST-1", "network_interface_id", "port-4nwidjolb3"),
+					resource.TestCheckNoResourceAttr("jdcloud_network_interface_attachment.attachment-TEST-1", "auto_delete"),
 				),
 			},
 		},

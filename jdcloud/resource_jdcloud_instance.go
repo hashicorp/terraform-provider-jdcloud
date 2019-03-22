@@ -489,18 +489,27 @@ func resourceJDCloudInstance() *schema.Resource {
 				ForceNew: true,
 			},
 			"secondary_ips": {
-				Type:     schema.TypeSet,
-				Optional: true,
-				MinItems: 1,
+				Type:      schema.TypeSet,
+				Optional:  true,
+				Sensitive: true,
+				MinItems:  1,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
 				ForceNew: true,
 			},
 			"secondary_ip_count": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				ForceNew: true,
+				Type:      schema.TypeInt,
+				Optional:  true,
+				Sensitive: true,
+				ForceNew:  true,
+			},
+			"ip_addresses": &schema.Schema{
+				Type:     schema.TypeSet,
+				Computed: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
 			},
 			"elastic_ip_bandwidth_mbps": {
 				Type:     schema.TypeInt,
@@ -667,7 +676,7 @@ func resourceJDCloudInstanceRead(d *schema.ResourceData, m interface{}) error {
 		return fmt.Errorf("[ERROR] Failed in setting Sg Id LIST, reasons:%s", errSet.Error())
 	}
 
-	if errSet := d.Set("secondary_ips", vmInstanceDetail.Result.Instance.PrimaryNetworkInterface.NetworkInterface.SecondaryIps); err != nil {
+	if errSet := d.Set("ip_addresses", vmInstanceDetail.Result.Instance.PrimaryNetworkInterface.NetworkInterface.SecondaryIps); err != nil {
 		return fmt.Errorf("[ERROR] Failed in setting secondary ip LIST, reasons:%s", errSet.Error())
 	}
 

@@ -36,12 +36,16 @@ func TestAccJDCloudRouteTableAssociation_basic(t *testing.T) {
 				Config: TestAccRouteTableAssociationConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccIfRouteTableAssociationExists("jdcloud_route_table_association.route-table-association-TEST-1", &routeTableId),
+					resource.TestCheckResourceAttr("jdcloud_route_table_association.route-table-association-TEST-1", "route_table_id", "rtb-jgso5x1ein"),
+					resource.TestCheckResourceAttr("jdcloud_route_table_association.route-table-association-TEST-1", "subnet_id.#", "1"),
 				),
 			},
 			{
 				Config: TestAccRouteTableAssociationConfigUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccIfRouteTableAssociationExists("jdcloud_route_table_association.route-table-association-TEST-1", &routeTableId),
+					resource.TestCheckResourceAttr("jdcloud_route_table_association.route-table-association-TEST-1", "route_table_id", "rtb-jgso5x1ein"),
+					resource.TestCheckResourceAttr("jdcloud_route_table_association.route-table-association-TEST-1", "subnet_id.#", "2"),
 				),
 			},
 			{

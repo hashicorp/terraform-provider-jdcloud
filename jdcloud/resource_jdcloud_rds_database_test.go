@@ -29,6 +29,9 @@ func TestAccJDCloudRDSDatabase_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 
 					testAccIfRDSDatabaseExists("jdcloud_rds_database.db-TEST"),
+					resource.TestCheckResourceAttr("jdcloud_rds_database.db-TEST", "instance_id", "mysql-155pjskhpy"),
+					resource.TestCheckResourceAttr("jdcloud_rds_database.db-TEST", "db_name", "devops2018"),
+					resource.TestCheckResourceAttr("jdcloud_rds_database.db-TEST", "character_set", "utf8"),
 				),
 			},
 		},

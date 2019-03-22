@@ -10,13 +10,18 @@ import (
 	"testing"
 )
 
+const TestAccOssConfigMin = `
+resource "jdcloud_oss_bucket" "jd-bucket-2" {
+  bucket_name = "example"
+}
+`
 const TestAccOssConfig = `
 resource "jdcloud_oss_bucket" "jd-bucket-2" {
   bucket_name = "example"
   acl = "private"
 }
 `
-const TestAccOssConfig2 = `
+const TestAccOssConfigUpdate = `
 resource "jdcloud_oss_bucket" "jd-bucket-2" {
   bucket_name = "example"
   acl = "public-read"
@@ -33,15 +38,28 @@ func TestAccJDCloudOss_basic(t *testing.T) {
 		CheckDestroy: testAccOssDestroy(&id),
 		Steps: []resource.TestStep{
 			{
-				Config: TestAccOssConfig,
+				Config: TestAccOssConfigMin,
 				Check: resource.ComposeTestCheckFunc(
 					testAccIfOssExists("jdcloud_oss_bucket.jd-bucket-2", &id),
+					resource.TestCheckResourceAttr("jdcloud_oss_bucket.jd-bucket-2", "bucket_name", "example"),
+					resource.TestCheckResourceAttrSet("jdcloud_oss_bucket.jd-bucket-2", "acl"),
+					resource.TestCheckResourceAttr("jdcloud_oss_bucket.jd-bucket-2", "acl", "private"),
 				),
 			},
 			{
-				Config: TestAccOssConfig2,
+				Config: TestAccOssConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccIfOssExists("jdcloud_oss_bucket.jd-bucket-2", &id),
+					resource.TestCheckResourceAttr("jdcloud_oss_bucket.jd-bucket-2", "bucket_name", "example"),
+					resource.TestCheckResourceAttr("jdcloud_oss_bucket.jd-bucket-2", "acl", "private"),
+				),
+			},
+			{
+				Config: TestAccOssConfigUpdate,
+				Check: resource.ComposeTestCheckFunc(
+					testAccIfOssExists("jdcloud_oss_bucket.jd-bucket-2", &id),
+					resource.TestCheckResourceAttr("jdcloud_oss_bucket.jd-bucket-2", "bucket_name", "example"),
+					resource.TestCheckResourceAttr("jdcloud_oss_bucket.jd-bucket-2", "acl", "public-read"),
 				),
 			},
 			{

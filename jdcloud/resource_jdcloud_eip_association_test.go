@@ -26,8 +26,9 @@ func TestAccJDCloudEIPAssociation_basic(t *testing.T) {
 			{
 				Config: TestAccEIPAssociationConfig,
 				Check: resource.ComposeTestCheckFunc(
-
 					testAccIfEIPAssociationExists("jdcloud_eip_association.eip-association-TEST-1"),
+					resource.TestCheckResourceAttr("jdcloud_eip_association.eip-association-TEST-1", "elastic_ip_id", "fip-iqu6kxgjuj"),
+					resource.TestCheckResourceAttr("jdcloud_eip_association.eip-association-TEST-1", "instance_id", "i-g6xse7qb0z"),
 				),
 			},
 		},

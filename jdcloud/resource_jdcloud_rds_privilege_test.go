@@ -41,8 +41,10 @@ func TestAccJDCloudRDSPrivilege_basic(t *testing.T) {
 			{
 				Config: TestAccRDSPrivilegeConfig,
 				Check: resource.ComposeTestCheckFunc(
-
 					testAccIfRDSPrivilegeExists("jdcloud_rds_privilege.pri-test"),
+					resource.TestCheckResourceAttr("jdcloud_rds_privilege.pri-test", "instance_id", "mysql-155pjskhpy"),
+					resource.TestCheckResourceAttr("jdcloud_rds_privilege.pri-test", "username", "jdcloudDevOps"),
+					resource.TestCheckResourceAttr("jdcloud_rds_privilege.pri-test", "account_privilege.#", "3"),
 				),
 			},
 		},

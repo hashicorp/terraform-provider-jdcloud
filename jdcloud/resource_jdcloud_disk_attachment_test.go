@@ -31,6 +31,12 @@ func TestAccJDCloudDiskAttachment_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 
 					testAccIfDiskAttachmentExists("jdcloud_disk_attachment.disk-attachment-TEST-1", &instanceId, &diskId),
+					resource.TestCheckResourceAttr("jdcloud_disk_attachment.disk-attachment-TEST-1", "instance_id", "i-g6xse7qb0z"),
+					resource.TestCheckResourceAttr("jdcloud_disk_attachment.disk-attachment-TEST-1", "disk_id", "vol-masm0gcxn8"),
+					resource.TestCheckResourceAttr("jdcloud_disk_attachment.disk-attachment-TEST-1", "auto_delete", "true"),
+					resource.TestCheckResourceAttrSet("jdcloud_disk_attachment.disk-attachment-TEST-1", "device_name"),
+					resource.TestCheckNoResourceAttr("jdcloud_disk_attachment.disk-attachment-TEST-1", "force_detach"),
+
 				),
 			},
 			{
@@ -38,6 +44,12 @@ func TestAccJDCloudDiskAttachment_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 
 					testAccIfDiskAttachmentExists("jdcloud_disk_attachment.disk-attachment-TEST-1", &instanceId, &diskId),
+					resource.TestCheckResourceAttr("jdcloud_disk_attachment.disk-attachment-TEST-1", "instance_id", "i-g6xse7qb0z"),
+					resource.TestCheckResourceAttr("jdcloud_disk_attachment.disk-attachment-TEST-1", "disk_id", "vol-masm0gcxn8"),
+					resource.TestCheckResourceAttr("jdcloud_disk_attachment.disk-attachment-TEST-1", "auto_delete", "false"),
+					resource.TestCheckResourceAttrSet("jdcloud_disk_attachment.disk-attachment-TEST-1", "device_name"),
+					resource.TestCheckNoResourceAttr("jdcloud_disk_attachment.disk-attachment-TEST-1", "force_detach"),
+
 				),
 			},
 		},

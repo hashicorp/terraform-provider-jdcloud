@@ -13,7 +13,6 @@ const TestAccAclConfig = `
 resource "jdcloud_network_acl" "acl-test" {
   vpc_id = "vpc-npvvk4wr5j",
   name = "devops",
-  description = "jdcloud"
 }
 `
 
@@ -29,8 +28,11 @@ func TestAccJDCloudAcl_basic(t *testing.T) {
 			{
 				Config: TestAccAclConfig,
 				Check: resource.ComposeTestCheckFunc(
-
 					testAccIfAclExists("jdcloud_network_acl.acl-test", &aclId),
+					resource.TestCheckResourceAttr("jdcloud_network_acl.acl-test", "vpc_id", "vpc-npvvk4wr5j"),
+					resource.TestCheckResourceAttr("jdcloud_network_acl.acl-test", "name", "devops"),
+					resource.TestCheckResourceAttr("jdcloud_network_acl.acl-test", "name", "devops"),
+					resource.TestCheckNoResourceAttr("jdcloud_network_acl.acl-test", "description"),
 				),
 			},
 			{

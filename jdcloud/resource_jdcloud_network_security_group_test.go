@@ -28,15 +28,19 @@ func TestAccJDCloudSecurityGroup_basic(t *testing.T) {
 		CheckDestroy: testAccCheckSecurityGroupDestroy(&securityGroupId),
 		Steps: []resource.TestStep{
 			{
-				Config: generateSGTemplate("This is a description(Nothing to say)", "name1"),
+				Config: generateSGTemplate("Captain", "JamesMay"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccIfSecurityGroupExists("jdcloud_network_security_group.TF-TEST", &securityGroupId),
+					resource.TestCheckResourceAttr("jdcloud_network_security_group.TF-TEST", "network_security_group_name", "JamesMay"),
+					resource.TestCheckResourceAttr("jdcloud_network_security_group.TF-TEST", "description", "Captain"),
 				),
 			},
 			{
-				Config: generateSGTemplate("This is a description!!!!!!(Nothing to say...)", "name2"),
+				Config: generateSGTemplate("aha", "RichardHammond"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccIfSecurityGroupExists("jdcloud_network_security_group.TF-TEST", &securityGroupId),
+					resource.TestCheckResourceAttr("jdcloud_network_security_group.TF-TEST", "network_security_group_name", "RichardHammond"),
+					resource.TestCheckResourceAttr("jdcloud_network_security_group.TF-TEST", "description", "aha"),
 				),
 			},
 			{

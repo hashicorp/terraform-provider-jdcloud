@@ -30,6 +30,9 @@ func TestAccJDCloudEIP_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 
 					testAccIfEIPExists("jdcloud_eip.eip-TEST-1"),
+					resource.TestCheckResourceAttr("jdcloud_eip.eip-TEST-1", "eip_provider", "bgp"),
+					resource.TestCheckResourceAttr("jdcloud_eip.eip-TEST-1", "bandwidth_mbps", "10"),
+					resource.TestCheckResourceAttrSet("jdcloud_eip.eip-TEST-1", "elastic_ip_address"),
 				),
 			},
 			{

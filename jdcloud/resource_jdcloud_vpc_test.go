@@ -23,6 +23,12 @@ resource "jdcloud_vpc" "vpc-TEST"{
 	description = "testtest"
 }
 `
+const TestAccVpcConfigMin = `
+resource "jdcloud_vpc" "vpc-TEST"{
+	vpc_name = "DevOps2019"
+	cidr_block = "172.16.0.0/19"
+}
+`
 
 func TestAccJDCloudVpc_basic(t *testing.T) {
 
@@ -33,6 +39,16 @@ func TestAccJDCloudVpc_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccVpcDestroy(&vpcId),
 		Steps: []resource.TestStep{
+			{
+				Config: TestAccVpcConfigMin,
+				Check: resource.ComposeTestCheckFunc(
+
+					testAccIfVpcExists("jdcloud_vpc.vpc-TEST", &vpcId),
+					resource.TestCheckResourceAttr("jdcloud_vpc.vpc-TEST", "vpc_name", "DevOps2018"),
+					resource.TestCheckResourceAttr("jdcloud_vpc.vpc-TEST", "cidr_block", "172.16.0.0/19"),
+					resource.TestCheckNoResourceAttr("jdcloud_vpc.vpc-TEST", "description"),
+				),
+			},
 			{
 				Config: TestAccVpcConfig,
 				Check: resource.ComposeTestCheckFunc(

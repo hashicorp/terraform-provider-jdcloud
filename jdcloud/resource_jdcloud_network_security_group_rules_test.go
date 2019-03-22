@@ -41,6 +41,7 @@ const multipleSGRule = `
       from_port = "0"
       protocol = "300"
       to_port = "0"
+	  description = "TheGrandTour"
     },
   ]
 `
@@ -62,12 +63,22 @@ func TestAccJDCloudSecurityGroupRule_basic(t *testing.T) {
 				Config: generateSGRulesTemplate(commonSGRule),
 				Check: resource.ComposeTestCheckFunc(
 					testAccIfSecurityGroupRuleExists("jdcloud_network_security_group_rules.sg-TEST-1", &SecurityGroupRuleId),
+					resource.TestCheckResourceAttr("jdcloud_network_security_group_rules.sg-TEST-1", "security_group_id", "sg-ym9yp1egi0"),
+					resource.TestCheckResourceAttr("jdcloud_network_security_group_rules.sg-TEST-1", "security_group_rules.#", "1"),
+					resource.TestCheckResourceAttrSet("jdcloud_network_security_group_rules.sg-TEST-1", "security_group_rules.0.rule_id"),
+					resource.TestCheckNoResourceAttr("jdcloud_network_security_group_rules.sg-TEST-1", "security_group_rules.0.description"),
 				),
 			},
 			{
 				Config: generateSGRulesTemplate(multipleSGRule),
 				Check: resource.ComposeTestCheckFunc(
 					testAccIfSecurityGroupRuleExists("jdcloud_network_security_group_rules.sg-TEST-1", &SecurityGroupRuleId),
+					resource.TestCheckResourceAttr("jdcloud_network_security_group_rules.sg-TEST-1", "security_group_id", "sg-ym9yp1egi0"),
+					resource.TestCheckResourceAttr("jdcloud_network_security_group_rules.sg-TEST-1", "security_group_rules.#", "2"),
+					resource.TestCheckResourceAttrSet("jdcloud_network_security_group_rules.sg-TEST-1", "security_group_rules.0.rule_id"),
+					resource.TestCheckResourceAttrSet("jdcloud_network_security_group_rules.sg-TEST-1", "security_group_rules.1.rule_id"),
+					resource.TestCheckResourceAttrSet("jdcloud_network_security_group_rules.sg-TEST-1", "security_group_rules.1.description"),
+					resource.TestCheckResourceAttr("jdcloud_network_security_group_rules.sg-TEST-1", "security_group_rules.1.description", "TheGrandTour"),
 				),
 			},
 			{
