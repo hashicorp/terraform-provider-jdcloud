@@ -44,6 +44,11 @@ func TestAccJDCloudRouteTableAssociation_basic(t *testing.T) {
 					testAccIfRouteTableAssociationExists("jdcloud_route_table_association.route-table-association-TEST-1", &routeTableId),
 				),
 			},
+			{
+				ResourceName:      "jdcloud_route_table_association.route-table-association-TEST-1",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
 		},
 	})
 }

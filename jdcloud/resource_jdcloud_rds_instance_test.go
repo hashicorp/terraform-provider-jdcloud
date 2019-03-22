@@ -59,6 +59,11 @@ func TestAccJDCloudRDSInstance_basic(t *testing.T) {
 					testAccIfRDSInstanceExists("jdcloud_rds_instance.tftest", &rdsId),
 				),
 			},
+			{
+				ResourceName:      "jdcloud_rds_instance.tftest",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
 		},
 	})
 }

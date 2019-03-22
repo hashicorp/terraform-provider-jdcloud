@@ -56,6 +56,11 @@ func TestAccJDCloudSubnet_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("jdcloud_subnet.subnet-TEST", "description", "test with another name"),
 				),
 			},
+			{
+				ResourceName:      "jdcloud_subnet.subnet-TEST",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
 		},
 	})
 

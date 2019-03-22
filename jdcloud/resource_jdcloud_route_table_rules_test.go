@@ -61,6 +61,11 @@ func TestAccJDCloudRouteTableRules_basic(t *testing.T) {
 					testAccIfRouteTableRuleExists("jdcloud_route_table_rules.rule-TEST-1", &routeTableId),
 				),
 			},
+			{
+				ResourceName:      "jdcloud_route_table_rules.rule-TEST-1",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
 		},
 	})
 

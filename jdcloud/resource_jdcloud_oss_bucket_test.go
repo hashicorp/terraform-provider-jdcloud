@@ -44,6 +44,11 @@ func TestAccJDCloudOss_basic(t *testing.T) {
 					testAccIfOssExists("jdcloud_oss_bucket.jd-bucket-2", &id),
 				),
 			},
+			{
+				ResourceName:      "jdcloud_oss_bucket.jd-bucket-2",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
 		},
 	})
 }

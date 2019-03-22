@@ -33,6 +33,11 @@ func TestAccJDCloudAcl_basic(t *testing.T) {
 					testAccIfAclExists("jdcloud_network_acl.acl-test", &aclId),
 				),
 			},
+			{
+				ResourceName:      "jdcloud_network_acl.acl-test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
 		},
 	})
 }

@@ -32,6 +32,11 @@ func TestAccJDCloudEIP_basic(t *testing.T) {
 					testAccIfEIPExists("jdcloud_eip.eip-TEST-1"),
 				),
 			},
+			{
+				ResourceName:      "jdcloud_eip.eip-TEST-1",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
 		},
 	})
 }

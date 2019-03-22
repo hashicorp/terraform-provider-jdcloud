@@ -49,6 +49,11 @@ func TestAccJDCloudNetworkInterface_basic(t *testing.T) {
 					testAccIfNetworkInterfaceExists("jdcloud_network_interface.NI-TEST", &networkInterfaceId),
 				),
 			},
+			{
+				ResourceName:      "jdcloud_network_interface.NI-TEST",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
 		},
 	})
 

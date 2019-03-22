@@ -39,7 +39,6 @@ func TestAccJDCloudRouteTable_basic(t *testing.T) {
 
 					// ROUTE_TABLE_ID validation
 					testAccIfRouteTableExists("jdcloud_route_table.route-table-TEST-1", &routeTableId),
-					// Remaining attributes validation
 					resource.TestCheckResourceAttr("jdcloud_route_table.route-table-TEST-1", "route_table_name", "route_table_test"),
 					resource.TestCheckResourceAttr("jdcloud_route_table.route-table-TEST-1", "vpc_id", "vpc-npvvk4wr5j"),
 					resource.TestCheckResourceAttr("jdcloud_route_table.route-table-TEST-1", "description", "test"),
@@ -51,11 +50,15 @@ func TestAccJDCloudRouteTable_basic(t *testing.T) {
 
 					// ROUTE_TABLE_ID validation
 					testAccIfRouteTableExists("jdcloud_route_table.route-table-TEST-1", &routeTableId),
-					// Remaining attributes validation
 					resource.TestCheckResourceAttr("jdcloud_route_table.route-table-TEST-1", "route_table_name", "route_table_test2"),
 					resource.TestCheckResourceAttr("jdcloud_route_table.route-table-TEST-1", "vpc_id", "vpc-npvvk4wr5j"),
 					resource.TestCheckResourceAttr("jdcloud_route_table.route-table-TEST-1", "description", "test with a different name"),
 				),
+			},
+			{
+				ResourceName:      "jdcloud_route_table.route-table-TEST-1",
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 		},
 	})

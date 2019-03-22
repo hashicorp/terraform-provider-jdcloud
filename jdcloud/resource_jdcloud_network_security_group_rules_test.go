@@ -70,6 +70,11 @@ func TestAccJDCloudSecurityGroupRule_basic(t *testing.T) {
 					testAccIfSecurityGroupRuleExists("jdcloud_network_security_group_rules.sg-TEST-1", &SecurityGroupRuleId),
 				),
 			},
+			{
+				ResourceName:      "jdcloud_network_security_group_rules.sg-TEST-1",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
 		},
 	})
 

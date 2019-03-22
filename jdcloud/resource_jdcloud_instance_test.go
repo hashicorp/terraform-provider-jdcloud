@@ -57,6 +57,11 @@ func TestAccJDCloudInstance_basic(t *testing.T) {
 					testAccIfInstanceExists("jdcloud_instance.DevOps", &instanceId),
 				),
 			},
+			{
+				ResourceName:      "jdcloud_instance.DevOps",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
 		},
 	})
 }

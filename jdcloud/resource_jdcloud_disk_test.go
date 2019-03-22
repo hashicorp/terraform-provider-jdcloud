@@ -48,6 +48,11 @@ func TestAccJDCloudDisk_basic(t *testing.T) {
 					testAccIfDiskExists("jdcloud_disk.terraform_disk_test", &diskId),
 				),
 			},
+			{
+				ResourceName:      "jdcloud_disk.terraform_disk_test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
 		},
 	})
 }

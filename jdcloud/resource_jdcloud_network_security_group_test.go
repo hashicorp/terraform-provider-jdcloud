@@ -39,6 +39,11 @@ func TestAccJDCloudSecurityGroup_basic(t *testing.T) {
 					testAccIfSecurityGroupExists("jdcloud_network_security_group.TF-TEST", &securityGroupId),
 				),
 			},
+			{
+				ResourceName:      "jdcloud_network_security_group.TF-TEST",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
 		},
 	})
 

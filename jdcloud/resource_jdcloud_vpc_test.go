@@ -53,6 +53,11 @@ func TestAccJDCloudVpc_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("jdcloud_vpc.vpc-TEST", "description", "testtest"),
 				),
 			},
+			{
+				ResourceName:      "jdcloud_vpc.vpc-TEST",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
 		},
 	})
 }
