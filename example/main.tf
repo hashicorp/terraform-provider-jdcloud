@@ -87,12 +87,14 @@ resource "jdcloud_route_table_association" "rt-association-1" {
 # Candidates for "next_hop_type" : instance/internet/vpc_peering/bgw
 # "address_prefix" : if (next_hop_type == "internet") then there's
 #  no overlap between address prefixes. Default priority for a rule is 100
-resource "jdcloud_route_table_rule" "routetablerule-1" {
-  route_table_id = "${jdcloud_route_table.jd-route-table-1.id}"
-  address_prefix = "0.0.0.0/0"
-  next_hop_id = "internet"
-  next_hop_type = "internet"
-  priority = "100"
+resource "jdcloud_route_table_rules" "rule-example"{
+  route_table_id = "rtb-example"
+  rule_specs = [{
+    next_hop_type = "internet"
+    next_hop_id   = "internet"
+    address_prefix= "10.0.0.0/16"
+    priority      = 100
+  }]
 }
 
 # ---------------------------------------------------------- SECURITY-GROUP

@@ -16,6 +16,12 @@ resource "jdcloud_oss_bucket" "jd-bucket-2" {
   acl = "private"
 }
 `
+const TestAccOssConfig2 = `
+resource "jdcloud_oss_bucket" "jd-bucket-2" {
+  bucket_name = "example"
+  acl = "public-read"
+}
+`
 
 func TestAccJDCloudOss_basic(t *testing.T) {
 
@@ -29,7 +35,12 @@ func TestAccJDCloudOss_basic(t *testing.T) {
 			{
 				Config: TestAccOssConfig,
 				Check: resource.ComposeTestCheckFunc(
-
+					testAccIfOssExists("jdcloud_oss_bucket.jd-bucket-2", &id),
+				),
+			},
+			{
+				Config: TestAccOssConfig2,
+				Check: resource.ComposeTestCheckFunc(
 					testAccIfOssExists("jdcloud_oss_bucket.jd-bucket-2", &id),
 				),
 			},

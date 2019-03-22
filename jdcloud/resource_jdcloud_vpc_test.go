@@ -16,6 +16,13 @@ resource "jdcloud_vpc" "vpc-TEST"{
 	description = "test"
 }
 `
+const TestAccVpcConfigUpdate = `
+resource "jdcloud_vpc" "vpc-TEST"{
+	vpc_name = "DevOps2019"
+	cidr_block = "172.16.0.0/19"
+	description = "testtest"
+}
+`
 
 func TestAccJDCloudVpc_basic(t *testing.T) {
 
@@ -34,6 +41,16 @@ func TestAccJDCloudVpc_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("jdcloud_vpc.vpc-TEST", "vpc_name", "DevOps2018"),
 					resource.TestCheckResourceAttr("jdcloud_vpc.vpc-TEST", "cidr_block", "172.16.0.0/19"),
 					resource.TestCheckResourceAttr("jdcloud_vpc.vpc-TEST", "description", "test"),
+				),
+			},
+			{
+				Config: TestAccVpcConfigUpdate,
+				Check: resource.ComposeTestCheckFunc(
+
+					testAccIfVpcExists("jdcloud_vpc.vpc-TEST", &vpcId),
+					resource.TestCheckResourceAttr("jdcloud_vpc.vpc-TEST", "vpc_name", "DevOps2019"),
+					resource.TestCheckResourceAttr("jdcloud_vpc.vpc-TEST", "cidr_block", "172.16.0.0/19"),
+					resource.TestCheckResourceAttr("jdcloud_vpc.vpc-TEST", "description", "testtest"),
 				),
 			},
 		},

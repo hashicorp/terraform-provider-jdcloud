@@ -686,7 +686,6 @@ func resourceJDCloudInstanceUpdate(d *schema.ResourceData, m interface{}) error 
 
 	d.Partial(true)
 	defer d.Partial(false)
-
 	config := m.(*JDCloudConfig)
 	vmClient := client.NewVmClient(config.Credential)
 
@@ -710,7 +709,6 @@ func resourceJDCloudInstanceUpdate(d *schema.ResourceData, m interface{}) error 
 	}
 
 	if d.HasChange("password") {
-
 		// Stop VM
 		if err := StopVmInstance(d, m); err != nil {
 			return fmt.Errorf("stop instance got error:%s", err)

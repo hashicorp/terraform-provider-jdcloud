@@ -52,18 +52,29 @@ func resourceJDCloudNetworkInterface() *schema.Resource {
 				Default:  1,
 				ForceNew: true,
 			},
+
 			"secondary_ip_addresses": &schema.Schema{
-				Type:     schema.TypeSet,
-				Optional: true,
-				MinItems: 1,
+				Type:      schema.TypeSet,
+				Optional:  true,
+				Sensitive: true,
+				MinItems:  1,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
 			},
 			"secondary_ip_count": &schema.Schema{
-				Type:     schema.TypeInt,
-				Optional: true,
+				Type:      schema.TypeInt,
+				Optional:  true,
+				Sensitive: true,
 			},
+			"ip_addresses": &schema.Schema{
+				Type:     schema.TypeSet,
+				Computed: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
+
 			"security_groups": &schema.Schema{
 				Type: schema.TypeSet,
 				// Optional : Can be provided by user
@@ -115,7 +126,8 @@ func resourceJDCloudNetworkInterfaceCreate(d *schema.ResourceData, meta interfac
 
 		resp, err := vpcClient.CreateNetworkInterface(req)
 
-		if err == nil {
+		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
+			log.Printf("Create Succeeded")
 			d.SetId(resp.Result.NetworkInterfaceId)
 			return nil
 		}
@@ -130,7 +142,7 @@ func resourceJDCloudNetworkInterfaceCreate(d *schema.ResourceData, meta interfac
 	if err != nil {
 		return err
 	}
-
+	//return nil
 	return resourceJDCloudNetworkInterfaceRead(d, meta)
 }
 
@@ -138,13 +150,14 @@ func resourceJDCloudNetworkInterfaceRead(d *schema.ResourceData, meta interface{
 
 	config := meta.(*JDCloudConfig)
 	networkInterfaceClient := client.NewVpcClient(config.Credential)
-
+	log.Printf("Entering read")
 	req := apis.NewDescribeNetworkInterfaceRequest(config.Region, d.Id())
 
 	return resource.Retry(5*time.Minute, func() *resource.RetryError {
 
 		resp, err := networkInterfaceClient.DescribeNetworkInterface(req)
-
+		log.Printf("122 %v", resp)
+		log.Printf("122 %v", err == nil)
 		if err == nil {
 
 			if resp.Result.NetworkInterface.Az != "" {
@@ -166,10 +179,8 @@ func resourceJDCloudNetworkInterfaceRead(d *schema.ResourceData, meta interface{
 			if resp.Result.NetworkInterface.PrimaryIp.ElasticIpAddress != "" {
 				d.Set("primary_ip_address", resp.Result.NetworkInterface.PrimaryIp.ElasticIpAddress)
 			}
-			if len(resp.Result.NetworkInterface.SecondaryIps) != d.Get("secondary_ip_count").(int)+d.Get("secondary_ip_addresses.#").(int) {
-				if errSetIp := d.Set("secondary_ip_addresses", ipList(resp.Result.NetworkInterface.SecondaryIps)); errSetIp != nil {
-					return resource.NonRetryableError(formatArraySetErrorMessage(errSetIp))
-				}
+			if errSetIp := d.Set("ip_addresses", ipList(resp.Result.NetworkInterface.SecondaryIps)); errSetIp != nil {
+				return resource.NonRetryableError(formatArraySetErrorMessage(errSetIp))
 			}
 
 			// sg - Exclude default sg
@@ -240,9 +251,14 @@ func resourceJDCloudNetworkInterfaceUpdate(d *schema.ResourceData, meta interfac
 		if err := performSecondaryIpDetach(d, meta, p.Difference(i)); len(typeSetToStringArray(p.Difference(i))) != 0 && err != nil {
 			return err
 		}
+
 		d.SetPartial("secondary_ip_addresses")
 		d.SetPartial("secondary_ip_count")
 
+		// Here I would recommend you to verify both specified_ip_addresses and secondary ip count
+		// Consider a case when you try to update `count` only. Thus c.Difference(i)==[] where
+		// This will lead the whole function failed and your update in `count` also failed
+		log.Printf("updating %v", d.Get("secondary_ip_count").(int))
 		if err := performSecondaryIpAttach(d, meta, c.Difference(i), d.Get("secondary_ip_count").(int)); len(typeSetToStringArray(c.Difference(i))) != 0 && err != nil {
 			return err
 		}
@@ -250,8 +266,7 @@ func resourceJDCloudNetworkInterfaceUpdate(d *schema.ResourceData, meta interfac
 		d.SetPartial("secondary_ip_addresses")
 		d.SetPartial("secondary_ip_count")
 	}
-
-	return nil
+	return resourceJDCloudNetworkInterfaceRead(d, meta)
 }
 
 func resourceJDCloudNetworkInterfaceDelete(d *schema.ResourceData, meta interface{}) error {
@@ -301,14 +316,23 @@ func performSecondaryIpDetach(d *schema.ResourceData, m interface{}, set *schema
 
 func performSecondaryIpAttach(d *schema.ResourceData, m interface{}, set *schema.Set, count int) error {
 
-	force_tag := true
 	config := m.(*JDCloudConfig)
 	vpcClient := client.NewVpcClient(config.Credential)
+	vpcClient.SetLogger(vmLogger{})
 
 	return resource.Retry(time.Minute, func() *resource.RetryError {
 
-		req := apis.NewAssignSecondaryIpsRequestWithAllParams(config.Region, d.Id(), &force_tag, typeSetToStringArray(set), &count)
+		req := apis.NewAssignSecondaryIpsRequest(config.Region, d.Id())
+		if set != nil {
+			req.SecondaryIps = typeSetToStringArray(set)
+		}
+		req.SecondaryIps = []string{}
+		if count != 0 {
+			req.SecondaryIpCount = &count
+		}
+		log.Printf("Now we are trying to deploy some IP attaching,%v", req)
 		resp, err := vpcClient.AssignSecondaryIps(req)
+		log.Printf("Now we are trying to deploy some IP attaching,%v", resp)
 		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
 			return nil
 		}

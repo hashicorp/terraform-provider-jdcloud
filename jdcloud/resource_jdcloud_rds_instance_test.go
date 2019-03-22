@@ -24,6 +24,21 @@ resource "jdcloud_rds_instance" "tftest"{
   charge_duration = "1"
 }
 `
+const TestAccRDSInstanceConfigUpdate = `
+resource "jdcloud_rds_instance" "tftest"{
+  instance_name = "tftesting_name"
+  engine = "MySQL"
+  engine_version = "5.7"
+  instance_class = "db.mysql.s1.medium"
+  instance_storage_gb = "40"
+  az = "cn-north-1a"
+  vpc_id = "vpc-npvvk4wr5j"
+  subnet_id = "subnet-j8jrei2981"
+  charge_mode = "postpaid_by_duration"
+  charge_unit = "month"
+  charge_duration = "1"
+}
+`
 
 func TestAccJDCloudRDSInstance_basic(t *testing.T) {
 	var rdsId string
@@ -35,7 +50,12 @@ func TestAccJDCloudRDSInstance_basic(t *testing.T) {
 			{
 				Config: TestAccRDSInstanceConfig,
 				Check: resource.ComposeTestCheckFunc(
-
+					testAccIfRDSInstanceExists("jdcloud_rds_instance.tftest", &rdsId),
+				),
+			},
+			{
+				Config: TestAccRDSInstanceConfigUpdate,
+				Check: resource.ComposeTestCheckFunc(
 					testAccIfRDSInstanceExists("jdcloud_rds_instance.tftest", &rdsId),
 				),
 			},

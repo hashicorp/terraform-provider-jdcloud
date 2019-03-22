@@ -80,8 +80,7 @@ func resourceJDCloudNetworkSecurityGroupRead(d *schema.ResourceData, meta interf
 	return resource.Retry(time.Minute, func() *resource.RetryError {
 
 		resp, err := sgClient.DescribeNetworkSecurityGroup(req)
-
-		if err == nil {
+		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
 			d.Set("description", resp.Result.NetworkSecurityGroup.Description)
 			d.Set("network_security_group_name", resp.Result.NetworkSecurityGroup.NetworkSecurityGroupName)
 			d.Set("vpc_id", resp.Result.NetworkSecurityGroup.VpcId)
@@ -102,22 +101,19 @@ func resourceJDCloudNetworkSecurityGroupRead(d *schema.ResourceData, meta interf
 }
 
 func resourceJDCloudNetworkSecurityGroupUpdate(d *schema.ResourceData, meta interface{}) error {
-	d.Partial(true)
+
 	config := meta.(*JDCloudConfig)
 	sgClient := client.NewVpcClient(config.Credential)
 
 	if d.HasChange("network_security_group_name") || d.HasChange("description") {
 
-		req := apis.NewModifyNetworkSecurityGroupRequestWithAllParams(config.Region, d.Id(), GetStringAddr(d, "description"), GetStringAddr(d, "network_security_group_name"))
+		req := apis.NewModifyNetworkSecurityGroupRequestWithAllParams(config.Region, d.Id(), GetStringAddr(d, "network_security_group_name"), GetStringAddr(d, "description"))
 
 		return resource.Retry(time.Minute, func() *resource.RetryError {
 
 			resp, err := sgClient.ModifyNetworkSecurityGroup(req)
 
-			if err == nil {
-				d.SetPartial("network_security_group_name")
-				d.SetPartial("description")
-				d.Partial(false)
+			if err == nil && resp.Error.Code == REQUEST_COMPLETED {
 				return nil
 			}
 

@@ -11,17 +11,17 @@ import (
 	"time"
 )
 
-const TestAccInstanceTemplateConfig = `
+const TestAccInstanceTemplateTemplate = `
 resource "jdcloud_instance_template" "instance_template" {
-  "template_name" = "terraform_auto_change_name"
+  "template_name" = "%s"
   "instance_type" = "g.n2.medium"
   "image_id" = "img-chn8lfcn6j"
   "password" = "DevOps2018"
   "bandwidth" = 5
   "ip_service_provider" = "BGP"
   "charge_mode" = "bandwith"
-  "subnet_id" = "subnet-ge9rox69ul"
-  "security_group_ids" = ["sg-eans7e93el"]
+  "subnet_id" = "subnet-rht03mi6o0"
+  "security_group_ids" = ["sg-hzdy2lpzao"]
   "system_disk" = {
     disk_category = "local"
   }
@@ -40,9 +40,14 @@ func TestAccJDCloudInstanceTemplate_basic(t *testing.T) {
 		CheckDestroy: testAccIfTemplateDestroyed(&instanceTemplateId),
 		Steps: []resource.TestStep{
 			{
-				Config: TestAccInstanceTemplateConfig,
+				Config: generateInstanceTemplate("terraform_auto_change_name"),
 				Check: resource.ComposeTestCheckFunc(
-
+					testAccIfTemplateExists("jdcloud_instance_template.instance_template", &instanceTemplateId),
+				),
+			},
+			{
+				Config: generateInstanceTemplate("another_name"),
+				Check: resource.ComposeTestCheckFunc(
 					testAccIfTemplateExists("jdcloud_instance_template.instance_template", &instanceTemplateId),
 				),
 			},
@@ -151,4 +156,8 @@ func testAccIfTemplateDestroyed(templateId *string) resource.TestCheckFunc {
 		}
 		return nil
 	}
+}
+
+func generateInstanceTemplate(name string) string {
+	return fmt.Sprintf(TestAccInstanceTemplateTemplate, name)
 }

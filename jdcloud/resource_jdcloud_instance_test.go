@@ -10,19 +10,19 @@ import (
 	"testing"
 )
 
-const TestAccInstanceConfig = `
+const TestAccInstanceTemplate = `
 resource "jdcloud_instance" "DevOps" {
   az            = "cn-north-1a"
-  instance_name = "DevOps2018"
+  instance_name = "%s"
   instance_type = "c.n1.large"
   image_id      = "bba85cab-dfdc-4359-9218-7a2de429dd80"
-  password      = "DevOps2018~"
+  password      = "%s"
+  description   = "%s"
 
   subnet_id              = "subnet-j8jrei2981"
   network_interface_name = "jdcloud"
   primary_ip             = "10.0.5.0"
   security_group_ids     = ["sg-ym9yp1egi0"]
-  sanity_check           = 1
 
   elastic_ip_bandwidth_mbps = 10
   elastic_ip_provider       = "bgp"
@@ -31,23 +31,30 @@ resource "jdcloud_instance" "DevOps" {
     disk_category = "local"
     auto_delete   = true
     device_name   = "vda"
-    disk_size_gb =  200
+    disk_size_gb =  40
   }
 }
 `
 
 func TestAccJDCloudInstance_basic(t *testing.T) {
 
+	instanceId := ""
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccDiskInstanceDestroy("jdcloud_instance.DevOps"),
+		CheckDestroy: testAccDiskInstanceDestroy("jdcloud_instance.DevOps", &instanceId),
 		Steps: []resource.TestStep{
 			{
-				Config: TestAccInstanceConfig,
+				Config: generateInstanceConfig("TerraformName1", "DevOps2018~", "terraform testing create"),
 				Check: resource.ComposeTestCheckFunc(
-
-					testAccIfInstanceExists("jdcloud_instance.DevOps"),
+					testAccIfInstanceExists("jdcloud_instance.DevOps", &instanceId),
+				),
+			},
+			{
+				Config: generateInstanceConfig("TerraformName2", "DevOps2018!", "terraform testing update"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccIfInstanceExists("jdcloud_instance.DevOps", &instanceId),
 				),
 			},
 		},
@@ -55,7 +62,7 @@ func TestAccJDCloudInstance_basic(t *testing.T) {
 }
 
 // Currently, verification on disks is not available
-func testAccIfInstanceExists(resourceName string) resource.TestCheckFunc {
+func testAccIfInstanceExists(resourceName string, instanceId *string) resource.TestCheckFunc {
 
 	return func(stateInfo *terraform.State) error {
 
@@ -67,10 +74,10 @@ func testAccIfInstanceExists(resourceName string) resource.TestCheckFunc {
 			return fmt.Errorf("operation failed, resource:%s is created but ID not set", resourceName)
 		}
 
-		instanceId := infoStoredLocally.Primary.ID
+		*instanceId = infoStoredLocally.Primary.ID
 		config := testAccProvider.Meta().(*JDCloudConfig)
 		vmClient := client.NewVmClient(config.Credential)
-		req := apis.NewDescribeInstanceRequest(config.Region, instanceId)
+		req := apis.NewDescribeInstanceRequest(config.Region, *instanceId)
 		resp, err := vmClient.DescribeInstance(req)
 
 		if err != nil {
@@ -113,15 +120,15 @@ func testAccIfInstanceExists(resourceName string) resource.TestCheckFunc {
 	}
 }
 
-func testAccDiskInstanceDestroy(resourceName string) resource.TestCheckFunc {
+func testAccDiskInstanceDestroy(resourceName string, instanceId *string) resource.TestCheckFunc {
 
 	return func(stateInfo *terraform.State) error {
 
 		infoStoredLocally, _ := stateInfo.RootModule().Resources[resourceName]
-		instanceId := infoStoredLocally.Primary.ID
+		*instanceId = infoStoredLocally.Primary.ID
 		config := testAccProvider.Meta().(*JDCloudConfig)
 		vmClient := client.NewVmClient(config.Credential)
-		req := apis.NewDescribeInstanceRequest(config.Region, instanceId)
+		req := apis.NewDescribeInstanceRequest(config.Region, *instanceId)
 		resp, err := vmClient.DescribeInstance(req)
 
 		if err != nil {
@@ -134,4 +141,8 @@ func testAccDiskInstanceDestroy(resourceName string) resource.TestCheckFunc {
 
 		return nil
 	}
+}
+
+func generateInstanceConfig(instanceName, password, description string) string {
+	return fmt.Sprintf(TestAccInstanceTemplate, instanceName, password, description)
 }

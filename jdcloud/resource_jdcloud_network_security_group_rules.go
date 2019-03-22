@@ -7,6 +7,7 @@ import (
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/apis"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/client"
 	vpc "github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/models"
+	"log"
 	"time"
 )
 
@@ -102,7 +103,6 @@ func resourceJDCloudNetworkSecurityGroupRules() *schema.Resource {
 			"security_group_rules": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
-				Computed: true,
 				MinItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -172,7 +172,7 @@ func resourceJDCloudNetworkSecurityGroupRulesRead(d *schema.ResourceData, meta i
 
 	sgRules := resp.Result.NetworkSecurityGroup.SecurityGroupRules
 	sgRuleArray := make([]map[string]interface{}, 0, len(sgRules))
-
+	log.Printf("nishizhu %v", sgRules)
 	for _, rule := range sgRules {
 
 		sgRule := map[string]interface{}{
@@ -195,7 +195,7 @@ func resourceJDCloudNetworkSecurityGroupRulesRead(d *schema.ResourceData, meta i
 }
 
 func resourceJDCloudNetworkSecurityGroupRulesUpdate(d *schema.ResourceData, m interface{}) error {
-	d.Partial(true)
+
 	if d.HasChange("security_group_rules") {
 
 		pInterface, cInterface := d.GetChange("security_group_rules")
@@ -213,9 +213,8 @@ func resourceJDCloudNetworkSecurityGroupRulesUpdate(d *schema.ResourceData, m in
 			return err
 		}
 
-		d.SetPartial("security_group_rules")
 	}
-	d.Partial(false)
+
 	return resourceJDCloudNetworkSecurityGroupRulesRead(d, m)
 }
 

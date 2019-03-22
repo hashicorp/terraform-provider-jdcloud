@@ -21,6 +21,15 @@ resource "jdcloud_rds_privilege" "pri-test" {
   ]
 }
 `
+const TestAccRDSPrivilegeConfigUpdate = `
+resource "jdcloud_rds_privilege" "pri-test" {
+  instance_id = "mysql-155pjskhpy"
+  username = "jdcloudDevOps"
+  account_privilege = [
+    {db_name = "jdcloud2017",privilege = "rw"},
+  ]
+}
+`
 
 func TestAccJDCloudRDSPrivilege_basic(t *testing.T) {
 

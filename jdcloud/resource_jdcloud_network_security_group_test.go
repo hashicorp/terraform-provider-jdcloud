@@ -10,10 +10,10 @@ import (
 	"testing"
 )
 
-const TestAccSecurityGroupConfig = `
+const TestAccSecurityGroupTemplate = `
 resource "jdcloud_network_security_group" "TF-TEST"{
-	description = "test"
-	network_security_group_name = "test"
+	description = "%s"
+	network_security_group_name = "%s"
 	vpc_id = "vpc-npvvk4wr5j"
 }
 `
@@ -28,9 +28,14 @@ func TestAccJDCloudSecurityGroup_basic(t *testing.T) {
 		CheckDestroy: testAccCheckSecurityGroupDestroy(&securityGroupId),
 		Steps: []resource.TestStep{
 			{
-				Config: TestAccSecurityGroupConfig,
+				Config: generateSGTemplate("This is a description(Nothing to say)", "name1"),
 				Check: resource.ComposeTestCheckFunc(
-
+					testAccIfSecurityGroupExists("jdcloud_network_security_group.TF-TEST", &securityGroupId),
+				),
+			},
+			{
+				Config: generateSGTemplate("This is a description!!!!!!(Nothing to say...)", "name2"),
+				Check: resource.ComposeTestCheckFunc(
 					testAccIfSecurityGroupExists("jdcloud_network_security_group.TF-TEST", &securityGroupId),
 				),
 			},
@@ -97,4 +102,8 @@ func testAccCheckSecurityGroupDestroy(securityGroupIdStoredLocally *string) reso
 		}
 		return nil
 	}
+}
+
+func generateSGTemplate(des, name string) string {
+	return fmt.Sprintf(TestAccSecurityGroupTemplate, des, name)
 }

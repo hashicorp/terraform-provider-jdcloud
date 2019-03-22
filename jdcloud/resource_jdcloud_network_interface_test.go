@@ -10,15 +10,15 @@ import (
 	"testing"
 )
 
-const TestAccNetWorkInterfaceConfig = `
+const TestAccNetWorkInterfaceTemplate = `
 resource "jdcloud_network_interface" "NI-TEST"{
 	subnet_id = "subnet-j8jrei2981"
-	description = "test"
+	description = "%s"
 	az = "cn-north-1"
-	network_interface_name = "TerraformTest"
-	secondary_ip_addresses = ["10.0.3.0","10.0.4.0"]
-	secondary_ip_count = "2"
-	security_groups = ["sg-yrd5fa7y55"]
+	network_interface_name = "%s"
+	secondary_ip_addresses = %s 
+	secondary_ip_count = %d
+	security_groups = %s
 }
 `
 
@@ -32,9 +32,20 @@ func TestAccJDCloudNetworkInterface_basic(t *testing.T) {
 		CheckDestroy: testAccCheckNetworkInterfaceDestroy(&networkInterfaceId),
 		Steps: []resource.TestStep{
 			{
-				Config: TestAccNetWorkInterfaceConfig,
+				Config: generateNITemplate("test",
+					"TerraformTest",
+					"[\"sg-yrd5fa7y55\",\"sg-xmjw0695x0\"]",
+					"[\"10.0.3.0\",\"10.0.4.0\"]", 3),
 				Check: resource.ComposeTestCheckFunc(
-
+					testAccIfNetworkInterfaceExists("jdcloud_network_interface.NI-TEST", &networkInterfaceId),
+				),
+			},
+			{
+				Config: generateNITemplate("test_modified",
+					"TerraformTestNewName",
+					"[\"sg-yrd5fa7y55\"]",
+					"[\"10.0.3.0\"]", 2),
+				Check: resource.ComposeTestCheckFunc(
 					testAccIfNetworkInterfaceExists("jdcloud_network_interface.NI-TEST", &networkInterfaceId),
 				),
 			},
@@ -116,4 +127,8 @@ func testAccCheckNetworkInterfaceDestroy(networkInterfaceId *string) resource.Te
 		}
 		return nil
 	}
+}
+
+func generateNITemplate(description, name, sg, ip_addr string, ip_count int) string {
+	return fmt.Sprintf(TestAccNetWorkInterfaceTemplate, description, name, ip_addr, ip_count, sg)
 }
