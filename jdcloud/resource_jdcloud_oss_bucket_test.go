@@ -42,6 +42,8 @@ func TestAccJDCloudOss_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccIfOssExists("jdcloud_oss_bucket.jd-bucket-2", &id),
 					resource.TestCheckResourceAttr("jdcloud_oss_bucket.jd-bucket-2", "bucket_name", "example"),
+
+					// By default, acl should be set to `private` here
 					resource.TestCheckResourceAttrSet("jdcloud_oss_bucket.jd-bucket-2", "acl"),
 					resource.TestCheckResourceAttr("jdcloud_oss_bucket.jd-bucket-2", "acl", "private"),
 				),

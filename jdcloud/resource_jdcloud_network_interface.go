@@ -53,6 +53,8 @@ func resourceJDCloudNetworkInterface() *schema.Resource {
 				ForceNew: true,
 			},
 
+			// You set : secondary_ip_addresses + secondary_ip_count
+			// You get : ip_addresses
 			"secondary_ip_addresses": &schema.Schema{
 				Type:      schema.TypeSet,
 				Optional:  true,

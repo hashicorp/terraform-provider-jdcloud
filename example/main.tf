@@ -262,13 +262,13 @@ resource "jdcloud_instance" "vm-1" {
   ################################################
   # You can attach multiple data-disk with this instance
   # Device name for disk must be unique
-  data_disk = {
+  data_disk = [
+  {
     disk_category = "local"
     auto_delete = true
     device_name = "vdb"
-  }
-
-  data_disk = {
+  },
+  {
     disk_category = "cloud"
     auto_delete = true
     device_name = "vdc"
@@ -278,7 +278,7 @@ resource "jdcloud_instance" "vm-1" {
     description = "test"
     disk_type = "ssd"
     disk_size_gb = 50
-  }
+  }]
 }
 
 

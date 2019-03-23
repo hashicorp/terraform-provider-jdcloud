@@ -11,8 +11,12 @@ import (
 	"time"
 )
 
+/*
+	TestCase : 1.common stuff only. Not yet found any tricky point requires extra attention
+*/
+
 const TestAccEIPConfig = `
-resource "jdcloud_eip" "eip-TEST-1"{
+resource "jdcloud_eip" "eip-terraform"{
 	eip_provider = "bgp" 
 	bandwidth_mbps = 10
 }
@@ -23,20 +27,26 @@ func TestAccJDCloudEIP_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccEIPDestroy("jdcloud_eip.eip-TEST-1"),
+		CheckDestroy: testAccEIPDestroy("jdcloud_eip.eip-terraform"),
 		Steps: []resource.TestStep{
 			{
 				Config: TestAccEIPConfig,
 				Check: resource.ComposeTestCheckFunc(
 
-					testAccIfEIPExists("jdcloud_eip.eip-TEST-1"),
-					resource.TestCheckResourceAttr("jdcloud_eip.eip-TEST-1", "eip_provider", "bgp"),
-					resource.TestCheckResourceAttr("jdcloud_eip.eip-TEST-1", "bandwidth_mbps", "10"),
-					resource.TestCheckResourceAttrSet("jdcloud_eip.eip-TEST-1", "elastic_ip_address"),
+					// Assigned values
+					testAccIfEIPExists("jdcloud_eip.eip-terraform"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_eip.eip-terraform", "eip_provider", "bgp"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_eip.eip-terraform", "bandwidth_mbps", "10"),
+
+					// After resource_XYZ_Read these value will be set.
+					resource.TestCheckResourceAttrSet(
+						"jdcloud_eip.eip-terraform", "elastic_ip_address"),
 				),
 			},
 			{
-				ResourceName:      "jdcloud_eip.eip-TEST-1",
+				ResourceName:      "jdcloud_eip.eip-terraform",
 				ImportState:       true,
 				ImportStateVerify: true,
 			},

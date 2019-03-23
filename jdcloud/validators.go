@@ -262,6 +262,16 @@ func RetryWithParamsSpecified(frequency, timeout time.Duration, f resource.Retry
 	return resultErr
 }
 
+func randomStringWithLength(i int) string {
+
+	b := make([]rune, i)
+	letters := []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+	for i := range b {
+		b[i] = letters[rand.Intn(len(letters))]
+	}
+	return string(b)
+}
+
 /*
 
 client := newClient

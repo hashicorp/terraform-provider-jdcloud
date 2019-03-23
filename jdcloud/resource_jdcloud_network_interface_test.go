@@ -10,8 +10,12 @@ import (
 	"testing"
 )
 
+/*
+	TestCase : 1.common stuff , tricky point is to make sure the amount of
+				secondary ips was as expected
+*/
 const TestAccNetWorkInterfaceTemplate = `
-resource "jdcloud_network_interface" "NI-TEST"{
+resource "jdcloud_network_interface" "terraform-ni"{
 	subnet_id = "subnet-j8jrei2981"
 	description = "%s"
 	az = "cn-north-1"
@@ -32,19 +36,37 @@ func TestAccJDCloudNetworkInterface_basic(t *testing.T) {
 		CheckDestroy: testAccCheckNetworkInterfaceDestroy(&networkInterfaceId),
 		Steps: []resource.TestStep{
 			{
-				Config: generateNITemplate("test", "TerraformTest", "[\"sg-yrd5fa7y55\",\"sg-xmjw0695x0\"]", "[\"10.0.3.0\",\"10.0.4.0\"]", 3),
+				Config: generateNITemplate(
+					"test", "TerraformTest", "[\"sg-yrd5fa7y55\",\"sg-xmjw0695x0\"]", "[\"10.0.3.0\",\"10.0.4.0\"]", 3),
 				Check: resource.ComposeTestCheckFunc(
-					testAccIfNetworkInterfaceExists("jdcloud_network_interface.NI-TEST", &networkInterfaceId),
-					resource.TestCheckResourceAttr("jdcloud_network_interface.NI-TEST", "subnet_id", "subnet-j8jrei2981"),
-					resource.TestCheckResourceAttr("jdcloud_network_interface.NI-TEST", "description", "test"),
-					resource.TestCheckResourceAttr("jdcloud_network_interface.NI-TEST", "az", "cn-north-1"),
-					resource.TestCheckResourceAttr("jdcloud_network_interface.NI-TEST", "network_interface_name", "TerraformTest"),
-					resource.TestCheckResourceAttr("jdcloud_network_interface.NI-TEST", "security_groups.#", "2"),
-					resource.TestCheckResourceAttrSet("jdcloud_network_interface.NI-TEST", "primary_ip_address"),
-					resource.TestCheckResourceAttrSet("jdcloud_network_interface.NI-TEST", "sanity_check"),
-					resource.TestCheckResourceAttr("jdcloud_network_interface.NI-TEST", "sanity_check", "1"),
-					resource.TestCheckResourceAttrSet("jdcloud_network_interface.NI-TEST", "ip_addresses"),
-					resource.TestCheckResourceAttr("jdcloud_network_interface.NI-TEST", "ip_addresses.#", "5"),
+					testAccIfNetworkInterfaceExists(
+						"jdcloud_network_interface.terraform-ni", &networkInterfaceId),
+					resource.TestCheckResourceAttr(
+						"jdcloud_network_interface.terraform-ni", "subnet_id", "subnet-j8jrei2981"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_network_interface.terraform-ni", "description", "test"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_network_interface.terraform-ni", "az", "cn-north-1"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_network_interface.terraform-ni", "network_interface_name", "TerraformTest"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_network_interface.terraform-ni", "security_groups.#", "2"),
+
+					// Primary IP should be set after resource_XYZ_Read
+					resource.TestCheckResourceAttrSet(
+						"jdcloud_network_interface.terraform-ni", "primary_ip_address"),
+
+					// Sanity check was by default set to 1
+					resource.TestCheckResourceAttrSet(
+						"jdcloud_network_interface.terraform-ni", "sanity_check"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_network_interface.terraform-ni", "sanity_check", "1"),
+
+					// By setting 2*ip_addr and 3*ip_count,we should get 5 ip_addresses in total
+					resource.TestCheckResourceAttrSet(
+						"jdcloud_network_interface.terraform-ni", "ip_addresses"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_network_interface.terraform-ni", "ip_addresses.#", "5"),
 				),
 			},
 			{
@@ -53,21 +75,36 @@ func TestAccJDCloudNetworkInterface_basic(t *testing.T) {
 					"[\"sg-yrd5fa7y55\"]",
 					"[\"10.0.3.0\"]", 2),
 				Check: resource.ComposeTestCheckFunc(
-					testAccIfNetworkInterfaceExists("jdcloud_network_interface.NI-TEST", &networkInterfaceId),
-					resource.TestCheckResourceAttr("jdcloud_network_interface.NI-TEST", "subnet_id", "subnet-j8jrei2981"),
-					resource.TestCheckResourceAttr("jdcloud_network_interface.NI-TEST", "description", "BBCTopGear"),
-					resource.TestCheckResourceAttr("jdcloud_network_interface.NI-TEST", "az", "cn-north-1"),
-					resource.TestCheckResourceAttr("jdcloud_network_interface.NI-TEST", "network_interface_name", "TerraformTestNewName"),
-					resource.TestCheckResourceAttr("jdcloud_network_interface.NI-TEST", "security_groups.#", "1"),
-					resource.TestCheckResourceAttrSet("jdcloud_network_interface.NI-TEST", "primary_ip_address"),
-					resource.TestCheckResourceAttrSet("jdcloud_network_interface.NI-TEST", "sanity_check"),
-					resource.TestCheckResourceAttr("jdcloud_network_interface.NI-TEST", "sanity_check", "1"),
-					resource.TestCheckResourceAttrSet("jdcloud_network_interface.NI-TEST", "ip_addresses"),
-					resource.TestCheckResourceAttr("jdcloud_network_interface.NI-TEST", "ip_addresses.#", "3"),
+					testAccIfNetworkInterfaceExists(
+						"jdcloud_network_interface.terraform-ni", &networkInterfaceId),
+					resource.TestCheckResourceAttr(
+						"jdcloud_network_interface.terraform-ni", "subnet_id", "subnet-j8jrei2981"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_network_interface.terraform-ni", "description", "BBCTopGear"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_network_interface.terraform-ni", "az", "cn-north-1"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_network_interface.terraform-ni", "network_interface_name", "TerraformTestNewName"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_network_interface.terraform-ni", "security_groups.#", "1"),
+					resource.TestCheckResourceAttrSet(
+						"jdcloud_network_interface.terraform-ni", "primary_ip_address"),
+
+					// Sanity check was by default set to 1
+					resource.TestCheckResourceAttrSet(
+						"jdcloud_network_interface.terraform-ni", "sanity_check"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_network_interface.terraform-ni", "sanity_check", "1"),
+
+					// After updating, we should get 3 ip_addresses here
+					resource.TestCheckResourceAttrSet(
+						"jdcloud_network_interface.terraform-ni", "ip_addresses"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_network_interface.terraform-ni", "ip_addresses.#", "3"),
 				),
 			},
 			{
-				ResourceName:      "jdcloud_network_interface.NI-TEST",
+				ResourceName:      "jdcloud_network_interface.terraform-ni",
 				ImportState:       true,
 				ImportStateVerify: true,
 			},

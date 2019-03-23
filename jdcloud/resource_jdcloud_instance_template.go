@@ -1,6 +1,7 @@
 package jdcloud
 
 import (
+	"fmt"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vm/apis"
@@ -188,7 +189,7 @@ func resourceJDCloudInstanceTemplateCreate(d *schema.ResourceData, m interface{}
 	if err != nil {
 		return err
 	}
-	return nil
+	return resourceJDCloudInstanceTemplateRead(d, m)
 }
 
 func resourceJDCloudInstanceTemplateRead(d *schema.ResourceData, m interface{}) error {
@@ -200,7 +201,27 @@ func resourceJDCloudInstanceTemplateRead(d *schema.ResourceData, m interface{}) 
 
 		resp, err := vmClient.DescribeInstanceTemplate(req)
 		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
+
+			d.Set("subnet_id", resp.Result.InstanceTemplate.InstanceTemplateData.PrimaryNetworkInterface.NetworkInterface.SubnetId)
+			d.Set("ip_service_provider", resp.Result.InstanceTemplate.InstanceTemplateData.ElasticIp.Provider)
+			d.Set("charge_mode", resp.Result.InstanceTemplate.InstanceTemplateData.ElasticIp.ChargeMode)
+			d.Set("bandwidth", resp.Result.InstanceTemplate.InstanceTemplateData.ElasticIp.BandwidthMbps)
 			d.Set("template_name", resp.Result.InstanceTemplate.Name)
+			d.Set("description", resp.Result.InstanceTemplate.Description)
+			d.Set("image_id", resp.Result.InstanceTemplate.InstanceTemplateData.ImageId)
+			d.Set("instance_type", resp.Result.InstanceTemplate.InstanceTemplateData.InstanceType)
+			d.Set("template_name", resp.Result.InstanceTemplate.Name)
+
+			if e := d.Set("data_disks", typeListToDiskTemplateMap(resp.Result.InstanceTemplate.InstanceTemplateData.DataDisks)); e != nil {
+				return resource.NonRetryableError(fmt.Errorf("[E] Failed in setting data disks"))
+			}
+			if e := d.Set("system_disk", typeListToDiskTemplateMap([]vm.InstanceTemplateDiskAttachment{resp.Result.InstanceTemplate.InstanceTemplateData.SystemDisk})); e != nil {
+				return resource.NonRetryableError(fmt.Errorf("[E] Failed in setting data disks"))
+			}
+			if e := d.Set("security_group_ids", resp.Result.InstanceTemplate.InstanceTemplateData.PrimaryNetworkInterface.NetworkInterface.SecurityGroups); e != nil {
+				return resource.NonRetryableError(fmt.Errorf("[E] Failed in setting data disks"))
+			}
+
 			return nil
 		}
 
@@ -251,7 +272,7 @@ func resourceJDCloudInstanceTemplateUpdate(d *schema.ResourceData, m interface{}
 			return err
 		}
 	}
-	return nil
+	return resourceJDCloudInstanceTemplateRead(d, m)
 }
 
 func resourceJDCloudInstanceTemplateDelete(d *schema.ResourceData, m interface{}) error {
@@ -279,6 +300,20 @@ func resourceJDCloudInstanceTemplateDelete(d *schema.ResourceData, m interface{}
 	return nil
 }
 
+func typeListToDiskTemplateMap(s []vm.InstanceTemplateDiskAttachment) []map[string]interface{} {
+
+	ret := []map[string]interface{}{}
+	for _, item := range s {
+		ret = append(ret, map[string]interface{}{
+			"disk_size":     item.InstanceTemplateDisk.DiskSizeGB,
+			"disk_type":     item.InstanceTemplateDisk.DiskType,
+			"disk_category": item.DiskCategory,
+			"device_name":   item.DeviceName,
+			"auto_delete":   item.AutoDelete,
+		})
+	}
+	return ret
+}
 func typeListToDiskTemplateList(s []interface{}) []vm.InstanceTemplateDiskAttachmentSpec {
 
 	ret := []vm.InstanceTemplateDiskAttachmentSpec{}

@@ -10,6 +10,9 @@ import (
 	"testing"
 )
 
+/*
+	TestCase : 1.common stuff only. Not yet found any tricky point requires extra attention
+*/
 const TestAccSecurityGroupTemplate = `
 resource "jdcloud_network_security_group" "TF-TEST"{
 	description = "%s"

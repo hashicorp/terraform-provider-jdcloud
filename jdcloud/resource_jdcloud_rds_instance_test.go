@@ -9,6 +9,11 @@ import (
 	"testing"
 )
 
+/*
+	TestCase : 1.common stuff
+               2. [ChargeMode] Try to create one with "postpaid_by_usage", not quite sure if they are available
+*/
+
 const TestAccRDSInstanceConfig = `
 resource "jdcloud_rds_instance" "tftest"{
   instance_name = "tftesting"
@@ -51,42 +56,147 @@ func TestAccJDCloudRDSInstance_basic(t *testing.T) {
 				Config: TestAccRDSInstanceConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccIfRDSInstanceExists("jdcloud_rds_instance.tftest", &rdsId),
-					resource.TestCheckResourceAttr("jdcloud_rds_instance.tftest", "db_name", "tftesting_name"),
-					resource.TestCheckResourceAttr("jdcloud_rds_instance.tftest", "engine", "MySQL"),
-					resource.TestCheckResourceAttr("jdcloud_rds_instance.tftest", "engine_version", "5.7"),
-					resource.TestCheckResourceAttr("jdcloud_rds_instance.tftest", "instance_class", "db.mysql.s1.micro"),
-					resource.TestCheckResourceAttr("jdcloud_rds_instance.tftest", "instance_storage_gb", "20"),
-					resource.TestCheckResourceAttr("jdcloud_rds_instance.tftest", "az", "cn-north-1a"),
-					resource.TestCheckResourceAttr("jdcloud_rds_instance.tftest", "vpc_id", "vpc-npvvk4wr5j"),
-					resource.TestCheckResourceAttr("jdcloud_rds_instance.tftest", "subnet_id", "subnet-j8jrei2981"),
-					resource.TestCheckResourceAttr("jdcloud_rds_instance.tftest", "charge_mode", "postpaid_by_duration"),
-					resource.TestCheckResourceAttr("jdcloud_rds_instance.tftest", "charge_unit", "month"),
-					resource.TestCheckResourceAttr("jdcloud_rds_instance.tftest", "charge_duration", "1"),
-					resource.TestCheckResourceAttrSet("jdcloud_rds_instance.tftest", "internal_domain_name"),
-					resource.TestCheckResourceAttrSet("jdcloud_rds_instance.tftest", "public_domain_name"),
-					resource.TestCheckResourceAttrSet("jdcloud_rds_instance.tftest", "instance_port"),
-					resource.TestCheckResourceAttrSet("jdcloud_rds_instance.tftest", "connection_mode"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_rds_instance.tftest", "db_name", "tftesting_name"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_rds_instance.tftest", "engine", "MySQL"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_rds_instance.tftest", "engine_version", "5.7"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_rds_instance.tftest", "instance_class", "db.mysql.s1.micro"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_rds_instance.tftest", "instance_storage_gb", "20"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_rds_instance.tftest", "az", "cn-north-1a"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_rds_instance.tftest", "vpc_id", "vpc-npvvk4wr5j"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_rds_instance.tftest", "subnet_id", "subnet-j8jrei2981"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_rds_instance.tftest", "charge_mode", "postpaid_by_duration"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_rds_instance.tftest", "charge_unit", "month"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_rds_instance.tftest", "charge_duration", "1"),
+					resource.TestCheckResourceAttrSet(
+						"jdcloud_rds_instance.tftest", "internal_domain_name"),
+					resource.TestCheckResourceAttrSet(
+						"jdcloud_rds_instance.tftest", "public_domain_name"),
+					resource.TestCheckResourceAttrSet(
+						"jdcloud_rds_instance.tftest", "instance_port"),
+					resource.TestCheckResourceAttrSet(
+						"jdcloud_rds_instance.tftest", "connection_mode"),
 				),
 			},
 			{
 				Config: TestAccRDSInstanceConfigUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccIfRDSInstanceExists("jdcloud_rds_instance.tftest", &rdsId),
-					resource.TestCheckResourceAttr("jdcloud_rds_instance.tftest", "db_name", "tftesting_name"),
-					resource.TestCheckResourceAttr("jdcloud_rds_instance.tftest", "engine", "MySQL"),
-					resource.TestCheckResourceAttr("jdcloud_rds_instance.tftest", "engine_version", "5.7"),
-					resource.TestCheckResourceAttr("jdcloud_rds_instance.tftest", "instance_class", "db.mysql.s1.medium"),
-					resource.TestCheckResourceAttr("jdcloud_rds_instance.tftest", "instance_storage_gb", "40"),
-					resource.TestCheckResourceAttr("jdcloud_rds_instance.tftest", "az", "cn-north-1a"),
-					resource.TestCheckResourceAttr("jdcloud_rds_instance.tftest", "vpc_id", "vpc-npvvk4wr5j"),
-					resource.TestCheckResourceAttr("jdcloud_rds_instance.tftest", "subnet_id", "subnet-j8jrei2981"),
-					resource.TestCheckResourceAttr("jdcloud_rds_instance.tftest", "charge_mode", "postpaid_by_duration"),
-					resource.TestCheckResourceAttr("jdcloud_rds_instance.tftest", "charge_unit", "month"),
-					resource.TestCheckResourceAttr("jdcloud_rds_instance.tftest", "charge_duration", "1"),
-					resource.TestCheckResourceAttrSet("jdcloud_rds_instance.tftest", "internal_domain_name"),
-					resource.TestCheckResourceAttrSet("jdcloud_rds_instance.tftest", "public_domain_name"),
-					resource.TestCheckResourceAttrSet("jdcloud_rds_instance.tftest", "instance_port"),
-					resource.TestCheckResourceAttrSet("jdcloud_rds_instance.tftest", "connection_mode"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_rds_instance.tftest", "db_name", "tftesting_name"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_rds_instance.tftest", "engine", "MySQL"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_rds_instance.tftest", "engine_version", "5.7"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_rds_instance.tftest", "instance_class", "db.mysql.s1.medium"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_rds_instance.tftest", "instance_storage_gb", "40"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_rds_instance.tftest", "az", "cn-north-1a"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_rds_instance.tftest", "vpc_id", "vpc-npvvk4wr5j"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_rds_instance.tftest", "subnet_id", "subnet-j8jrei2981"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_rds_instance.tftest", "charge_mode", "postpaid_by_duration"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_rds_instance.tftest", "charge_unit", "month"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_rds_instance.tftest", "charge_duration", "1"),
+					resource.TestCheckResourceAttrSet(
+						"jdcloud_rds_instance.tftest", "internal_domain_name"),
+					resource.TestCheckResourceAttrSet(
+						"jdcloud_rds_instance.tftest", "public_domain_name"),
+					resource.TestCheckResourceAttrSet(
+						"jdcloud_rds_instance.tftest", "instance_port"),
+					resource.TestCheckResourceAttrSet(
+						"jdcloud_rds_instance.tftest", "connection_mode"),
+				),
+			},
+			{
+				ResourceName:      "jdcloud_rds_instance.tftest",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+// [ChargeMode] Try to create one with "postpaid_by_usage", not quite sure if they are available
+const TestAccRDSInstanceConfigChargeMode = `
+resource "jdcloud_rds_instance" "terraform-rds"{
+  instance_name = "rdsChargeTest"
+  engine = "MySQL"
+  engine_version = "5.7"
+  instance_class = "db.mysql.s1.medium"
+  instance_storage_gb = "40"
+  az = "cn-north-1a"
+  vpc_id = "vpc-npvvk4wr5j"
+  subnet_id = "subnet-j8jrei2981"
+
+  charge_mode = "postpaid_by_usage"
+}
+`
+
+func TestAccJDCloudRDSInstance_ChargeMode(t *testing.T) {
+	var rdsId string
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccRDSInstanceDestroy(&rdsId),
+		Steps: []resource.TestStep{
+			{
+				Config: TestAccRDSInstanceConfigChargeMode,
+				Check: resource.ComposeTestCheckFunc(
+
+					// Assigned values
+					testAccIfRDSInstanceExists("jdcloud_rds_instance.terraform-rds", &rdsId),
+					resource.TestCheckResourceAttr(
+						"jdcloud_rds_instance.terraform-rds", "db_name", "rdsChargeTest"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_rds_instance.terraform-rds", "engine", "MySQL"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_rds_instance.terraform-rds", "engine_version", "5.7"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_rds_instance.terraform-rds", "instance_class", "db.mysql.s1.micro"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_rds_instance.terraform-rds", "instance_storage_gb", "40"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_rds_instance.terraform-rds", "az", "cn-north-1a"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_rds_instance.terraform-rds", "vpc_id", "vpc-npvvk4wr5j"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_rds_instance.terraform-rds", "subnet_id", "subnet-j8jrei2981"),
+
+					// After resource_XYZ_Read these value will be set.
+					resource.TestCheckResourceAttrSet(
+						"jdcloud_rds_instance.terraform-rds", "internal_domain_name"),
+					resource.TestCheckResourceAttrSet(
+						"jdcloud_rds_instance.terraform-rds", "public_domain_name"),
+					resource.TestCheckResourceAttrSet(
+						"jdcloud_rds_instance.terraform-rds", "instance_port"),
+					resource.TestCheckResourceAttrSet(
+						"jdcloud_rds_instance.terraform-rds", "connection_mode"),
+
+					// Validate on ChargeMode related properties
+					resource.TestCheckResourceAttr(
+						"jdcloud_rds_instance.terraform-rds", "charge_mode", "postpaid_by_usage"),
+					// They were not supposed to be here since they weren't set in resource_XYZ_Read
+					resource.TestCheckNoResourceAttr(
+						"jdcloud_rds_instance.terraform-rds", "charge_unit"),
+					resource.TestCheckNoResourceAttr(
+						"jdcloud_rds_instance.terraform-rds", "charge_duration"),
 				),
 			},
 			{

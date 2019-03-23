@@ -488,6 +488,9 @@ func resourceJDCloudInstance() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 			},
+
+			// You set : secondary_ips + secondary_ip_count (Optional)
+			// You got : ip_addresses (Computed)
 			"secondary_ips": {
 				Type:      schema.TypeSet,
 				Optional:  true,
@@ -511,6 +514,7 @@ func resourceJDCloudInstance() *schema.Resource {
 					Type: schema.TypeString,
 				},
 			},
+
 			"elastic_ip_bandwidth_mbps": {
 				Type:     schema.TypeInt,
 				Optional: true,
@@ -529,6 +533,9 @@ func resourceJDCloudInstance() *schema.Resource {
 				Elem:     diskSchema,
 				MaxItems: MAX_SYSDISK_COUNT,
 				ForceNew: true,
+				Set: func(v interface{}) int {
+					return 1
+				},
 			},
 			"data_disk": {
 				Type:     schema.TypeList,
@@ -669,7 +676,7 @@ func resourceJDCloudInstanceRead(d *schema.ResourceData, m interface{}) error {
 	d.Set("subnet_id", vmInstanceDetail.Result.Instance.SubnetId)
 	d.Set("primary_ip", vmInstanceDetail.Result.Instance.PrimaryNetworkInterface.NetworkInterface.PrimaryIp)
 	d.Set("elastic_ip", vmInstanceDetail.Result.Instance.ElasticIpAddress)
-	d.Set("elastic_ip", vmInstanceDetail.Result.Instance.Az)
+	d.Set("az", vmInstanceDetail.Result.Instance.Az)
 	d.Set("key_names", vmInstanceDetail.Result.Instance.KeyNames)
 
 	if errSet := d.Set("security_group_ids", vmInstanceDetail.Result.Instance.PrimaryNetworkInterface.NetworkInterface.SecurityGroups); err != nil {

@@ -11,6 +11,12 @@ import (
 	"time"
 )
 
+/*
+	TestCase : 1.common stuff
+			   2. [Data-Disk] Build an instance template with multiple same data-disks
+			   3. [Bandwidth] Build an instance template without bandwidth
+*/
+
 const TestAccInstanceTemplateTemplate = `
 resource "jdcloud_instance_template" "instance_template" {
   "template_name" = "%s"
@@ -30,6 +36,10 @@ resource "jdcloud_instance_template" "instance_template" {
   }
 }
 `
+
+func generateInstanceTemplate(name string) string {
+	return fmt.Sprintf(TestAccInstanceTemplateTemplate, name)
+}
 
 func TestAccJDCloudInstanceTemplate_basic(t *testing.T) {
 
@@ -54,7 +64,6 @@ func TestAccJDCloudInstanceTemplate_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("jdcloud_instance_template.instance_template", "system_disk.#", "1"),
 					resource.TestCheckResourceAttr("jdcloud_instance_template.instance_template", "data_disk.#", "1"),
 					resource.TestCheckResourceAttrSet("jdcloud_instance_template.instance_template", "data_disk.0.device_name"),
-					resource.TestCheckResourceAttrSet("jdcloud_instance_template.instance_template", "system_disk.0.device_name"),
 				),
 			},
 			{
@@ -72,7 +81,185 @@ func TestAccJDCloudInstanceTemplate_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("jdcloud_instance_template.instance_template", "system_disk.#", "1"),
 					resource.TestCheckResourceAttr("jdcloud_instance_template.instance_template", "data_disk.#", "1"),
 					resource.TestCheckResourceAttrSet("jdcloud_instance_template.instance_template", "data_disk.0.device_name"),
-					resource.TestCheckResourceAttrSet("jdcloud_instance_template.instance_template", "system_disk.0.device_name"),
+				),
+			},
+		},
+	})
+}
+
+//2. Build an instance template with multiple same data-disks
+
+const TestAccInstanceTemplateMultipleDisk = `
+resource "jdcloud_instance_template" "instance_template_md" {
+  "template_name" = "%s"
+  "instance_type" = "g.n2.medium"
+  "image_id" = "img-chn8lfcn6j"
+  "password" = "DevOps2018"
+  "bandwidth" = 5
+  "ip_service_provider" = "BGP"
+  "charge_mode" = "bandwith"
+  "subnet_id" = "subnet-rht03mi6o0"
+  "security_group_ids" = ["sg-hzdy2lpzao"]
+  "system_disk" = {
+    disk_category = "local"
+  }
+  "data_disks" = [
+  {
+    disk_category = "cloud"
+  },
+  {
+    disk_category = "cloud"
+  },
+  {
+    disk_category = "cloud"
+  }]
+}
+`
+
+func instanceTemplateMD(name string) string {
+	return fmt.Sprintf(TestAccInstanceTemplateMultipleDisk, name)
+}
+
+func TestAccJDCloudInstanceTemplate_MultipleDisk(t *testing.T) {
+
+	var instanceTemplateId string
+	name := randomStringWithLength(10)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccIfTemplateDestroyed(&instanceTemplateId),
+		Steps: []resource.TestStep{
+			{
+				Config: instanceTemplateMD(name),
+				Check: resource.ComposeTestCheckFunc(
+					testAccIfTemplateExists(
+						"jdcloud_instance_template.instance_template_md", &instanceTemplateId),
+					resource.TestCheckResourceAttr(
+						"jdcloud_instance_template.instance_template_md", "template_name", name),
+					resource.TestCheckResourceAttr(
+						"jdcloud_instance_template.instance_template_md", "instance_type", "g.n2.medium"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_instance_template.instance_template_md", "image_id", "img-chn8lfcn6j"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_instance_template.instance_template_md", "bandwidth", "5"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_instance_template.instance_template_md", "ip_service_provider", "BGP"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_instance_template.instance_template_md", "charge_mode", "bandwith"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_instance_template.instance_template_md", "subnet_id", "subnet-rht03mi6o0"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_instance_template.instance_template_md", "security_group_ids.#", "1"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_instance_template.instance_template_md", "system_disk.#", "1"),
+
+					// Validate on DataDisks
+					resource.TestCheckResourceAttr(
+						"jdcloud_instance_template.instance_template_md", "data_disk.#", "3"),
+					resource.TestCheckResourceAttrSet(
+						"jdcloud_instance_template.instance_template_md", "data_disk.0.device_name"),
+					resource.TestCheckResourceAttrSet(
+						"jdcloud_instance_template.instance_template_md", "data_disk.0.disk_size"),
+					resource.TestCheckResourceAttrSet(
+						"jdcloud_instance_template.instance_template_md", "data_disk.0.disk_type"),
+					resource.TestCheckResourceAttrSet(
+						"jdcloud_instance_template.instance_template_md", "data_disk.0.disk_category"),
+					resource.TestCheckResourceAttrSet(
+						"jdcloud_instance_template.instance_template_md", "data_disk.0.auto_delete"),
+					resource.TestCheckResourceAttrSet(
+						"jdcloud_instance_template.instance_template_md", "data_disk.1.device_name"),
+					resource.TestCheckResourceAttrSet(
+						"jdcloud_instance_template.instance_template_md", "data_disk.1.disk_size"),
+					resource.TestCheckResourceAttrSet(
+						"jdcloud_instance_template.instance_template_md", "data_disk.1.disk_type"),
+					resource.TestCheckResourceAttrSet(
+						"jdcloud_instance_template.instance_template_md", "data_disk.1.disk_category"),
+					resource.TestCheckResourceAttrSet(
+						"jdcloud_instance_template.instance_template_md", "data_disk.1.auto_delete"),
+					resource.TestCheckResourceAttrSet(
+						"jdcloud_instance_template.instance_template_md", "data_disk.2.device_name"),
+					resource.TestCheckResourceAttrSet(
+						"jdcloud_instance_template.instance_template_md", "data_disk.2.disk_size"),
+					resource.TestCheckResourceAttrSet(
+						"jdcloud_instance_template.instance_template_md", "data_disk.2.disk_type"),
+					resource.TestCheckResourceAttrSet(
+						"jdcloud_instance_template.instance_template_md", "data_disk.2.disk_category"),
+					resource.TestCheckResourceAttrSet(
+						"jdcloud_instance_template.instance_template_md", "data_disk.2.auto_delete"),
+					resource.TestCheckResourceAttrSet(
+						"jdcloud_instance_template.instance_template_md", "data_disk.2.device_name"),
+				),
+			},
+		},
+	})
+}
+
+//3. [Bandwidth] Build an instance template without bandwidth
+
+const TestAccInstanceTemplateBandwidth = `
+resource "jdcloud_instance_template" "instance_template_bandwidth" {
+  "template_name" = "%s"
+  "instance_type" = "g.n2.medium"
+  "image_id" = "img-chn8lfcn6j"
+  "password" = "DevOps2018"
+  "ip_service_provider" = "BGP"
+  "charge_mode" = "bandwith"
+  "subnet_id" = "subnet-rht03mi6o0"
+  "security_group_ids" = ["sg-hzdy2lpzao"]
+  "system_disk" = {
+    disk_category = "local"
+  }
+  "data_disks" = [
+  {
+    disk_category = "cloud"
+  }]
+}
+`
+
+func instanceTemplateBandwidth(name string) string {
+	return fmt.Sprintf(TestAccInstanceTemplateBandwidth, name)
+}
+
+func TestAccJDCloudInstanceTemplate_Bandwidth(t *testing.T) {
+
+	var instanceTemplateId string
+	name := randomStringWithLength(10)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccIfTemplateDestroyed(&instanceTemplateId),
+		Steps: []resource.TestStep{
+			{
+				Config: instanceTemplateBandwidth(name),
+				Check: resource.ComposeTestCheckFunc(
+					testAccIfTemplateExists(
+						"jdcloud_instance_template.instance_template_bandwidth", &instanceTemplateId),
+					resource.TestCheckResourceAttr(
+						"jdcloud_instance_template.instance_template_bandwidth", "template_name", name),
+					resource.TestCheckResourceAttr(
+						"jdcloud_instance_template.instance_template_bandwidth", "instance_type", "g.n2.medium"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_instance_template.instance_template_bandwidth", "image_id", "img-chn8lfcn6j"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_instance_template.instance_template_bandwidth", "ip_service_provider", "BGP"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_instance_template.instance_template_bandwidth", "charge_mode", "bandwith"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_instance_template.instance_template_bandwidth", "subnet_id", "subnet-rht03mi6o0"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_instance_template.instance_template_bandwidth", "security_group_ids.#", "1"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_instance_template.instance_template_bandwidth", "system_disk.#", "1"),
+
+					// Validate on DataDisks
+					resource.TestCheckResourceAttr(
+						"jdcloud_instance_template.instance_template_bandwidth", "data_disk.#", "1"),
+
+					// Bandwidth shouldn't be here
+					resource.TestCheckNoResourceAttr(
+						"jdcloud_instance_template.instance_template_bandwidth", "bandwidth"),
 				),
 			},
 		},
@@ -180,8 +367,4 @@ func testAccIfTemplateDestroyed(templateId *string) resource.TestCheckFunc {
 		}
 		return nil
 	}
-}
-
-func generateInstanceTemplate(name string) string {
-	return fmt.Sprintf(TestAccInstanceTemplateTemplate, name)
 }

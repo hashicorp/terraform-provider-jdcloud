@@ -9,47 +9,77 @@ import (
 	"testing"
 )
 
+/*
+	TestCase : 1.common stuff only. Not yet found any tricky point requires extra attention
+*/
+
 const TestAccDiskAttachmentTemplate = `
-resource "jdcloud_disk_attachment" "disk-attachment-TEST-1"{
+resource "jdcloud_disk_attachment" "terraform_da"{
 	instance_id = "i-g6xse7qb0z" 
 	disk_id = "vol-masm0gcxn8"
 	auto_delete = %s
 }
 `
 
+func diskAttachmentConfig(a string) string {
+	return fmt.Sprintf(TestAccDiskAttachmentTemplate, a)
+}
+
 func TestAccJDCloudDiskAttachment_basic(t *testing.T) {
 
 	var instanceId, diskId string
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccDiskAttachmentDestroy(&instanceId, &diskId),
+
+		IDRefreshName: "jdcloud_disk_attachment.terraform_da",
+		PreCheck:      func() { testAccPreCheck(t) },
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccDiskAttachmentDestroy(&instanceId, &diskId),
 		Steps: []resource.TestStep{
 			{
-				Config: generateDiskAttachmentConfig("true"),
+				Config: diskAttachmentConfig("true"),
 				Check: resource.ComposeTestCheckFunc(
 
-					testAccIfDiskAttachmentExists("jdcloud_disk_attachment.disk-attachment-TEST-1", &instanceId, &diskId),
-					resource.TestCheckResourceAttr("jdcloud_disk_attachment.disk-attachment-TEST-1", "instance_id", "i-g6xse7qb0z"),
-					resource.TestCheckResourceAttr("jdcloud_disk_attachment.disk-attachment-TEST-1", "disk_id", "vol-masm0gcxn8"),
-					resource.TestCheckResourceAttr("jdcloud_disk_attachment.disk-attachment-TEST-1", "auto_delete", "true"),
-					resource.TestCheckResourceAttrSet("jdcloud_disk_attachment.disk-attachment-TEST-1", "device_name"),
-					resource.TestCheckNoResourceAttr("jdcloud_disk_attachment.disk-attachment-TEST-1", "force_detach"),
+					// Assigned values
+					testAccIfDiskAttachmentExists(
+						"jdcloud_disk_attachment.terraform_da", &instanceId, &diskId),
+					resource.TestCheckResourceAttr(
+						"jdcloud_disk_attachment.terraform_da", "instance_id", "i-g6xse7qb0z"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_disk_attachment.terraform_da", "disk_id", "vol-masm0gcxn8"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_disk_attachment.terraform_da", "auto_delete", "true"),
 
+					// After resource_XYZ_Read these values will be set.
+					resource.TestCheckResourceAttrSet(
+						"jdcloud_disk_attachment.terraform_da", "device_name"),
+
+					// These values not supposed to exists after resource_XYZ_Read
+					resource.TestCheckNoResourceAttr(
+						"jdcloud_disk_attachment.terraform_da", "force_detach"),
 				),
 			},
 			{
-				Config: generateDiskAttachmentConfig("false"),
+				Config: diskAttachmentConfig("false"),
 				Check: resource.ComposeTestCheckFunc(
 
-					testAccIfDiskAttachmentExists("jdcloud_disk_attachment.disk-attachment-TEST-1", &instanceId, &diskId),
-					resource.TestCheckResourceAttr("jdcloud_disk_attachment.disk-attachment-TEST-1", "instance_id", "i-g6xse7qb0z"),
-					resource.TestCheckResourceAttr("jdcloud_disk_attachment.disk-attachment-TEST-1", "disk_id", "vol-masm0gcxn8"),
-					resource.TestCheckResourceAttr("jdcloud_disk_attachment.disk-attachment-TEST-1", "auto_delete", "false"),
-					resource.TestCheckResourceAttrSet("jdcloud_disk_attachment.disk-attachment-TEST-1", "device_name"),
-					resource.TestCheckNoResourceAttr("jdcloud_disk_attachment.disk-attachment-TEST-1", "force_detach"),
+					// Assigned values
+					testAccIfDiskAttachmentExists(
+						"jdcloud_disk_attachment.terraform_da", &instanceId, &diskId),
+					resource.TestCheckResourceAttr(
+						"jdcloud_disk_attachment.terraform_da", "instance_id", "i-g6xse7qb0z"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_disk_attachment.terraform_da", "disk_id", "vol-masm0gcxn8"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_disk_attachment.terraform_da", "auto_delete", "false"),
 
+					// After resource_XYZ_Read these value will be set.
+					resource.TestCheckResourceAttrSet(
+						"jdcloud_disk_attachment.terraform_da", "device_name"),
+
+					// These values not supposed to exists after resource_XYZ_Read
+					resource.TestCheckNoResourceAttr(
+						"jdcloud_disk_attachment.terraform_da", "force_detach"),
 				),
 			},
 		},
@@ -113,8 +143,4 @@ func testAccDiskAttachmentDestroy(resourceId *string, diskId *string) resource.T
 		}
 		return nil
 	}
-}
-
-func generateDiskAttachmentConfig(a string) string {
-	return fmt.Sprintf(TestAccDiskAttachmentTemplate, a)
 }

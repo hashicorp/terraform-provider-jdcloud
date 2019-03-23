@@ -9,8 +9,12 @@ import (
 	"testing"
 )
 
+/*
+	TestCase : 1.common stuff only. Not yet found any tricky point requires extra attention
+*/
+
 const TestAccEIPAssociationConfig = `
-resource "jdcloud_eip_association" "eip-association-TEST-1"{
+resource "jdcloud_eip_association" "terraform-eip-association"{
 	instance_id = "i-g6xse7qb0z"
 	elastic_ip_id = "fip-iqu6kxgjuj"
 }
@@ -21,14 +25,19 @@ func TestAccJDCloudEIPAssociation_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccDiskEIPAssociationDestroy("jdcloud_eip_association.eip-association-TEST-1"),
+		CheckDestroy: testAccDiskEIPAssociationDestroy("jdcloud_eip_association.terraform-eip-association"),
 		Steps: []resource.TestStep{
 			{
 				Config: TestAccEIPAssociationConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccIfEIPAssociationExists("jdcloud_eip_association.eip-association-TEST-1"),
-					resource.TestCheckResourceAttr("jdcloud_eip_association.eip-association-TEST-1", "elastic_ip_id", "fip-iqu6kxgjuj"),
-					resource.TestCheckResourceAttr("jdcloud_eip_association.eip-association-TEST-1", "instance_id", "i-g6xse7qb0z"),
+
+					// Assigned values
+					testAccIfEIPAssociationExists(
+						"jdcloud_eip_association.terraform-eip-association"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_eip_association.terraform-eip-association", "elastic_ip_id", "fip-iqu6kxgjuj"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_eip_association.terraform-eip-association", "instance_id", "i-g6xse7qb0z"),
 				),
 			},
 		},
