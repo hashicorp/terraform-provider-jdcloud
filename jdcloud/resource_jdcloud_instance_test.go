@@ -230,15 +230,15 @@ func TestAccJDCloudInstance_cloudSysDisk(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"jdcloud_instance.terraform-cloud-sys-disk", "system_disk.#", "1"),
 					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-cloud-sys-disk", "system_disk.1.disk_category", "cloud"),
+						"jdcloud_instance.terraform-cloud-sys-disk", "system_disk.0.disk_category", "cloud"),
 					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-cloud-sys-disk", "system_disk.1.disk_type", "ssd.gp1"),
+						"jdcloud_instance.terraform-cloud-sys-disk", "system_disk.0.disk_type", "ssd.gp1"),
 					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-cloud-sys-disk", "system_disk.1.disk_size_gb", randSize),
+						"jdcloud_instance.terraform-cloud-sys-disk", "system_disk.0.disk_size_gb", randSize),
 					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-cloud-sys-disk", "system_disk.1.device_name", "vda"),
+						"jdcloud_instance.terraform-cloud-sys-disk", "system_disk.0.device_name", "vda"),
 					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-cloud-sys-disk", "system_disk.1.auto_delete", "true"),
+						"jdcloud_instance.terraform-cloud-sys-disk", "system_disk.0.auto_delete", "true"),
 
 					// These values not supposed to exists after resource_XYZ_Read
 					resource.TestCheckNoResourceAttr(
@@ -278,15 +278,15 @@ func TestAccJDCloudInstance_cloudSysDisk(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"jdcloud_instance.terraform-cloud-sys-disk", "system_disk.#", "1"),
 					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-cloud-sys-disk", "system_disk.1.disk_category", "cloud"),
+						"jdcloud_instance.terraform-cloud-sys-disk", "system_disk.0.disk_category", "cloud"),
 					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-cloud-sys-disk", "system_disk.1.disk_type", "ssd.gp1"),
+						"jdcloud_instance.terraform-cloud-sys-disk", "system_disk.0.disk_type", "ssd.gp1"),
 					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-cloud-sys-disk", "system_disk.1.disk_size_gb", randSize),
+						"jdcloud_instance.terraform-cloud-sys-disk", "system_disk.0.disk_size_gb", randSize),
 					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-cloud-sys-disk", "system_disk.1.device_name", "vda"),
+						"jdcloud_instance.terraform-cloud-sys-disk", "system_disk.0.device_name", "vda"),
 					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-cloud-sys-disk", "system_disk.1.auto_delete", "true"),
+						"jdcloud_instance.terraform-cloud-sys-disk", "system_disk.0.auto_delete", "true"),
 
 					// These values not supposed to exists after resource_XYZ_Read
 					resource.TestCheckNoResourceAttr(
@@ -383,13 +383,13 @@ func TestAccJDCloudInstance_PrivateImage(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"jdcloud_instance.terraform-private-image", "system_disk.#", "1"),
 					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-private-image", "system_disk.1.disk_category", "local"),
+						"jdcloud_instance.terraform-private-image", "system_disk.0.disk_category", "local"),
 					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-private-image", "system_disk.1.disk_size_gb", "40"),
+						"jdcloud_instance.terraform-private-image", "system_disk.0.disk_size_gb", "40"),
 					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-private-image", "system_disk.1.device_name", "vda"),
+						"jdcloud_instance.terraform-private-image", "system_disk.0.device_name", "vda"),
 					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-private-image", "system_disk.1.auto_delete", "true"),
+						"jdcloud_instance.terraform-private-image", "system_disk.0.auto_delete", "true"),
 
 					// These values not supposed to exists after resource_XYZ_Read
 					resource.TestCheckNoResourceAttr(
@@ -429,13 +429,13 @@ func TestAccJDCloudInstance_PrivateImage(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"jdcloud_instance.terraform-private-image", "system_disk.#", "1"),
 					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-private-image", "system_disk.1.disk_category", "local"),
+						"jdcloud_instance.terraform-private-image", "system_disk.0.disk_category", "local"),
 					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-private-image", "system_disk.1.disk_size_gb", "40"),
+						"jdcloud_instance.terraform-private-image", "system_disk.0.disk_size_gb", "40"),
 					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-private-image", "system_disk.1.device_name", "vda"),
+						"jdcloud_instance.terraform-private-image", "system_disk.0.device_name", "vda"),
 					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-private-image", "system_disk.1.auto_delete", "true"),
+						"jdcloud_instance.terraform-private-image", "system_disk.0.auto_delete", "true"),
 
 					// These values not supposed to exists after resource_XYZ_Read
 					resource.TestCheckNoResourceAttr(
@@ -530,13 +530,13 @@ func TestAccJDCloudInstance_PrimaryIP(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"jdcloud_instance.terraform-primary-ip", "system_disk.#", "1"),
 					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-primary-ip", "system_disk.1.disk_category", "local"),
+						"jdcloud_instance.terraform-primary-ip", "system_disk.0.disk_category", "local"),
 					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-primary-ip", "system_disk.1.disk_size_gb", "40"),
+						"jdcloud_instance.terraform-primary-ip", "system_disk.0.disk_size_gb", "40"),
 					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-primary-ip", "system_disk.1.device_name", "vda"),
+						"jdcloud_instance.terraform-primary-ip", "system_disk.0.device_name", "vda"),
 					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-primary-ip", "system_disk.1.auto_delete", "true"),
+						"jdcloud_instance.terraform-primary-ip", "system_disk.0.auto_delete", "true"),
 
 					// These values not supposed to exists after resource_XYZ_Read
 					resource.TestCheckNoResourceAttr(
@@ -640,13 +640,13 @@ func TestAccJDCloudInstance_SecondaryIPs(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"jdcloud_instance.terraform-secondary-ips", "system_disk.#", "1"),
 					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-secondary-ips", "system_disk.1.disk_category", "local"),
+						"jdcloud_instance.terraform-secondary-ips", "system_disk.0.disk_category", "local"),
 					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-secondary-ips", "system_disk.1.disk_size_gb", "40"),
+						"jdcloud_instance.terraform-secondary-ips", "system_disk.0.disk_size_gb", "40"),
 					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-secondary-ips", "system_disk.1.device_name", "vda"),
+						"jdcloud_instance.terraform-secondary-ips", "system_disk.0.device_name", "vda"),
 					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-secondary-ips", "system_disk.1.auto_delete", "true"),
+						"jdcloud_instance.terraform-secondary-ips", "system_disk.0.auto_delete", "true"),
 
 					// These values not supposed to exists after resource_XYZ_Read
 					resource.TestCheckNoResourceAttr(
@@ -745,13 +745,13 @@ func TestAccJDCloudInstanceSG(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"jdcloud_instance.terraform-instance-sg", "system_disk.#", "1"),
 					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-instance-sg", "system_disk.1.disk_category", "local"),
+						"jdcloud_instance.terraform-instance-sg", "system_disk.0.disk_category", "local"),
 					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-instance-sg", "system_disk.1.disk_size_gb", "40"),
+						"jdcloud_instance.terraform-instance-sg", "system_disk.0.disk_size_gb", "40"),
 					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-instance-sg", "system_disk.1.device_name", "vda"),
+						"jdcloud_instance.terraform-instance-sg", "system_disk.0.device_name", "vda"),
 					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-instance-sg", "system_disk.1.auto_delete", "true"),
+						"jdcloud_instance.terraform-instance-sg", "system_disk.0.auto_delete", "true"),
 
 					// These values not supposed to exists after resource_XYZ_Read
 					resource.TestCheckNoResourceAttr(
@@ -850,13 +850,13 @@ func TestAccJDCloudInstancePW(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"jdcloud_instance.terraform-instance-pw", "system_disk.#", "1"),
 					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-instance-pw", "system_disk.1.disk_category", "local"),
+						"jdcloud_instance.terraform-instance-pw", "system_disk.0.disk_category", "local"),
 					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-instance-pw", "system_disk.1.disk_size_gb", "40"),
+						"jdcloud_instance.terraform-instance-pw", "system_disk.0.disk_size_gb", "40"),
 					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-instance-pw", "system_disk.1.device_name", "vda"),
+						"jdcloud_instance.terraform-instance-pw", "system_disk.0.device_name", "vda"),
 					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-instance-pw", "system_disk.1.auto_delete", "true"),
+						"jdcloud_instance.terraform-instance-pw", "system_disk.0.auto_delete", "true"),
 
 					// These values not supposed to exists after resource_XYZ_Read
 					resource.TestCheckNoResourceAttr(

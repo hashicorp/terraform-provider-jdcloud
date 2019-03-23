@@ -533,9 +533,6 @@ func resourceJDCloudInstance() *schema.Resource {
 				Elem:     diskSchema,
 				MaxItems: MAX_SYSDISK_COUNT,
 				ForceNew: true,
-				Set: func(v interface{}) int {
-					return 1
-				},
 			},
 			"data_disk": {
 				Type:     schema.TypeList,
