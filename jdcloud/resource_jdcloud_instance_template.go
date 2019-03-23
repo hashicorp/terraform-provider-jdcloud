@@ -86,6 +86,7 @@ func resourceJDCloudInstanceTemplate() *schema.Resource {
 				Optional:  true,
 				Sensitive: true,
 			},
+
 			"bandwidth": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
@@ -93,13 +94,12 @@ func resourceJDCloudInstanceTemplate() *schema.Resource {
 			"ip_service_provider": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				Default:  "BGP",
 			},
 			"charge_mode": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				Default:  "bandwith",
 			},
+
 			"subnet_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
@@ -215,7 +215,11 @@ func resourceJDCloudInstanceTemplateRead(d *schema.ResourceData, m interface{}) 
 			if e := d.Set("data_disks", typeListToDiskTemplateMap(resp.Result.InstanceTemplate.InstanceTemplateData.DataDisks)); e != nil {
 				return resource.NonRetryableError(fmt.Errorf("[E] Failed in setting data disks"))
 			}
-			if e := d.Set("system_disk", typeListToDiskTemplateMap([]vm.InstanceTemplateDiskAttachment{resp.Result.InstanceTemplate.InstanceTemplateData.SystemDisk})); e != nil {
+
+			sysDisk := typeListToDiskTemplateMap([]vm.InstanceTemplateDiskAttachment{resp.Result.InstanceTemplate.InstanceTemplateData.SystemDisk})
+			sysDisk[0]["disk_type"] = d.Get("system_disk.0.disk_type")
+			sysDisk[0]["device_name"] = d.Get("system_disk.0.device_name")
+			if e := d.Set("system_disk", sysDisk); e != nil {
 				return resource.NonRetryableError(fmt.Errorf("[E] Failed in setting data disks"))
 			}
 			if e := d.Set("security_group_ids", resp.Result.InstanceTemplate.InstanceTemplateData.PrimaryNetworkInterface.NetworkInterface.SecurityGroups); e != nil {
