@@ -1,3 +1,5 @@
+# Before everything starts you have to provide [access key and secret key]
+# What are these keys -> https://docs.jdcloud.com/cn/account-management/accesskey-management
 provider "jdcloud" {
   access_key = "${var.access_key}"
   secret_key = "${var.secret_key}"

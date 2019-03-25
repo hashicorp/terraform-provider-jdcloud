@@ -4,115 +4,74 @@ Terraform Provider for JDCloud
 [![Build Status](https://travis-ci.com/jdclouddevelopers/terraform-provider-jdcloud.svg?branch=master)](https://travis-ci.com/jdclouddevelopers/terraform-provider-jdcloud)
 
 
-## Requirements
+# Requirements
 
 * Terraform 0.10+
-* Go 1.12
+* Go 1.12(to build the provider plugin)
 
-## Developing the Provider
+# Using the provider 
+
+The best way to get familiar with it is to use it. Only three simple steps:
+
+* Prepare a folder for Terraform 
+```bash
+makedir terraform && cd terraform 
+```
+* Prepare your `jdcloud.tf`. This is where Terraform begins 
+```bash
+touch jdcloud.tf
+```
+* Download [Terraform](https://www.terraform.io/downloads.html) 
+* Download [Terraform-Jdcloud-Plugin](baidu.com)
+* Launch!
+```bash
+terraform init
+``` 
+Terraform is now start working, it will manage your resources according to your `jdcloud.tf`
+We would recommend our users begin with some simple resource, say `VPC` and `ElasticIP`
+
+How to write `jdcloud.tf` ? [Check Here](https://github.com/XiaohanLiang/terraform-provider-jdcloud/blob/master/example/main.tf)
+
+# Developing the Provider
 
 Contributions and advices to this plugin is very welcomed. In order to get start with, you 
 need to do the following steps.
 
-### Prepare Golang Environment
+### 1.Prepare Golang Environment
 
 First you will need to have [Golang1.12](https://golang.org/dl/) installed on your machine. Besides, 
-You will need to correctly set up $GOPATH, as well as adding    
+You will need to correctly set up $GOPATH, as well as adding `$GOPATH/bin` to your `$PATH`
 
-Terraform will **create/read/update/delete** resource on JDCloud for you automatically. Following guides
-show you how to install Terraform together with JDCloud plugin. Commands are given under **Ubuntu**
-<br>
+### 2.Compile project
 
-### Build from binary
-
-Download the Terraform binary, make sure Terraform binary is available in your `PATH`.
-Download JDCloud plugin into the same directory as Terraform. Detailed instruction can be found in [release page](https://github.com/XiaohanLiang/terraform-provider-jdcloud/releases/edit/v0.1-beta)
-<br>
-
-### Build from source code (Recommended for developers)
-
-**Clone this repository**
-
-```sh
-$ mkdir -p $GOPATH/src/github.com/terraform-providers
-$ cd $GOPATH/src/github.com/terraform-providers
-$ git clone git@github.com:jdclouddevelopers/terraform-provider-jdcloud
-```
-
-**Enter the provider directory and build the provider**
-
-```sh
-$ cd $GOPATH/src/github.com/jdclouddevelopers/terraform-provider-jdcloud
+After you have modified the code you can compile this plugin by `make build`. 
+Remember to format your code by using `go fmt`. If it works fine. Plugin will be in your $GOPATH/bin
+``` go
 $ make build
+==> Checking that code complies with gofmt requirements...
+go install
+
+$ ls $GOPATH/bin | grep jdcloud
+terraform-provider-jdcloud
+```   
+
+### 3.Running Acceptance Test
+
+Acceptance test can be an important part of developing process. Basically, it will first create a resource,
+validate its attributes and see if it works as expected. Update this resource if applied and eventually delete this resource.
+Acceptance tests are files in `jdcloud` with suffix `_test.go`. You can invoke an acceptance test by 
+```bash
+make testacc
 ```
-<br>
 
-# Tutorial
+_Note_ 
+* Acceptance creates real resources, it will probably cost some money.
+* Process usually takes 20~30 minutes depends on your network condition.
 
-### Provide access key and secret key
+## Contact Us 
 
-JDCloud resources were managed through a configuration file namely "jdcloud.tf", placed in the same directory as Terraform.
-This tutorial gives you an **idea on how to edit this configuration file and how this plugin works**.
-Before everything starts you have to provide [access key and secret key](https://docs.jdcloud.com/cn/account-management/accesskey-management).
-
-```hcl
-provider "jdcloud" {
-  access_key = "EXAMPLEACCESSKEY"
-  secret_key = "EXAMPLESECRETKEY"
-  region = "cn-north-1"
-}
-```
-<br>
-
-### Create a VPC resource through Terraform
-VPC resource can be created by specifying the name of this VPC resource and the CIDR block. Meanwhile description on this resource is optional. Edit `jdcloud.tf` and then execute `terraform apply`. Resource on the cloud will be modified consequently.
-```hcl
-resource "jdcloud_vpc" "vpc-1" {
-  vpc_name = "my-vpc-1"
-  cidr_block = "172.16.0.0/20"
-  description = "example"
-}
-```
-<br>
-
-### Modify resource attributes through Terraform
-Just like creating them through console on web page. You can modify some attributes of resource after it has been created. Execute terraform applyafter it has been modified
-```hcl
-resource "jdcloud_vpc" "vpc-1" {
-  vpc_name = "my-vpc-1"
-  cidr_block = "172.16.0.0/20"
-  description = "new and modified description"
-}
-```
-<br>
-
-
-
-# More
-**More example** on how to create a resource can be found [here](https://github.com/XiaohanLiang/terraform-provider-jdcloud/blob/master/example/main.tf).  
-**Restrictions** on creating/updating a resource can be found [here](https://docs.jdcloud.com/cn/).  
-**Terraform official** web page can be found [here](https://www.terraform.io/intro/index.html).  
-**Contact us JDCloud-Team** <ark@jd.com>
+Contact us JDCloud-Team <ark@jd.com>
 
 ## License
 
 Apache License Version 2
-
-
-<br>
-
-# Finished Resource:
-
-Terraform-JDCloud plugin is currently under developing, available resources are listed
-below. Leave your feedback and advices for this plugin. Advices are very welcomed.
-
-- [x] Instance
-- [x] keyPairs
-- [x] Disk
-- [x] EIP
-- [x] Network Interface
-- [x] Security Group
-- [x] RDS Cloud Database
-- [x] Route Table
-- [x] Subnet
-- [x] VPC
