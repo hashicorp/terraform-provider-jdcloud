@@ -35,15 +35,7 @@ The following arguments are supported:
 
 The following attributes are exported:
 
-* `eip_id` :  The id of this elastic IP, can be used to attach/detach from private IP address
-
-### Import 
-
-Existing EIP can be imported to Terraform state by specifying the EIP id:
-
-```text
-terraform import jdcloud_eip.example fip-abc123456
-```
+* `id` :  The id of this elastic IP, can be used to attach/detach from private IP address
 
 
 

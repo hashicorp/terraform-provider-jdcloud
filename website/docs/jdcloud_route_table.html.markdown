@@ -30,15 +30,7 @@ The following arguments are supported:
 
 The following attributes are exported:
 
-* `route_table_id` : The id of this route table , used to attach/detach certain route table rules
-
-### Import
-
-Existing route table can be imported to Terraform state by specifying the route table id:
-
-```bash
-terraform import jdcloud_route_table.example rtb-abc12345678
-```
+* `id` : The id of this route table , used to attach/detach certain route table rules
 
 
 

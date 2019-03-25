@@ -60,15 +60,7 @@ The following arguments are supported:
 
 The following attributes are exported:
 
-* `rds_id`: The id of this RDS instance, can be used to reference this instance.
-
-### Import 
-
-Existing RDS instance can be imported to Terraform state by specifying the rds\_id:
-
-```
-terraform import jdcloud_rds_instance.example mysql-abc123456
-```
+* `id`: The id of this RDS instance, can be used to reference this instance.
 
 
 

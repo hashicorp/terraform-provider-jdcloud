@@ -33,15 +33,8 @@ The following arguments are supported:
 
 The following attributes are exported:
 
-* `subnet_id` : id of this subnet, used to reference this subnet
+* `id` : id of this subnet, used to reference this subnet
 
-### Import
-
-Existing subnet can be imported to Terraform state by specifying the id of this subnet.
-
-```text
-terraform import jdcloud_subnet.example subnet-example
-```
 
 
 

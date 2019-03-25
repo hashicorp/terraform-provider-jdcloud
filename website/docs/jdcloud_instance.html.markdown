@@ -113,7 +113,7 @@ The following arguments are supported:
 
 The following attributes are exported:
 
-* `instance_id` - The id of this instance, can be used to attach disk, network interface.
+* `id` - The id of this instance, can be used to attach disk, network interface.
 * `disk_id` - Ids of data disk, can be used to detach certain cloud disk.
 
 

@@ -37,7 +37,7 @@ The following arguments are supported:
 
 The following attributes are exported:
 
-* `network_interface_id` : The id of this network interface, can be used to attach/detach from an instance
+* `id` : The id of this network interface, can be used to attach/detach from an instance
 
 
 
