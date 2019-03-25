@@ -259,7 +259,14 @@ func resourceJDCloudNetworkInterfaceUpdate(d *schema.ResourceData, meta interfac
 		// Consider a case when you try to update `count` only. Thus c.Difference(i)==[] where
 		// This will lead the whole function failed and your update in `count` also failed
 		log.Printf("updating %v", d.Get("secondary_ip_count").(int))
-		if err := performSecondaryIpAttach(d, meta, c.Difference(i), d.Get("secondary_ip_count").(int)); len(typeSetToStringArray(c.Difference(i))) != 0 && err != nil {
+		p1, c1 := d.GetChange("secondary_ip_count")
+
+		if c1.(int) < p1.(int) {
+			// TODO detach some random IPs should also be allowed
+			return fmt.Errorf("Currently you can only add more")
+		}
+
+		if err := performSecondaryIpAttach(d, meta, c.Difference(i), c1.(int)-p1.(int)); len(typeSetToStringArray(c.Difference(i))) != 0 && err != nil {
 			return err
 		}
 
@@ -316,23 +323,20 @@ func performSecondaryIpDetach(d *schema.ResourceData, m interface{}, set *schema
 
 func performSecondaryIpAttach(d *schema.ResourceData, m interface{}, set *schema.Set, count int) error {
 
+	f := true
 	config := m.(*JDCloudConfig)
 	vpcClient := client.NewVpcClient(config.Credential)
 	vpcClient.SetLogger(vmLogger{})
-
 	return resource.Retry(time.Minute, func() *resource.RetryError {
 
-		req := apis.NewAssignSecondaryIpsRequest(config.Region, d.Id())
-		if set != nil {
+		req := apis.NewAssignSecondaryIpsRequestWithAllParams(config.Region, d.Id(), &f, nil, nil)
+		if len(typeSetToStringArray(set)) > 0 {
 			req.SecondaryIps = typeSetToStringArray(set)
 		}
-		req.SecondaryIps = []string{}
 		if count != 0 {
 			req.SecondaryIpCount = &count
 		}
-		log.Printf("Now we are trying to deploy some IP attaching,%v", req)
 		resp, err := vpcClient.AssignSecondaryIps(req)
-		log.Printf("Now we are trying to deploy some IP attaching,%v", resp)
 		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
 			return nil
 		}

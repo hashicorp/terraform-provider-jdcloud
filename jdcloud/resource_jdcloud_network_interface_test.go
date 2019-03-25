@@ -70,7 +70,7 @@ func TestAccJDCloudNetworkInterface_basic(t *testing.T) {
 				Config: generateNITemplate("BBCTopGear",
 					"TerraformTestNewName",
 					`["sg-hzdy2lpzao"]`,
-					`["10.0.3.0"]`, 3),
+					`["10.0.3.0"]`, 5),
 				Check: resource.ComposeTestCheckFunc(
 					testAccIfNetworkInterfaceExists(
 						"jdcloud_network_interface.terraform-ni", &networkInterfaceId),
@@ -93,9 +93,9 @@ func TestAccJDCloudNetworkInterface_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"jdcloud_network_interface.terraform-ni", "sanity_check", "1"),
 
-					// After updating, we should get 3 ip_addresses here
+					// After updating, we should get 6 ip_addresses here
 					resource.TestCheckResourceAttr(
-						"jdcloud_network_interface.terraform-ni", "ip_addresses.#", "4"),
+						"jdcloud_network_interface.terraform-ni", "ip_addresses.#", "6"),
 				),
 			},
 		},
