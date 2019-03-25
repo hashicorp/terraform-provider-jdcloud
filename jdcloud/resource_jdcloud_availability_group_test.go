@@ -113,7 +113,7 @@ func TestAccJDCloudAvailabilityGroup_dual_az(t *testing.T) {
 			{
 				Config: agConfigDualAz(name1),
 				Check: resource.ComposeTestCheckFunc(
-					testAccIfAgExists("jdcloud_availability_group.terraform_ag", &agId),
+					testAccIfAgExists("jdcloud_availability_group.terraform_ag_daz", &agId),
 					resource.TestCheckResourceAttr(
 						"jdcloud_availability_group.terraform_ag_daz", "availability_group_name", name1),
 					resource.TestCheckResourceAttr(
@@ -122,8 +122,10 @@ func TestAccJDCloudAvailabilityGroup_dual_az(t *testing.T) {
 						"jdcloud_availability_group.terraform_ag_daz", "instance_template_id", "it-fpxvfdch26"),
 					resource.TestCheckResourceAttr(
 						"jdcloud_availability_group.terraform_ag_daz", "ag_type", "docker"),
-					resource.TestCheckNoResourceAttr(
-						"jdcloud_availability_group.terraform_ag_daz", "description"),
+
+					// Description is set during resource_XXX_read, expected to be "nil"
+					resource.TestCheckResourceAttr(
+						"jdcloud_availability_group.terraform_ag_daz", "description", ""),
 				),
 			},
 			{
@@ -138,8 +140,11 @@ func TestAccJDCloudAvailabilityGroup_dual_az(t *testing.T) {
 						"jdcloud_availability_group.terraform_ag_daz", "instance_template_id", "it-fpxvfdch26"),
 					resource.TestCheckResourceAttr(
 						"jdcloud_availability_group.terraform_ag_daz", "ag_type", "docker"),
-					resource.TestCheckNoResourceAttr(
-						"jdcloud_availability_group.terraform_ag_daz", "description"),
+						
+					// Description is set during resource_XXX_read, expected to be "nil"
+					resource.TestCheckResourceAttr(
+						"jdcloud_availability_group.terraform_ag_daz", "description", ""),
+
 				),
 			},
 		},
