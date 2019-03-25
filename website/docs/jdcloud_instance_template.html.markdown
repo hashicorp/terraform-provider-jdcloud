@@ -6,7 +6,7 @@ description: |-
   Provides a JDCloud Instance Template
 ---
 
-# jdcloud_instance_template
+# jdcloud\_instance\_template
 
 Instances can be built from images and templates, this resources helps you to create an `instance template`.
 `Instance templates` can useful when using `Availability-Group`

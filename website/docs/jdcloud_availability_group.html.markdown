@@ -6,7 +6,7 @@ description: |-
   Provides a JDCloud Availability Group
 ---
 
-#jdcloud_availability_group
+#jdcloud\_availability\_group
 
 Provides a JDCloud Availability Group
 
