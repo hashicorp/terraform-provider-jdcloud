@@ -140,7 +140,7 @@ func TestAccJDCloudAvailabilityGroup_dual_az(t *testing.T) {
 						"jdcloud_availability_group.terraform_ag_daz", "instance_template_id", "it-fpxvfdch26"),
 					resource.TestCheckResourceAttr(
 						"jdcloud_availability_group.terraform_ag_daz", "ag_type", "docker"),
-						
+
 					// Description is set during resource_XXX_read, expected to be "nil"
 					resource.TestCheckResourceAttr(
 						"jdcloud_availability_group.terraform_ag_daz", "description", ""),
