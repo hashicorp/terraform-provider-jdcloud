@@ -238,7 +238,6 @@ func resourceJDCloudDiskRead(d *schema.ResourceData, meta interface{}) error {
 	return resource.Retry(2*time.Minute, func() *resource.RetryError {
 
 		resp, err := diskClient.DescribeDisk(req)
-
 		// Error happens -> finish this round
 		if err != nil {
 			if connectionError(err) {
