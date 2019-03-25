@@ -361,26 +361,7 @@ resource "jdcloud_rds_privilege" "pri-test" {
 #                                       we would recommend to leave it blank if you're not farmiliar with it
 #       - snapshot_id : If you would like to build a template from snapshot, fill in its id here
 ####################################################################################################
-resource "jdcloud_instance_template" "instance_template" {
-  "template_name" = "<Name it as you like>"
-  "password" = "<Give it a password>"
-  "instance_type" = "g.n2.medium"
-  "image_id" = "img-example"
-  "bandwidth" = 5
-  "description" = "GrandJDcloud"
-  "ip_service_provider" = "BGP"
-  "charge_mode" = "bandwith"
-  "subnet_id" = "subnet-exmaple"
-  "security_group_ids" = [" sg-example"]
-  "system_disk" = {
-    "disk_category" = "local"
-    "disk_type" = ""
-  }
-  "data_disks" = {
-    disk_category = "cloud"
-  }
 
-}
 # ---------------------------------------------------------- AVAILABILITY-GROUP
 # Parameters and candidates
 #     1. [AZ] is an array which, candidates lists as follows ["cn-north-1a","cn-north-1b","cn-east-1b","cn-east-1a","cn-south-1a"]
