@@ -277,7 +277,7 @@ func resourceJDCloudDiskUpdate(d *schema.ResourceData, meta interface{}) error {
 		diskClient := client.NewDiskClient(config.Credential)
 		req := apis.NewModifyDiskAttributeRequestWithAllParams(config.Region, d.Id(), GetStringAddr(d, "name"), GetStringAddr(d, "description"))
 
-		return resource.Retry(20*time.Second, func() *resource.RetryError {
+		e := resource.Retry(20*time.Second, func() *resource.RetryError {
 
 			resp, err := diskClient.ModifyDiskAttribute(req)
 
@@ -291,6 +291,9 @@ func resourceJDCloudDiskUpdate(d *schema.ResourceData, meta interface{}) error {
 				return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
 			}
 		})
+		if e != nil {
+			return e
+		}
 	}
 	return resourceJDCloudDiskRead(d, meta)
 }

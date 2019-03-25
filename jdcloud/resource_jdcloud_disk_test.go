@@ -13,9 +13,11 @@ import (
 )
 
 /*
-	TestCase : 1. Common stuff
-			   2. ChargeMode are supposed to be "postpaid_by_duration" by default if not given
-               3. Not sure if "postpaid_by_usage" chargeMode are available thus requires an extra test
+	TestCase : 1-[Pass]. Common stuff
+			   2-[Pass]. ChargeMode are supposed to be "postpaid_by_duration" by default if not given
+               3-[Fail]. Not sure if "postpaid_by_usage" chargeMode are available thus requires an exXtra test
+				 Latest updates : postpaid_by_usage unavailable for disk, avoid it.
+			   4-[Pass]. For an empty filed e.g snapshot id, It's expected to be "" && NotSet
 */
 
 const (
@@ -103,9 +105,13 @@ func TestAccJDCloudDisk_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"jdcloud_disk.terraform_disk_test", "charge_mode", "postpaid_by_duration"),
 
+					// Expected under a certain value
+					//resource.TestCheckResourceAttrSet(
+					//	"jdcloud_disk.terraform_disk_test", "snapshot_id"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_disk.terraform_disk_test", "snapshot_id", ""),
+
 					// These values not supposed to exists after resource_XYZ_Read
-					resource.TestCheckNoResourceAttr(
-						"jdcloud_disk.terraform_disk_test", "snapshot_id"),
 					resource.TestCheckNoResourceAttr(
 						"jdcloud_disk.terraform_disk_test", "charge_duration"),
 					resource.TestCheckNoResourceAttr(
@@ -131,9 +137,13 @@ func TestAccJDCloudDisk_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"jdcloud_disk.terraform_disk_test", "charge_mode", "postpaid_by_duration"),
 
+					// Expected under a certain value
+					//resource.TestCheckResourceAttrSet(
+					//	"jdcloud_disk.terraform_disk_test", "snapshot_id"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_disk.terraform_disk_test", "snapshot_id", ""),
+
 					// These values not supposed to exists after resource_XYZ_Read
-					resource.TestCheckNoResourceAttr(
-						"jdcloud_disk.terraform_disk_test", "snapshot_id"),
 					resource.TestCheckNoResourceAttr(
 						"jdcloud_disk.terraform_disk_test", "charge_duration"),
 					resource.TestCheckNoResourceAttr(
@@ -149,6 +159,7 @@ func TestAccJDCloudDisk_basic(t *testing.T) {
 	})
 }
 
+// Default payment type
 func TestAccJDCloudDisk_default_charge_mode(t *testing.T) {
 
 	var diskId string
@@ -187,10 +198,12 @@ func TestAccJDCloudDisk_default_charge_mode(t *testing.T) {
 						"jdcloud_disk.terraform_dt_nc", "charge_mode"),
 					resource.TestCheckResourceAttr(
 						"jdcloud_disk.terraform_dt_nc", "charge_mode", "postpaid_by_duration"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_disk.terraform_dt_nc", "snapshot_id", ""),
 
 					// These values not supposed to exists after resource_XYZ_Read
-					resource.TestCheckNoResourceAttr(
-						"jdcloud_disk.terraform_dt_nc", "snapshot_id"),
+					resource.TestCheckResourceAttrSet(
+						"jdcloud_disk.terraform_dt_nc", "charge_mode"),
 					resource.TestCheckNoResourceAttr(
 						"jdcloud_disk.terraform_dt_nc", "charge_duration"),
 					resource.TestCheckNoResourceAttr(
@@ -221,10 +234,10 @@ func TestAccJDCloudDisk_default_charge_mode(t *testing.T) {
 						"jdcloud_disk.terraform_dt_nc", "charge_mode"),
 					resource.TestCheckResourceAttr(
 						"jdcloud_disk.terraform_dt_nc", "charge_mode", "postpaid_by_duration"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_disk.terraform_dt_nc", "snapshot_id", ""),
 
 					// These values not supposed to exists after resource_XYZ_Read
-					resource.TestCheckNoResourceAttr(
-						"jdcloud_disk.terraform_dt_nc", "snapshot_id"),
 					resource.TestCheckNoResourceAttr(
 						"jdcloud_disk.terraform_dt_nc", "charge_duration"),
 					resource.TestCheckNoResourceAttr(
@@ -240,60 +253,63 @@ func TestAccJDCloudDisk_default_charge_mode(t *testing.T) {
 	})
 }
 
-func TestAccJDCloudDisk_charge_mode_usage(t *testing.T) {
-
-	var diskId string
-	name1 := randomStringWithLength(10)
-	des1 := randomStringWithLength(20)
-	randSize := strconv.Itoa((rand.Intn(10) + 5) * 10)
-
-	resource.Test(t, resource.TestCase{
-		PreCheck:      func() { testAccPreCheck(t) },
-		Providers:     testAccProviders,
-		IDRefreshName: "jdcloud_disk.terraform_dt_usage",
-		CheckDestroy:  testAccCheckDiskDestroy(&diskId),
-
-		Steps: []resource.TestStep{
-			{
-				Config: generateDiskConfigPostPaidByUsage(name1, des1, randSize),
-				Check: resource.ComposeTestCheckFunc(
-
-					// Assigned values
-					testAccIfDiskExists("jdcloud_disk.terraform_dt_usage", &diskId),
-					resource.TestCheckResourceAttr(
-						"jdcloud_disk.terraform_dt_usage", "az", "cn-north-1a"),
-					resource.TestCheckResourceAttr(
-						"jdcloud_disk.terraform_dt_usage", "name", name1),
-					resource.TestCheckResourceAttr(
-						"jdcloud_disk.terraform_dt_usage", "description", des1),
-					resource.TestCheckResourceAttr(
-						"jdcloud_disk.terraform_dt_usage", "disk_type", "ssd"),
-					resource.TestCheckResourceAttr(
-						"jdcloud_disk.terraform_dt_usage", "disk_size_gb", randSize),
-
-					// After resource_XYZ_Read these value will be set to a certain value
-					resource.TestCheckResourceAttrSet(
-						"jdcloud_disk.terraform_dt_usage", "charge_mode"),
-					resource.TestCheckResourceAttr(
-						"jdcloud_disk.terraform_dt_usage", "charge_mode", "postpaid_by_usage"),
-
-					// These values not supposed to exists after resource_XYZ_Read
-					resource.TestCheckNoResourceAttr(
-						"jdcloud_disk.terraform_dt_usage", "snapshot_id"),
-					resource.TestCheckNoResourceAttr(
-						"jdcloud_disk.terraform_dt_usage", "charge_duration"),
-					resource.TestCheckNoResourceAttr(
-						"jdcloud_disk.terraform_dt_usage", "charge_unit"),
-				),
-			},
-			{
-				ResourceName:      "jdcloud_disk.terraform_dt_usage",
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
-		},
-	})
-}
+//// Postpaid_by_usage test
+//func TestAccJDCloudDisk_charge_mode_usage(t *testing.T) {
+//
+//	var diskId string
+//	name1 := randomStringWithLength(10)
+//	des1 := randomStringWithLength(20)
+//	randSize := strconv.Itoa((rand.Intn(10) + 5) * 10)
+//
+//	resource.Test(t, resource.TestCase{
+//		PreCheck:      func() { testAccPreCheck(t) },
+//		Providers:     testAccProviders,
+//		IDRefreshName: "jdcloud_disk.terraform_dt_usage",
+//		CheckDestroy:  testAccCheckDiskDestroy(&diskId),
+//
+//		Steps: []resource.TestStep{
+//			{
+//				Config: generateDiskConfigPostPaidByUsage(name1, des1, randSize),
+//				Check: resource.ComposeTestCheckFunc(
+//
+//					// Assigned values
+//					testAccIfDiskExists("jdcloud_disk.terraform_dt_usage", &diskId),
+//					resource.TestCheckResourceAttr(
+//						"jdcloud_disk.terraform_dt_usage", "az", "cn-north-1a"),
+//					resource.TestCheckResourceAttr(
+//						"jdcloud_disk.terraform_dt_usage", "name", name1),
+//					resource.TestCheckResourceAttr(
+//						"jdcloud_disk.terraform_dt_usage", "description", des1),
+//					resource.TestCheckResourceAttr(
+//						"jdcloud_disk.terraform_dt_usage", "disk_type", "ssd"),
+//					resource.TestCheckResourceAttr(
+//						"jdcloud_disk.terraform_dt_usage", "disk_size_gb", randSize),
+//
+//					// After resource_XYZ_Read these value will be set to a certain value
+//					resource.TestCheckResourceAttrSet(
+//						"jdcloud_disk.terraform_dt_usage", "charge_mode"),
+//					resource.TestCheckResourceAttr(
+//						"jdcloud_disk.terraform_dt_usage", "charge_mode", "postpaid_by_usage"),
+//					resource.TestCheckResourceAttrSet(
+//						"jdcloud_disk.terraform_dt_nc", "snapshot_id"),
+//					resource.TestCheckResourceAttr(
+//						"jdcloud_disk.terraform_dt_nc", "snapshot_id", ""),
+//
+//					// These values not supposed to exists after resource_XYZ_Read
+//					resource.TestCheckNoResourceAttr(
+//						"jdcloud_disk.terraform_dt_usage", "charge_duration"),
+//					resource.TestCheckNoResourceAttr(
+//						"jdcloud_disk.terraform_dt_usage", "charge_unit"),
+//				),
+//			},
+//			{
+//				ResourceName:      "jdcloud_disk.terraform_dt_usage",
+//				ImportState:       true,
+//				ImportStateVerify: true,
+//			},
+//		},
+//	})
+//}
 
 func testAccIfDiskExists(diskName string, diskId *string) resource.TestCheckFunc {
 
