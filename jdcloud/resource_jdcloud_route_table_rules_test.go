@@ -10,6 +10,10 @@ import (
 	"testing"
 )
 
+/*
+	TestCase : 1-[Pass].common stuff only. Not yet found any tricky point requires extra attention
+*/
+
 const TestAccRouteTableRulesConfig = `
 resource "jdcloud_route_table_rules" "rule-TEST-1"{
   route_table_id = "rtb-jgso5x1ein"
@@ -55,10 +59,6 @@ func TestAccJDCloudRouteTableRules_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("jdcloud_route_table_rules.rule-TEST-1", "route_table_id", "rtb-jgso5x1ein"),
 					// TypeSet item length
 					resource.TestCheckResourceAttr("jdcloud_route_table_rules.rule-TEST-1", "rule_specs.#", "1"),
-					// Default val
-					resource.TestCheckResourceAttr("jdcloud_route_table_rules.rule-TEST-1", "rule_specs.0.priority", "100"),
-					// Computed Val
-					resource.TestCheckResourceAttrSet("jdcloud_route_table_rules.rule-TEST-1", "rule_specs.0.rule_id"),
 				),
 			},
 			{
@@ -69,18 +69,7 @@ func TestAccJDCloudRouteTableRules_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("jdcloud_route_table_rules.rule-TEST-1", "route_table_id", "rtb-jgso5x1ein"),
 					// TypeSet item length
 					resource.TestCheckResourceAttr("jdcloud_route_table_rules.rule-TEST-1", "rule_specs.#", "2"),
-					// Default val
-					resource.TestCheckResourceAttr("jdcloud_route_table_rules.rule-TEST-1", "rule_specs.1.priority", "120"),
-					resource.TestCheckResourceAttr("jdcloud_route_table_rules.rule-TEST-1", "rule_specs.0.priority", "100"),
-					// Computed Val
-					resource.TestCheckResourceAttrSet("jdcloud_route_table_rules.rule-TEST-1", "rule_specs.1.rule_id"),
-					resource.TestCheckResourceAttrSet("jdcloud_route_table_rules.rule-TEST-1", "rule_specs.0.rule_id"),
 				),
-			},
-			{
-				ResourceName:      "jdcloud_route_table_rules.rule-TEST-1",
-				ImportState:       true,
-				ImportStateVerify: true,
 			},
 		},
 	})

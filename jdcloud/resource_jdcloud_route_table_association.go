@@ -16,9 +16,6 @@ func resourceJDCloudRouteTableAssociation() *schema.Resource {
 		Read:   resourceRouteTableAssociationRead,
 		Update: resourceRouteTableAssociationUpdate,
 		Delete: resourceRouteTableAssociationDelete,
-		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
-		},
 
 		Schema: map[string]*schema.Schema{
 

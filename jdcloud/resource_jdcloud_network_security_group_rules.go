@@ -27,6 +27,9 @@ func typeSetToSgRuleList(s *schema.Set) []vpc.AddSecurityGroupRules {
 		if m["to_port"] != "" {
 			r.ToPort = getMapIntAddr(m["to_port"].(int))
 		}
+		if m["description"] != "" {
+			r.Description = getMapStrAddr(m["description"].(string))
+		}
 
 		sgRules = append(sgRules, r)
 	}
@@ -89,9 +92,6 @@ func resourceJDCloudNetworkSecurityGroupRules() *schema.Resource {
 		Read:   resourceJDCloudNetworkSecurityGroupRulesRead,
 		Update: resourceJDCloudNetworkSecurityGroupRulesUpdate,
 		Delete: resourceJDCloudNetworkSecurityGroupRulesDelete,
-		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
-		},
 
 		Schema: map[string]*schema.Schema{
 			"security_group_id": &schema.Schema{
@@ -149,7 +149,8 @@ func resourceJDCloudNetworkSecurityGroupRulesCreate(d *schema.ResourceData, m in
 	}
 
 	d.SetId(d.Get("security_group_id").(string))
-	return resourceJDCloudNetworkSecurityGroupRulesRead(d, m)
+	//return resourceJDCloudNetworkSecurityGroupRulesRead(d, m)
+	return nil
 }
 
 func resourceJDCloudNetworkSecurityGroupRulesRead(d *schema.ResourceData, meta interface{}) error {

@@ -39,13 +39,5 @@ The following attributes are exported:
 
 * `network_interface_id` : The id of this network interface, can be used to attach/detach from an instance
 
-### Import
-
-Existing network interface can be imported to Terraform state by specifying the interface id.
-
-```text
-terraform import jdcloud_network_interface.example port-abc123456
-```
-
 
 

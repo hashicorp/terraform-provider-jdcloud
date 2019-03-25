@@ -22,9 +22,6 @@ func resourceJDCloudOssBucket() *schema.Resource {
 		Read:   resourceJDCloudOssBucketRead,
 		Update: resourceJDCloudOssBucketUpdate,
 		Delete: resourceJDCloudOssBucketDelete,
-		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
-		},
 
 		Schema: map[string]*schema.Schema{
 			"bucket_name": &schema.Schema{

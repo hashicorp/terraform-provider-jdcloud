@@ -9,6 +9,10 @@ import (
 	"testing"
 )
 
+/*
+	TestCase : 1-[Pass].common stuff only. Not yet found any tricky point requires extra attention
+*/
+
 const TestAccRouteTableConfigMin = `
 resource "jdcloud_route_table" "route-table-TEST-1"{
 	route_table_name = "route_table_test"
@@ -46,7 +50,7 @@ func TestAccJDCloudRouteTable_basic(t *testing.T) {
 					testAccIfRouteTableExists("jdcloud_route_table.route-table-TEST-1", &routeTableId),
 					resource.TestCheckResourceAttr("jdcloud_route_table.route-table-TEST-1", "route_table_name", "route_table_test"),
 					resource.TestCheckResourceAttr("jdcloud_route_table.route-table-TEST-1", "vpc_id", "vpc-npvvk4wr5j"),
-					resource.TestCheckNoResourceAttr("jdcloud_route_table.route-table-TEST-1", "description"),
+					resource.TestCheckResourceAttr("jdcloud_route_table.route-table-TEST-1", "description", ""),
 				),
 			},
 			{

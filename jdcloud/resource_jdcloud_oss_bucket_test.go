@@ -10,6 +10,9 @@ import (
 	"testing"
 )
 
+/*
+	TestCase : 1-[Pass].common stuff only. Not yet found any tricky point requires extra attention
+*/
 const TestAccOssConfigMin = `
 resource "jdcloud_oss_bucket" "jd-bucket-2" {
   bucket_name = "example"
@@ -63,11 +66,6 @@ func TestAccJDCloudOss_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("jdcloud_oss_bucket.jd-bucket-2", "bucket_name", "example"),
 					resource.TestCheckResourceAttr("jdcloud_oss_bucket.jd-bucket-2", "acl", "public-read"),
 				),
-			},
-			{
-				ResourceName:      "jdcloud_oss_bucket.jd-bucket-2",
-				ImportState:       true,
-				ImportStateVerify: true,
 			},
 		},
 	})

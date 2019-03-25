@@ -18,9 +18,6 @@ func resourceJDCloudNetworkInterface() *schema.Resource {
 		Read:   resourceJDCloudNetworkInterfaceRead,
 		Update: resourceJDCloudNetworkInterfaceUpdate,
 		Delete: resourceJDCloudNetworkInterfaceDelete,
-		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
-		},
 
 		Schema: map[string]*schema.Schema{
 			"subnet_id": &schema.Schema{
@@ -181,6 +178,7 @@ func resourceJDCloudNetworkInterfaceRead(d *schema.ResourceData, meta interface{
 			if resp.Result.NetworkInterface.PrimaryIp.ElasticIpAddress != "" {
 				d.Set("primary_ip_address", resp.Result.NetworkInterface.PrimaryIp.ElasticIpAddress)
 			}
+
 			if errSetIp := d.Set("ip_addresses", ipList(resp.Result.NetworkInterface.SecondaryIps)); errSetIp != nil {
 				return resource.NonRetryableError(formatArraySetErrorMessage(errSetIp))
 			}

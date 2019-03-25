@@ -12,7 +12,7 @@ import (
 )
 
 /*
-	TestCase : 1.common stuff only. Not yet found any tricky point requires extra attention
+	TestCase : 1-[Pass].common stuff only. Not yet found any tricky point requires extra attention
 */
 
 const TestAccEIPConfig = `

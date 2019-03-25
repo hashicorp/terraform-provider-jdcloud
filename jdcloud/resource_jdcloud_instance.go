@@ -378,11 +378,13 @@ func resourceJDCloudInstance() *schema.Resource {
 			"az": {
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 				ForceNew: true,
 			},
 			"disk_name": {
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 				ForceNew: true,
 			},
 			"description": {
@@ -419,9 +421,6 @@ func resourceJDCloudInstance() *schema.Resource {
 		Read:   resourceJDCloudInstanceRead,
 		Update: resourceJDCloudInstanceUpdate,
 		Delete: resourceJDCloudInstanceDelete,
-		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
-		},
 
 		Schema: map[string]*schema.Schema{
 			"az": {
@@ -558,7 +557,8 @@ func resourceJDCloudInstanceCreate(d *schema.ResourceData, m interface{}) error 
 		ImageId:      GetStringAddr(d, "image_id"),
 		Name:         d.Get("instance_name").(string),
 		PrimaryNetworkInterface: &vm.InstanceNetworkInterfaceAttachmentSpec{
-			NetworkInterface: &vpc.NetworkInterfaceSpec{SubnetId: d.Get("subnet_id").(string), Az: GetStringAddr(d, "az")},
+			NetworkInterface: &vpc.NetworkInterfaceSpec{SubnetId: d.Get("subnet_id").(string)},
+			//NetworkInterface: &vpc.NetworkInterfaceSpec{SubnetId: d.Get("subnet_id").(string), Az: GetStringAddr(d, "az")},
 		},
 	}
 
@@ -591,6 +591,8 @@ func resourceJDCloudInstanceCreate(d *schema.ResourceData, m interface{}) error 
 	if _, ok := d.GetOk("network_interface_name"); ok {
 		spec.PrimaryNetworkInterface.NetworkInterface.NetworkInterfaceName = GetStringAddr(d, "network_interface_name")
 	}
+	a := 1
+	spec.PrimaryNetworkInterface.NetworkInterface.SanityCheck = &a
 
 	if _, ok := d.GetOk("secondary_ips"); ok {
 		spec.PrimaryNetworkInterface.NetworkInterface.SecondaryIpAddresses = typeSetToStringArray(d.Get("secondary_ips").(*schema.Set))
@@ -680,7 +682,7 @@ func resourceJDCloudInstanceRead(d *schema.ResourceData, m interface{}) error {
 		return fmt.Errorf("[ERROR] Failed in setting Sg Id LIST, reasons:%s", errSet.Error())
 	}
 
-	if errSet := d.Set("ip_addresses", vmInstanceDetail.Result.Instance.PrimaryNetworkInterface.NetworkInterface.SecondaryIps); err != nil {
+	if errSet := d.Set("ip_addresses", ipList(vmInstanceDetail.Result.Instance.PrimaryNetworkInterface.NetworkInterface.SecondaryIps)); err != nil {
 		return fmt.Errorf("[ERROR] Failed in setting secondary ip LIST, reasons:%s", errSet.Error())
 	}
 

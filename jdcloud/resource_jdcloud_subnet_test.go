@@ -9,6 +9,10 @@ import (
 	"testing"
 )
 
+/*
+	TestCase : 1-[Pass].common stuff only. Not yet found any tricky point requires extra attention
+*/
+
 const TestAccSubnetConfig = `
 resource "jdcloud_subnet" "subnet-TEST"{
 	vpc_id = "vpc-npvvk4wr5j"
@@ -48,8 +52,8 @@ func TestAccJDCloudSubnet_basic(t *testing.T) {
 					testAccIfSubnetExists("jdcloud_subnet.subnet-TEST", &subnetId),
 					resource.TestCheckResourceAttr("jdcloud_subnet.subnet-TEST", "vpc_id", "vpc-npvvk4wr5j"),
 					resource.TestCheckResourceAttr("jdcloud_subnet.subnet-TEST", "cidr_block", "10.0.128.0/24"),
-					resource.TestCheckResourceAttr("jdcloud_subnet.subnet-TEST", "subnet_name", "DevOps2018"),
-					resource.TestCheckNoResourceAttr("jdcloud_subnet.subnet-TEST", "description"),
+					resource.TestCheckResourceAttr("jdcloud_subnet.subnet-TEST", "subnet_name", "DevOps2019"),
+					resource.TestCheckResourceAttr("jdcloud_subnet.subnet-TEST", "description", ""),
 				),
 			},
 			{

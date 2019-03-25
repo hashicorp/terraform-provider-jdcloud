@@ -77,6 +77,7 @@ const (
 	RDS_UNCERTAIN     = ""
 	RDS_DELETING      = "DELETING"
 	RDS_DELETED       = "DELETED"
+	RDS_UPDATING      = "MIGRATING"
 	RDS_MAX_RECONNECT = 6
 	CONNECT_FAILED    = "Client.Timeout exceeded"
 

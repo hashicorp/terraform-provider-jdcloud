@@ -33,6 +33,7 @@ func resourceJDCloudRDSInstance() *schema.Resource {
 			"instance_name": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 			"engine": &schema.Schema{
 				Type:     schema.TypeString,
@@ -163,7 +164,7 @@ func resourceJDCloudRDSInstanceCreate(d *schema.ResourceData, meta interface{}) 
 	}
 
 	// Wait until RDS ready
-	err = rdsStatusWaiter(d, meta, instanceId, []string{RDS_CREATING, RDS_UNCERTAIN}, []string{RDS_READY})
+	err = rdsStatusWaiter(d, meta, instanceId, []string{RDS_CREATING, RDS_DELETED}, []string{RDS_READY})
 	if err != nil {
 		return err
 	}
@@ -216,21 +217,12 @@ func resourceJDCloudRDSInstanceRead(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceJDCloudRDSInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
+
 	d.Partial(true)
+	defer d.Partial(false)
 
 	config := meta.(*JDCloudConfig)
 	rdsClient := client.NewRdsClient(config.Credential)
-	if d.HasChange("instance_name") {
-		req := apis.NewSetInstanceNameRequest(config.Region, d.Id(), d.Get("instance_name").(string))
-		resp, err := rdsClient.SetInstanceName(req)
-		if err != nil {
-			return fmt.Errorf("[ERROR] resourceJDCloudRDSUpdate failed %s ", err.Error())
-		}
-		if resp.Error.Code != REQUEST_COMPLETED {
-			return fmt.Errorf("[ERROR] resourceJDCloudRDSUpdate failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
-		}
-		d.SetPartial("instance_name")
-	}
 
 	// Currently you can not degrade your configuration, only upgrade them is allowed
 	if d.HasChange("instance_class") || d.HasChange("instance_storage_gb") {
@@ -242,11 +234,16 @@ func resourceJDCloudRDSInstanceUpdate(d *schema.ResourceData, meta interface{}) 
 		if resp.Error.Code != REQUEST_COMPLETED {
 			return fmt.Errorf("[ERROR] resourceJDCloudRDSUpdate failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
 		}
+
+		err = rdsStatusWaiter(d, meta, d.Id(), []string{RDS_UPDATING, RDS_UNCERTAIN}, []string{RDS_READY})
+		if err != nil {
+			return err
+		}
+
 		d.SetPartial("instance_class")
 		d.SetPartial("instance_storage_gb")
 	}
 
-	d.Partial(false)
 	return resourceJDCloudRDSInstanceRead(d, meta)
 }
 
@@ -338,7 +335,7 @@ func rdsStatusWaiter(d *schema.ResourceData, meta interface{}, id string, pendin
 		Target:     target,
 		Refresh:    rdsInstanceStatusRefreshFunc(d, meta, id),
 		Delay:      3 * time.Second,
-		Timeout:    5 * time.Minute,
+		Timeout:    10 * time.Minute,
 		MinTimeout: 1 * time.Second,
 	}
 	if _, err = stateConf.WaitForState(); err != nil {

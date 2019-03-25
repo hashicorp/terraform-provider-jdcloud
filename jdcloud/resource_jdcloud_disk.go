@@ -167,7 +167,7 @@ func resourceJDCloudDisk() *schema.Resource {
 				Computed: true,
 				// Postpaid_by_usage unavailable in Disk
 				ValidateFunc: validateStringCandidates("prepaid_by_duration", "postpaid_by_duration"),
-				ForceNew: true,
+				ForceNew:     true,
 			},
 			"charge_unit": {
 				Type:         schema.TypeString,

@@ -9,6 +9,10 @@ import (
 	"testing"
 )
 
+/*
+	TestCase : 1-[Pass].common stuff only. Not yet found any tricky point requires extra attention
+*/
+
 const TestAccRDSDatabaseConfig = `
 resource "jdcloud_rds_database" "db-TEST"{
   instance_id = "mysql-155pjskhpy"

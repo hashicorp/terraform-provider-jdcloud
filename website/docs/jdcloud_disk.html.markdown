@@ -50,7 +50,7 @@ The following arguments are supported:
 
 The following attributes are exported:
 
-* `disk_id` - The id of this disk, can be used to attach/detach from an instance
+* `id` - The id of this disk, can be used to attach/detach from an instance, look like vol-xxxx
 
 ### Import
 

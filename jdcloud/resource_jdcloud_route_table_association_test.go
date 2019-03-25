@@ -10,6 +10,10 @@ import (
 	"testing"
 )
 
+/*
+	TestCase : 1-[Pass].common stuff only. Not yet found any tricky point requires extra attention
+*/
+
 const TestAccRouteTableAssociationConfig = `
 resource "jdcloud_route_table_association" "route-table-association-TEST-1"{
 	route_table_id = "rtb-jgso5x1ein"
@@ -47,11 +51,6 @@ func TestAccJDCloudRouteTableAssociation_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("jdcloud_route_table_association.route-table-association-TEST-1", "route_table_id", "rtb-jgso5x1ein"),
 					resource.TestCheckResourceAttr("jdcloud_route_table_association.route-table-association-TEST-1", "subnet_id.#", "2"),
 				),
-			},
-			{
-				ResourceName:      "jdcloud_route_table_association.route-table-association-TEST-1",
-				ImportState:       true,
-				ImportStateVerify: true,
 			},
 		},
 	})

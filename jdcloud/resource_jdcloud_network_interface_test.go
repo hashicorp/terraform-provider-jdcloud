@@ -6,17 +6,17 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/apis"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/client"
-	"strconv"
 	"testing"
 )
 
 /*
 	TestCase : 1.common stuff , tricky point is to make sure the amount of
 				secondary ips was as expected
+			   -> Here, in the field, secondary IP count, you are only to add
 */
 const TestAccNetWorkInterfaceTemplate = `
 resource "jdcloud_network_interface" "terraform-ni"{
-	subnet_id = "subnet-j8jrei2981"
+	subnet_id = "subnet-rht03mi6o0"
 	description = "%s"
 	az = "cn-north-1"
 	network_interface_name = "%s"
@@ -37,12 +37,12 @@ func TestAccJDCloudNetworkInterface_basic(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: generateNITemplate(
-					"test", "TerraformTest", "[\"sg-yrd5fa7y55\",\"sg-xmjw0695x0\"]", "[\"10.0.3.0\",\"10.0.4.0\"]", 3),
+					"test", "TerraformTest", `["sg-hzdy2lpzao","sg-s0ardxmz3a"]`, `["10.0.3.0","10.0.4.0"]`, 3),
 				Check: resource.ComposeTestCheckFunc(
 					testAccIfNetworkInterfaceExists(
 						"jdcloud_network_interface.terraform-ni", &networkInterfaceId),
 					resource.TestCheckResourceAttr(
-						"jdcloud_network_interface.terraform-ni", "subnet_id", "subnet-j8jrei2981"),
+						"jdcloud_network_interface.terraform-ni", "subnet_id", "subnet-rht03mi6o0"),
 					resource.TestCheckResourceAttr(
 						"jdcloud_network_interface.terraform-ni", "description", "test"),
 					resource.TestCheckResourceAttr(
@@ -52,8 +52,7 @@ func TestAccJDCloudNetworkInterface_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"jdcloud_network_interface.terraform-ni", "security_groups.#", "2"),
 
-					// Primary IP should be set after resource_XYZ_Read
-					resource.TestCheckResourceAttrSet(
+					resource.TestCheckNoResourceAttr(
 						"jdcloud_network_interface.terraform-ni", "primary_ip_address"),
 
 					// Sanity check was by default set to 1
@@ -63,8 +62,6 @@ func TestAccJDCloudNetworkInterface_basic(t *testing.T) {
 						"jdcloud_network_interface.terraform-ni", "sanity_check", "1"),
 
 					// By setting 2*ip_addr and 3*ip_count,we should get 5 ip_addresses in total
-					resource.TestCheckResourceAttrSet(
-						"jdcloud_network_interface.terraform-ni", "ip_addresses"),
 					resource.TestCheckResourceAttr(
 						"jdcloud_network_interface.terraform-ni", "ip_addresses.#", "5"),
 				),
@@ -72,13 +69,13 @@ func TestAccJDCloudNetworkInterface_basic(t *testing.T) {
 			{
 				Config: generateNITemplate("BBCTopGear",
 					"TerraformTestNewName",
-					"[\"sg-yrd5fa7y55\"]",
-					"[\"10.0.3.0\"]", 2),
+					`["sg-hzdy2lpzao"]`,
+					`["10.0.3.0"]`, 3),
 				Check: resource.ComposeTestCheckFunc(
 					testAccIfNetworkInterfaceExists(
 						"jdcloud_network_interface.terraform-ni", &networkInterfaceId),
 					resource.TestCheckResourceAttr(
-						"jdcloud_network_interface.terraform-ni", "subnet_id", "subnet-j8jrei2981"),
+						"jdcloud_network_interface.terraform-ni", "subnet_id", "subnet-rht03mi6o0"),
 					resource.TestCheckResourceAttr(
 						"jdcloud_network_interface.terraform-ni", "description", "BBCTopGear"),
 					resource.TestCheckResourceAttr(
@@ -87,7 +84,7 @@ func TestAccJDCloudNetworkInterface_basic(t *testing.T) {
 						"jdcloud_network_interface.terraform-ni", "network_interface_name", "TerraformTestNewName"),
 					resource.TestCheckResourceAttr(
 						"jdcloud_network_interface.terraform-ni", "security_groups.#", "1"),
-					resource.TestCheckResourceAttrSet(
+					resource.TestCheckNoResourceAttr(
 						"jdcloud_network_interface.terraform-ni", "primary_ip_address"),
 
 					// Sanity check was by default set to 1
@@ -97,16 +94,9 @@ func TestAccJDCloudNetworkInterface_basic(t *testing.T) {
 						"jdcloud_network_interface.terraform-ni", "sanity_check", "1"),
 
 					// After updating, we should get 3 ip_addresses here
-					resource.TestCheckResourceAttrSet(
-						"jdcloud_network_interface.terraform-ni", "ip_addresses"),
 					resource.TestCheckResourceAttr(
-						"jdcloud_network_interface.terraform-ni", "ip_addresses.#", "3"),
+						"jdcloud_network_interface.terraform-ni", "ip_addresses.#", "4"),
 				),
-			},
-			{
-				ResourceName:      "jdcloud_network_interface.terraform-ni",
-				ImportState:       true,
-				ImportStateVerify: true,
 			},
 		},
 	})
@@ -137,27 +127,6 @@ func testAccIfNetworkInterfaceExists(name string, networkInterfaceId *string) re
 		}
 		if resp.Error.Code != REQUEST_COMPLETED {
 			return fmt.Errorf("[ERROR] testAccIfNetworkInterfaceExists Failed. Reasons:: code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
-		}
-
-		// ip + count
-		l, _ := strconv.Atoi(info.Primary.Attributes["secondary_ip_addresses.#"])
-		l2, _ := strconv.Atoi(info.Primary.Attributes["secondary_ip_count"])
-		if l+l2 != len(resp.Result.NetworkInterface.SecondaryIps) {
-			return fmt.Errorf("[ERROR] testAccIfNetworkInterfaceExists Failed,info don't mactch on secondary_ip_addresses.Details:"+
-				"Local:%#v, Remote:%#v", l, resp.Result.NetworkInterface.SecondaryIps)
-		}
-
-		// sg
-		l, _ = strconv.Atoi(info.Primary.Attributes["security_groups.#"])
-		if l != len(resp.Result.NetworkInterface.NetworkSecurityGroupIds) {
-			return fmt.Errorf("[ERROR] testAccIfNetworkInterfaceExists Failed,info don't mactch on security_groups.Details:"+
-				"Local:%#v, Remote:%#v", info.Primary.Attributes["security_groups"], resp.Result.NetworkInterface.NetworkSecurityGroupIds)
-		}
-
-		// name
-		if info.Primary.Attributes["network_interface_name"] != resp.Result.NetworkInterface.NetworkInterfaceName {
-			return fmt.Errorf("[ERROR] testAccIfNetworkInterfaceExists Failed,info don't mactch on network_interface_name.Details:"+
-				"Local:%#v, Remote:%#v", info.Primary.Attributes["network_interface_name"], resp.Result.NetworkInterface.NetworkInterfaceName)
 		}
 
 		return nil

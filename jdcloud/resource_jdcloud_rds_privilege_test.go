@@ -10,6 +10,10 @@ import (
 	"testing"
 )
 
+/*
+	TestCase : 1-[Pass].common stuff only. Not yet found any tricky point requires extra attention
+*/
+
 const TestAccRDSPrivilegeConfig = `
 resource "jdcloud_rds_privilege" "pri-test" {
   instance_id = "mysql-155pjskhpy"

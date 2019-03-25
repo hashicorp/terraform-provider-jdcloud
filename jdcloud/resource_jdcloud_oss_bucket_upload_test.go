@@ -10,6 +10,10 @@ import (
 	"testing"
 )
 
+/*
+	TestCase : 1-[Pass].common stuff only. Not yet found any tricky point requires extra attention
+*/
+
 const TestAccOssFileConfig = `
 resource "jdcloud_oss_bucket_upload" "devops" {
   bucket_name = "tffff"

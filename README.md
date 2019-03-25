@@ -4,7 +4,20 @@ Terraform Provider for JDCloud
 [![Build Status](https://travis-ci.com/jdclouddevelopers/terraform-provider-jdcloud.svg?branch=master)](https://travis-ci.com/jdclouddevelopers/terraform-provider-jdcloud)
 
 
-# Installation Guide
+## Requirements
+
+* Terraform 0.10+
+* Go 1.12
+
+## Developing the Provider
+
+Contributions and advices to this plugin is very welcomed. In order to get start with, you 
+need to do the following steps.
+
+### Prepare Golang Environment
+
+First you will need to have [Golang1.12](https://golang.org/dl/) installed on your machine. Besides, 
+You will need to correctly set up $GOPATH, as well as adding    
 
 Terraform will **create/read/update/delete** resource on JDCloud for you automatically. Following guides
 show you how to install Terraform together with JDCloud plugin. Commands are given under **Ubuntu**
