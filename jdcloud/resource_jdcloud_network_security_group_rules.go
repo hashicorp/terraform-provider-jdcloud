@@ -148,7 +148,7 @@ func resourceJDCloudNetworkSecurityGroupRulesCreate(d *schema.ResourceData, m in
 	}
 
 	d.SetId(d.Get("security_group_id").(string))
-	
+
 	return resourceJDCloudNetworkSecurityGroupRulesRead(d, m)
 }
 
