@@ -34,4 +34,11 @@ The following attributes are exported:
 * `security_group_id` : A string used to identify this security group, needed when attaching/detaching from a network interface
 
 
+### Import
+
+Existing security group can be imported to Terraform state by specifying the its id.
+
+```text
+terraform import jdcloud_network_security_group.example sg-abc123456
+```
 

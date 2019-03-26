@@ -35,6 +35,10 @@ The following attributes are exported:
 
 * `id` : id of this subnet, used to reference this subnet
 
+### Import
 
+Existing route table can be imported to Terraform state by specifying the route table id:
 
-
+```bash
+terraform import jdcloud_route_table.example rtb-abc12345678
+```

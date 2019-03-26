@@ -52,5 +52,11 @@ The following attributes are exported:
 
 * `id` - The id of this disk, can be used to attach/detach from an instance, look like vol-xxxx
 
+### Import
 
+Existing disk object can be imported to Terraform state by specifying the disk id:
+
+```text
+terraform import jdcloud_disk.example vol-abc12345678
+```
 

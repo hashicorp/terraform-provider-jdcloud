@@ -34,4 +34,12 @@ The following attributes are exported:
 
 * `id` - The id of this Network Acl, which can be used to reference this acl. 
 
+### Import
+
+Existing route table can be imported to Terraform state by specifying the network acl id:
+
+```bash
+terraform import jdcloud_network_acl.example acl-abc123456
+```
+
 

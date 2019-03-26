@@ -33,5 +33,12 @@ The following attributes are exported:
 
 * `id`-  : The id of this vpc, used to specify this VPC
 
+### Import
+
+Existing VPC can be imported to Terraform state by specifying the id of this VPC.
+
+```text
+terraform import jdcloud_vpc.example vpc-example
+```
 
 

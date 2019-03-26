@@ -25,9 +25,6 @@ func resourceJDCloudRDSInstance() *schema.Resource {
 		Read:   resourceJDCloudRDSInstanceRead,
 		Update: resourceJDCloudRDSInstanceUpdate,
 		Delete: resourceJDCloudRDSInstanceDelete,
-		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
-		},
 
 		Schema: map[string]*schema.Schema{
 			"instance_name": &schema.Schema{
