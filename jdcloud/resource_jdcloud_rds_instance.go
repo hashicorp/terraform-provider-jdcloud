@@ -8,7 +8,6 @@ import (
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/rds/apis"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/rds/client"
 	rds "github.com/jdcloud-api/jdcloud-sdk-go/services/rds/models"
-	"log"
 	"time"
 )
 
@@ -182,7 +181,6 @@ func resourceJDCloudRDSInstanceRead(d *schema.ResourceData, meta interface{}) er
 		resp, err := rdsClient.DescribeInstanceAttributes(req)
 
 		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
-			log.Printf("1")
 			d.Set("instance_name", resp.Result.DbInstanceAttributes.InstanceName)
 			d.Set("instance_class", resp.Result.DbInstanceAttributes.InstanceClass)
 			d.Set("instance_storage_gb", resp.Result.DbInstanceAttributes.InstanceStorageGB)
@@ -199,11 +197,9 @@ func resourceJDCloudRDSInstanceRead(d *schema.ResourceData, meta interface{}) er
 		}
 
 		if resp.Error.Code == RESOURCE_NOT_FOUND || resp.Error.Code == REQUEST_INVALID {
-			log.Printf("2")
 			d.SetId("")
 			return nil
 		}
-		log.Printf("3")
 
 		if connectionError(err) {
 			return resource.RetryableError(formatConnectionErrorMessage())

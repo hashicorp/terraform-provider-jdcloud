@@ -173,7 +173,6 @@ func resourceJDCloudNetworkSecurityGroupRulesRead(d *schema.ResourceData, meta i
 
 	sgRules := resp.Result.NetworkSecurityGroup.SecurityGroupRules
 	sgRuleArray := make([]map[string]interface{}, 0, len(sgRules))
-	log.Printf("nishizhu %v", sgRules)
 	for _, rule := range sgRules {
 
 		sgRule := map[string]interface{}{

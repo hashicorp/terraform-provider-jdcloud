@@ -126,7 +126,6 @@ func resourceJDCloudNetworkInterfaceCreate(d *schema.ResourceData, meta interfac
 		resp, err := vpcClient.CreateNetworkInterface(req)
 
 		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
-			log.Printf("Create Succeeded")
 			d.SetId(resp.Result.NetworkInterfaceId)
 			return nil
 		}
@@ -149,14 +148,11 @@ func resourceJDCloudNetworkInterfaceRead(d *schema.ResourceData, meta interface{
 
 	config := meta.(*JDCloudConfig)
 	networkInterfaceClient := client.NewVpcClient(config.Credential)
-	log.Printf("Entering read")
 	req := apis.NewDescribeNetworkInterfaceRequest(config.Region, d.Id())
 
 	return resource.Retry(5*time.Minute, func() *resource.RetryError {
 
 		resp, err := networkInterfaceClient.DescribeNetworkInterface(req)
-		log.Printf("122 %v", resp)
-		log.Printf("122 %v", err == nil)
 		if err == nil {
 
 			if resp.Result.NetworkInterface.Az != "" {
@@ -258,7 +254,6 @@ func resourceJDCloudNetworkInterfaceUpdate(d *schema.ResourceData, meta interfac
 		// Here I would recommend you to verify both specified_ip_addresses and secondary ip count
 		// Consider a case when you try to update `count` only. Thus c.Difference(i)==[] where
 		// This will lead the whole function failed and your update in `count` also failed
-		log.Printf("updating %v", d.Get("secondary_ip_count").(int))
 		p1, c1 := d.GetChange("secondary_ip_count")
 
 		if c1.(int) < p1.(int) {
