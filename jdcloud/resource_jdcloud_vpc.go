@@ -55,7 +55,7 @@ func resourceVpcCreate(d *schema.ResourceData, m interface{}) error {
 		req.Description = GetStringAddr(d, "description")
 	}
 
-	return resource.Retry(20*time.Second, func() *resource.RetryError {
+	e := resource.Retry(20*time.Second, func() *resource.RetryError {
 
 		resp, err := conn.CreateVpc(req)
 
@@ -70,6 +70,10 @@ func resourceVpcCreate(d *schema.ResourceData, m interface{}) error {
 			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
 		}
 	})
+	if e != nil {
+		return e
+	}
+	return resourceVpcRead(d, m)
 }
 
 func resourceVpcRead(d *schema.ResourceData, m interface{}) error {
@@ -123,7 +127,7 @@ func resourceVpcUpdate(d *schema.ResourceData, m interface{}) error {
 
 	}
 
-	return nil
+	return resourceVpcRead(d, m)
 }
 
 func resourceVpcDelete(d *schema.ResourceData, m interface{}) error {

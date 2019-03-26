@@ -7,13 +7,112 @@ import (
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/charge/models"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/disk/apis"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/disk/client"
-	diskModels "github.com/jdcloud-api/jdcloud-sdk-go/services/disk/models"
-	"log"
+	disk "github.com/jdcloud-api/jdcloud-sdk-go/services/disk/models"
 	"time"
 )
 
-// Modification allowed : name,description
-// Lead to rebuild : Remaining
+//---------------------------------------------------------------------------------	DISK-SCHEMA-HELPERS
+
+// This function will return the latest status of a disk, level 0
+func diskStatusRefreshFunc(d *schema.ResourceData, meta interface{}, diskId string) resource.StateRefreshFunc {
+
+	return func() (diskItem interface{}, diskState string, e error) {
+
+		err := resource.Retry(time.Minute, func() *resource.RetryError {
+
+			config := meta.(*JDCloudConfig)
+			c := client.NewDiskClient(config.Credential)
+			req := apis.NewDescribeDiskRequest(config.Region, diskId)
+
+			resp, err := c.DescribeDisk(req)
+
+			if err == nil && resp.Error.Code == REQUEST_COMPLETED {
+				diskState = resp.Result.Disk.Status
+				diskItem = resp.Result.Disk
+				return nil
+			}
+
+			if connectionError(err) {
+				return resource.RetryableError(err)
+			} else {
+				return resource.NonRetryableError(err)
+			}
+
+		})
+
+		if err != nil {
+			return nil, "", err
+		}
+
+		return diskItem, diskState, nil
+	}
+}
+
+// This function will be used here and instance, level 0
+// This function does not wait until DISK=Available, it just send request
+func performDiskCreate(d *schema.ResourceData, meta interface{}, spec *disk.DiskSpec) (id string, e error) {
+
+	config := meta.(*JDCloudConfig)
+	c := client.NewDiskClient(config.Credential)
+	req := apis.NewCreateDisksRequest(config.Region, spec, MAX_DISK_COUNT, diskClientTokenDefault())
+
+	e = RetryWithParamsSpecified(2*time.Second, time.Minute, func() *resource.RetryError {
+
+		resp, err := c.CreateDisks(req)
+		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
+			id = resp.Result.DiskIds[0]
+			return nil
+		}
+		if connectionError(err) {
+			return resource.RetryableError(formatConnectionErrorMessage())
+		} else {
+			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
+		}
+	})
+	return id, e
+}
+
+// This function will send a delete request, level 0
+// It does not wait until a disk is completed removed, just send a request
+func performDiskDelete(d *schema.ResourceData, meta interface{}, id string) error {
+
+	config := meta.(*JDCloudConfig)
+	c := client.NewDiskClient(config.Credential)
+	req := apis.NewDeleteDiskRequest(config.Region, id)
+
+	return resource.Retry(time.Minute, func() *resource.RetryError {
+		resp, err := c.DeleteDisk(req)
+		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
+			return nil
+		}
+		if connectionError(err) || resp.Error.Code == REQUEST_INVALID {
+			return resource.RetryableError(formatConnectionErrorMessage())
+		} else {
+			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
+		}
+	})
+
+}
+
+// This function will wait until a disk is Available, level 1 -> based on diskStatusRefreshFunc
+// Disk-Creation usually take couple of minutes, let's wait for it :)
+func diskStatusWaiter(d *schema.ResourceData, meta interface{}, id string, pending, target []string) (err error) {
+
+	stateConf := &resource.StateChangeConf{
+		Pending:    pending,
+		Target:     target,
+		Refresh:    diskStatusRefreshFunc(d, meta, id),
+		Delay:      3 * time.Second,
+		Timeout:    2 * time.Minute,
+		MinTimeout: 1 * time.Second,
+	}
+	if _, err = stateConf.WaitForState(); err != nil {
+		return fmt.Errorf("[E] Failed in creatingDisk/Waiting disk,err message:%v", err)
+	}
+	return nil
+}
+
+//----------------------------------------------------------------------------------DISK-SCHEMA-CRUD
 
 func resourceJDCloudDisk() *schema.Resource {
 	return &schema.Resource{
@@ -26,36 +125,27 @@ func resourceJDCloudDisk() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"client_token": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
-				ForceNew: true,
-			},
 			"az": {
 				Type:         schema.TypeString,
 				Required:     true,
-				ValidateFunc: validateStringNoEmpty,
 				ForceNew:     true,
+				ValidateFunc: validateStringCandidates("cn-north-1a", "cn-east-1a", "cn-east-1b", "cn-south-1a"),
 			},
 			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 			"disk_size_gb": {
-				Type:     schema.TypeInt,
-				ForceNew: true,
-				Required: true,
-			},
-			"multi_attachable": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
+				Type:         schema.TypeInt,
+				ForceNew:     true,
+				Required:     true,
+				ValidateFunc: validateDiskSize(),
 			},
 			"disk_type": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:         schema.TypeString,
+				Required:     true,
+				ForceNew:     true,
+				ValidateFunc: validateStringCandidates("premium-hdd", "ssd"),
 			},
 			"name": {
 				Type:     schema.TypeString,
@@ -72,15 +162,17 @@ func resourceJDCloudDisk() *schema.Resource {
 				ForceNew: true,
 			},
 			"charge_mode": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				ValidateFunc: validateStringInSlice([]string{"prepaid_by_duration", "postpaid_by_usage", "postpaid_by_duration"}, false),
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				// Postpaid_by_usage unavailable in Disk
+				ValidateFunc: validateStringCandidates("prepaid_by_duration", "postpaid_by_duration"),
 				ForceNew:     true,
 			},
 			"charge_unit": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: validateStringInSlice([]string{"month", "year"}, false),
+				ValidateFunc: validateStringCandidates("month", "year"),
 				ForceNew:     true,
 			},
 		},
@@ -88,12 +180,8 @@ func resourceJDCloudDisk() *schema.Resource {
 }
 
 func resourceJDCloudDiskCreate(d *schema.ResourceData, meta interface{}) error {
-	d.Partial(true)
 
-	config := meta.(*JDCloudConfig)
-	diskClient := client.NewDiskClient(config.Credential)
-
-	diskSpec := diskModels.DiskSpec{
+	diskSpec := disk.DiskSpec{
 		Az:         d.Get("az").(string),
 		DiskSizeGB: d.Get("disk_size_gb").(int),
 		DiskType:   d.Get("disk_type").(string),
@@ -127,58 +215,18 @@ func resourceJDCloudDiskCreate(d *schema.ResourceData, meta interface{}) error {
 		diskSpec.Charge = &chargeSpec
 	}
 
-	var clientToken string
-	if clientTokenInterface, ok := d.GetOk("client_token"); ok {
-		clientToken = clientTokenInterface.(string)
-	} else {
-		clientToken = diskClientTokenDefault()
-		d.Set("client_token", clientToken)
+	id, e := performDiskCreate(d, meta, &diskSpec)
+	if e != nil {
+		return e
 	}
-
-	req := apis.NewCreateDisksRequest(config.Region, &diskSpec, MAX_DISK_COUNT, clientToken)
-	err := resource.Retry(time.Minute, func() *resource.RetryError {
-
-		resp, err := diskClient.CreateDisks(req)
-
-		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
-			d.SetId(resp.Result.DiskIds[0])
-			return nil
-		}
-
-		if connectionError(err) {
-			return resource.RetryableError(formatConnectionErrorMessage())
-		} else {
-			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
-		}
-	})
-
-	if err != nil {
-		return err
+	e = diskStatusWaiter(d, meta, id, []string{DISK_CREATING}, []string{DISK_AVAILABLE})
+	if e != nil {
+		return e
 	}
-
-	d.SetPartial("az")
-	d.SetPartial("name")
-	d.SetPartial("disk_type")
-	d.SetPartial("client_token")
-	d.SetPartial("disk_size_gb")
-	d.SetPartial("charge_mode")
-	d.SetPartial("charge_unit")
-	d.SetPartial("charge_duration")
-
+	d.SetId(id)
 	// This part is added since attribute "description"
 	// Can only be via DiskUpdate rather than "create"
-	if description, ok := d.GetOk("description"); ok {
-		d.Set("description", description.(string))
-		errUpdateDescription := resourceJDCloudDiskUpdate(d, meta)
-		if errUpdateDescription != nil {
-			log.Println("[WARN] Resource created but seems failed to attach certain")
-			log.Println("[WARN] description, refresh it manually later")
-		}
-	}
-
-	d.SetPartial("description")
-	d.Partial(false)
-	return waitForDisk(d, meta, d.Id(), DISK_AVAILABLE)
+	return resourceJDCloudDiskUpdate(d, meta)
 }
 
 func resourceJDCloudDiskRead(d *schema.ResourceData, meta interface{}) error {
@@ -186,43 +234,55 @@ func resourceJDCloudDiskRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*JDCloudConfig)
 	diskClient := client.NewDiskClient(config.Credential)
 	req := apis.NewDescribeDiskRequestWithAllParams(config.Region, d.Id())
-	resp, err := diskClient.DescribeDisk(req)
 
-	if err != nil {
-		return err
-	}
+	return resource.Retry(2*time.Minute, func() *resource.RetryError {
 
-	if resp.Result.Disk.Status == DISK_DELETED {
-		d.SetId("")
+		resp, err := diskClient.DescribeDisk(req)
+		// Error happens -> finish this round
+		if err != nil {
+			if connectionError(err) {
+				return resource.RetryableError(formatConnectionErrorMessage())
+			} else {
+				return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
+			}
+		}
+
+		// Resp.Error non nil -> finish this round
+		if resp.Error.Code != REQUEST_COMPLETED {
+			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
+		}
+
+		// All fine -> Disk found deleted -> remove this resource
+		if resp.Result.Disk.Status == DISK_DELETED {
+			d.SetId("")
+			return nil
+		}
+
+		// Everything works fine
+		d.Set("az", resp.Result.Disk.Az)
+		d.Set("name", resp.Result.Disk.Name)
+		d.Set("disk_type", resp.Result.Disk.DiskType)
+		d.Set("description", resp.Result.Disk.Description)
+		d.Set("snapshot_id", resp.Result.Disk.SnapshotId)
+		d.Set("charge_mode", resp.Result.Disk.Charge.ChargeMode)
+		d.Set("disk_size_gb", resp.Result.Disk.DiskSizeGB)
 		return nil
-	}
-
-	if resp.Error.Code != REQUEST_COMPLETED {
-		return fmt.Errorf("[ERROR] failed in resourceJDCloudDiskRead code:%d message:%s", resp.Error.Code, resp.Error.Message)
-	}
-
-	d.Set("name", resp.Result.Disk.Name)
-	d.Set("description", resp.Result.Disk.Description)
-	return nil
+	})
 }
 
 func resourceJDCloudDiskUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	if d.HasChange("name") || d.HasChange("description") {
 
-		d.Partial(true)
 		config := meta.(*JDCloudConfig)
 		diskClient := client.NewDiskClient(config.Credential)
 		req := apis.NewModifyDiskAttributeRequestWithAllParams(config.Region, d.Id(), GetStringAddr(d, "name"), GetStringAddr(d, "description"))
 
-		return resource.Retry(20*time.Second, func() *resource.RetryError {
+		e := resource.Retry(20*time.Second, func() *resource.RetryError {
 
 			resp, err := diskClient.ModifyDiskAttribute(req)
 
 			if err == nil && resp.Error.Code == REQUEST_COMPLETED {
-				d.SetPartial("name")
-				d.SetPartial("description")
-				d.Partial(false)
 				return nil
 			}
 
@@ -232,83 +292,25 @@ func resourceJDCloudDiskUpdate(d *schema.ResourceData, meta interface{}) error {
 				return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
 			}
 		})
+		if e != nil {
+			return e
+		}
 	}
-	return nil
+	return resourceJDCloudDiskRead(d, meta)
 }
 
 func resourceJDCloudDiskDelete(d *schema.ResourceData, meta interface{}) error {
 
-	config := meta.(*JDCloudConfig)
-	diskClient := client.NewDiskClient(config.Credential)
-	diskId := d.Id()
-	req := apis.NewDeleteDiskRequest(config.Region, diskId)
-
-	err := resource.Retry(3*time.Minute, func() *resource.RetryError {
-
-		resp, err := diskClient.DeleteDisk(req)
-
-		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
-			return nil
-		}
-
-		if connectionError(err) || resp.Error.Code == REQUEST_INVALID {
-			return resource.RetryableError(formatConnectionErrorMessage())
-		} else {
-			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
-		}
-	})
-
-	if err != nil {
-		return err
+	e := performDiskDelete(d, meta, d.Id())
+	if e != nil {
+		return e
 	}
 
-	reqWatch := apis.NewDescribeDiskRequestWithAllParams(config.Region, d.Id())
-	return resource.Retry(5*time.Minute, func() *resource.RetryError {
-		resp, err := diskClient.DescribeDisk(reqWatch)
-
-		if err == nil && resp.Error.Code == REQUEST_COMPLETED && resp.Result.Disk.Status == DISK_DELETED {
-			d.SetId("")
-			return nil
-		}
-
-		if connectionError(err) || resp.Result.Disk.Status != DISK_DELETED {
-			return resource.RetryableError(formatConnectionErrorMessage())
-		} else {
-			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
-		}
-	})
-}
-
-func waitForDisk(d *schema.ResourceData, meta interface{}, id string, expectedStatus string) error {
-
-	currentTime := int(time.Now().Unix())
-	config := meta.(*JDCloudConfig)
-	diskClient := client.NewDiskClient(config.Credential)
-	req := apis.NewDescribeDiskRequestWithAllParams(config.Region, id)
-	reconnectCount := 0
-
-	for {
-
-		time.Sleep(3 * time.Second)
-		resp, err := diskClient.DescribeDisk(req)
-
-		if resp.Result.Disk.Status == expectedStatus {
-			return nil
-		}
-
-		if int(time.Now().Unix())-currentTime > DISK_TIMEOUT {
-			return fmt.Errorf("[ERROR] resourceJDCloudDiskCreate failed, timeout")
-		}
-
-		if err != nil {
-			if reconnectCount > MAX_RECONNECT_COUNT {
-				return fmt.Errorf("[ERROR] resourceJDCloudRDSWait, MAX_RECONNECT_COUNT Exceeded failed %s ", err.Error())
-			}
-			reconnectCount++
-			continue
-		} else {
-			reconnectCount = 0
-		}
-
+	e = diskStatusWaiter(d, meta, d.Id(), []string{DISK_DELETING}, []string{DISK_DELETED})
+	if e != nil {
+		return e
 	}
+
+	d.SetId("")
+	return nil
 }

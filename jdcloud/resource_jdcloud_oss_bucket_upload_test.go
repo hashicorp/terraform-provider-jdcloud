@@ -10,6 +10,10 @@ import (
 	"testing"
 )
 
+/*
+	TestCase : 1-[Pass].common stuff only. Not yet found any tricky point requires extra attention
+*/
+
 const TestAccOssFileConfig = `
 resource "jdcloud_oss_bucket_upload" "devops" {
   bucket_name = "tffff"
@@ -28,8 +32,10 @@ func TestAccJDCloudOssFile_basic(t *testing.T) {
 			{
 				Config: TestAccOssFileConfig,
 				Check: resource.ComposeTestCheckFunc(
-
 					testAccIfOssFileExists("jdcloud_oss_bucket_upload.devops", &id, &fileName),
+					resource.TestCheckResourceAttr("jdcloud_oss_bucket_upload.devops", "bucket_name", "tffff"),
+					resource.TestCheckResourceAttr("jdcloud_oss_bucket_upload.devops", "file_name", "/home/liangxiaohan/hello.cpp"),
+					resource.TestCheckResourceAttrSet("jdcloud_oss_bucket_upload.devops", "remote_location"),
 				),
 			},
 		},

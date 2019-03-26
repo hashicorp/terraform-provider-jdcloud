@@ -113,16 +113,9 @@ The following arguments are supported:
 
 The following attributes are exported:
 
-* `instance_id` - The id of this instance, can be used to attach disk, network interface.
+* `id` - The id of this instance, can be used to attach disk, network interface.
 * `disk_id` - Ids of data disk, can be used to detach certain cloud disk.
 
-### Import
-
-Existing instance object can be imported to Terraform state by specifying the instance id.
-
-```text
-terraform import jdcloud_instance.example i-abc12345678
-```
 
 
 

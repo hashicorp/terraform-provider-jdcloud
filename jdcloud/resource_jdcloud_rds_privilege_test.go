@@ -10,6 +10,10 @@ import (
 	"testing"
 )
 
+/*
+	TestCase : 1-[Pass].common stuff only. Not yet found any tricky point requires extra attention
+*/
+
 const TestAccRDSPrivilegeConfig = `
 resource "jdcloud_rds_privilege" "pri-test" {
   instance_id = "mysql-155pjskhpy"
@@ -18,6 +22,15 @@ resource "jdcloud_rds_privilege" "pri-test" {
     {db_name = "jdcloud2017",privilege = "rw"},
     {db_name = "jdcloud2018",privilege = "rw"},
     {db_name = "jdcloud2019",privilege = "ro"},
+  ]
+}
+`
+const TestAccRDSPrivilegeConfigUpdate = `
+resource "jdcloud_rds_privilege" "pri-test" {
+  instance_id = "mysql-155pjskhpy"
+  username = "jdcloudDevOps"
+  account_privilege = [
+    {db_name = "jdcloud2017",privilege = "rw"},
   ]
 }
 `
@@ -32,8 +45,10 @@ func TestAccJDCloudRDSPrivilege_basic(t *testing.T) {
 			{
 				Config: TestAccRDSPrivilegeConfig,
 				Check: resource.ComposeTestCheckFunc(
-
 					testAccIfRDSPrivilegeExists("jdcloud_rds_privilege.pri-test"),
+					resource.TestCheckResourceAttr("jdcloud_rds_privilege.pri-test", "instance_id", "mysql-155pjskhpy"),
+					resource.TestCheckResourceAttr("jdcloud_rds_privilege.pri-test", "username", "jdcloudDevOps"),
+					resource.TestCheckResourceAttr("jdcloud_rds_privilege.pri-test", "account_privilege.#", "3"),
 				),
 			},
 		},

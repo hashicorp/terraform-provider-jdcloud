@@ -54,7 +54,7 @@ func resourceJDCloudNetworkInterfaceAttachCreate(d *schema.ResourceData, meta in
 		req.AutoDelete = &autoDelete
 	}
 
-	return resource.Retry(time.Minute, func() *resource.RetryError {
+	e := resource.Retry(time.Minute, func() *resource.RetryError {
 
 		resp, err := vmClient.AttachNetworkInterface(req)
 
@@ -68,6 +68,10 @@ func resourceJDCloudNetworkInterfaceAttachCreate(d *schema.ResourceData, meta in
 			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
 		}
 	})
+	if e != nil {
+		return e
+	}
+	return resourceJDCloudNetworkInterfaceAttachRead(d, meta)
 }
 
 func resourceJDCloudNetworkInterfaceAttachRead(d *schema.ResourceData, meta interface{}) error {
@@ -83,7 +87,10 @@ func resourceJDCloudNetworkInterfaceAttachRead(d *schema.ResourceData, meta inte
 		resp, err := vpcClient.DescribeNetworkInterface(req)
 
 		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
-			d.SetId(resp.RequestID)
+
+			d.Set("network_interface_id", resp.Result.NetworkInterface.NetworkInterfaceId)
+			d.Set("instance_id", resp.Result.NetworkInterface.InstanceId)
+
 			return nil
 		}
 

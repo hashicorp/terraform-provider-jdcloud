@@ -10,18 +10,45 @@ import (
 	"testing"
 )
 
-const TestAccSecurityGroupRuleConfig = `
+const TestAccSecurityGroupRuleTemplate = `
 resource "jdcloud_network_security_group_rules" "sg-TEST-1" {
   security_group_id = "sg-ym9yp1egi0"
-  security_group_rules = [{
-    address_prefix = "0.0.0.0/0"
-    direction      = "0"
-    from_port      = "10"
-    protocol       = "6"
-    to_port        = "20"
-  }]
+  security_group_rules = %s
 }
 `
+
+const commonSGRule = `
+  [{
+      address_prefix = "0.0.0.0/0"
+      direction = "0"
+      from_port = "0"
+      protocol = "300"
+      to_port = "0"
+    }]
+`
+const multipleSGRule = `
+[
+    {
+      address_prefix = "0.0.0.0/0"
+      direction = "0"
+      from_port = "0"
+      protocol = "300"
+      to_port = "0"
+    },
+    {
+      address_prefix = "0.0.0.0/0"
+      direction = "1"
+      from_port = "0"
+      protocol = "300"
+      to_port = "0"
+	  description = "TheGrandTour"
+    },
+  ]
+`
+
+func generateSGRulesTemplate(c string) string {
+	return fmt.Sprintf(TestAccSecurityGroupRuleTemplate, c)
+}
 
 func TestAccJDCloudSecurityGroupRule_basic(t *testing.T) {
 
@@ -33,11 +60,27 @@ func TestAccJDCloudSecurityGroupRule_basic(t *testing.T) {
 		CheckDestroy: testAccCheckSecurityGroupRuleDestroy(&SecurityGroupRuleId),
 		Steps: []resource.TestStep{
 			{
-				Config: TestAccSecurityGroupRuleConfig,
+				Config: generateSGRulesTemplate(commonSGRule),
 				Check: resource.ComposeTestCheckFunc(
+					testAccIfSecurityGroupRuleExists(
+						"jdcloud_network_security_group_rules.sg-TEST-1", &SecurityGroupRuleId),
+					resource.TestCheckResourceAttr(
+						"jdcloud_network_security_group_rules.sg-TEST-1", "security_group_id", "sg-ym9yp1egi0"),
 
-					// SecurityGroupRuleId verification
-					testAccIfSecurityGroupRuleExists("jdcloud_network_security_group_rules.sg-TEST-1", &SecurityGroupRuleId),
+					// Sg rules are arranged in TypeSet form, thus cannot find a way to inspect its detail
+					resource.TestCheckResourceAttr(
+						"jdcloud_network_security_group_rules.sg-TEST-1", "security_group_rules.#", "1"),
+				),
+			},
+			{
+				Config: generateSGRulesTemplate(multipleSGRule),
+				Check: resource.ComposeTestCheckFunc(
+					testAccIfSecurityGroupRuleExists(
+						"jdcloud_network_security_group_rules.sg-TEST-1", &SecurityGroupRuleId),
+					resource.TestCheckResourceAttr(
+						"jdcloud_network_security_group_rules.sg-TEST-1", "security_group_id", "sg-ym9yp1egi0"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_network_security_group_rules.sg-TEST-1", "security_group_rules.#", "2"),
 				),
 			},
 		},
@@ -70,20 +113,10 @@ func testAccIfSecurityGroupRuleExists(securityGroupRuleName string, securityGrou
 
 		sgRulesRemote := resp.Result.NetworkSecurityGroup.SecurityGroupRules
 		sgRulesLocal := securityGroupRuleInfoStoredLocally.Primary
-
 		sgLocalLength, _ := strconv.Atoi(sgRulesLocal.Attributes["add_security_group_rules.#"])
 
-		for i := 0; i < sgLocalLength; i++ {
-			flag := false
-			addressPrefix := sgRulesLocal.Attributes["add_security_group_rules."+strconv.Itoa(i)+".address_prefix"]
-			for _, sgRemote := range sgRulesRemote {
-				if addressPrefix == sgRemote.AddressPrefix {
-					flag = true
-				}
-			}
-			if flag == false {
-				return fmt.Errorf("[ERROR] testAccIfSecurityGroupRuleExists Failed,resource local dues not match remote")
-			}
+		if sgLocalLength != len(sgRulesRemote) {
+			return fmt.Errorf("[ERROR] testAccIfSecurityGroupRuleExists Failed,resource local dues not match remote")
 		}
 
 		//  Here subnet resources has been validated to be created locally and

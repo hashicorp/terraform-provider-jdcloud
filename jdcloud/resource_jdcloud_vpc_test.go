@@ -9,11 +9,28 @@ import (
 	"testing"
 )
 
+/*
+	TestCase : 1-[Pass].common stuff only. Not yet found any tricky point requires extra attention
+*/
+
 const TestAccVpcConfig = `
+resource "jdcloud_vpc" "vpc-TEST"{
+	vpc_name = "DevOps2019"
+	cidr_block = "172.16.0.0/19"
+	description = "test"
+}
+`
+const TestAccVpcConfigUpdate = `
+resource "jdcloud_vpc" "vpc-TEST"{
+	vpc_name = "DevOps2019"
+	cidr_block = "172.16.0.0/19"
+	description = "testtest"
+}
+`
+const TestAccVpcConfigMin = `
 resource "jdcloud_vpc" "vpc-TEST"{
 	vpc_name = "DevOps2018"
 	cidr_block = "172.16.0.0/19"
-	description = "test"
 }
 `
 
@@ -27,14 +44,39 @@ func TestAccJDCloudVpc_basic(t *testing.T) {
 		CheckDestroy: testAccVpcDestroy(&vpcId),
 		Steps: []resource.TestStep{
 			{
-				Config: TestAccVpcConfig,
+				Config: TestAccVpcConfigMin,
 				Check: resource.ComposeTestCheckFunc(
 
 					testAccIfVpcExists("jdcloud_vpc.vpc-TEST", &vpcId),
 					resource.TestCheckResourceAttr("jdcloud_vpc.vpc-TEST", "vpc_name", "DevOps2018"),
 					resource.TestCheckResourceAttr("jdcloud_vpc.vpc-TEST", "cidr_block", "172.16.0.0/19"),
+					resource.TestCheckResourceAttr("jdcloud_vpc.vpc-TEST", "description", ""),
+				),
+			},
+			{
+				Config: TestAccVpcConfig,
+				Check: resource.ComposeTestCheckFunc(
+
+					testAccIfVpcExists("jdcloud_vpc.vpc-TEST", &vpcId),
+					resource.TestCheckResourceAttr("jdcloud_vpc.vpc-TEST", "vpc_name", "DevOps2019"),
+					resource.TestCheckResourceAttr("jdcloud_vpc.vpc-TEST", "cidr_block", "172.16.0.0/19"),
 					resource.TestCheckResourceAttr("jdcloud_vpc.vpc-TEST", "description", "test"),
 				),
+			},
+			{
+				Config: TestAccVpcConfigUpdate,
+				Check: resource.ComposeTestCheckFunc(
+
+					testAccIfVpcExists("jdcloud_vpc.vpc-TEST", &vpcId),
+					resource.TestCheckResourceAttr("jdcloud_vpc.vpc-TEST", "vpc_name", "DevOps2019"),
+					resource.TestCheckResourceAttr("jdcloud_vpc.vpc-TEST", "cidr_block", "172.16.0.0/19"),
+					resource.TestCheckResourceAttr("jdcloud_vpc.vpc-TEST", "description", "testtest"),
+				),
+			},
+			{
+				ResourceName:      "jdcloud_vpc.vpc-TEST",
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 		},
 	})

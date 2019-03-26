@@ -26,6 +26,9 @@ func typeSetToSgRuleList(s *schema.Set) []vpc.AddSecurityGroupRules {
 		if m["to_port"] != "" {
 			r.ToPort = getMapIntAddr(m["to_port"].(int))
 		}
+		if m["description"] != "" {
+			r.Description = getMapStrAddr(m["description"].(string))
+		}
 
 		sgRules = append(sgRules, r)
 	}
@@ -88,9 +91,6 @@ func resourceJDCloudNetworkSecurityGroupRules() *schema.Resource {
 		Read:   resourceJDCloudNetworkSecurityGroupRulesRead,
 		Update: resourceJDCloudNetworkSecurityGroupRulesUpdate,
 		Delete: resourceJDCloudNetworkSecurityGroupRulesDelete,
-		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
-		},
 
 		Schema: map[string]*schema.Schema{
 			"security_group_id": &schema.Schema{
@@ -102,7 +102,6 @@ func resourceJDCloudNetworkSecurityGroupRules() *schema.Resource {
 			"security_group_rules": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
-				Computed: true,
 				MinItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -144,22 +143,13 @@ func resourceJDCloudNetworkSecurityGroupRules() *schema.Resource {
 
 func resourceJDCloudNetworkSecurityGroupRulesCreate(d *schema.ResourceData, m interface{}) error {
 
-	d.Partial(true)
-
 	if err := performSgRuleAttach(d, m, d.Get("security_group_rules").(*schema.Set)); err != nil {
 		return err
 	}
-	d.SetPartial("security_group_id")
+
 	d.SetId(d.Get("security_group_id").(string))
 
-	if err := resourceJDCloudNetworkSecurityGroupRulesRead(d, m); err != nil {
-		d.SetId("")
-		return err
-	}
-
-	d.SetPartial("security_group_rules")
-	d.Partial(false)
-	return nil
+	return resourceJDCloudNetworkSecurityGroupRulesRead(d, m)
 }
 
 func resourceJDCloudNetworkSecurityGroupRulesRead(d *schema.ResourceData, meta interface{}) error {
@@ -182,7 +172,6 @@ func resourceJDCloudNetworkSecurityGroupRulesRead(d *schema.ResourceData, meta i
 
 	sgRules := resp.Result.NetworkSecurityGroup.SecurityGroupRules
 	sgRuleArray := make([]map[string]interface{}, 0, len(sgRules))
-
 	for _, rule := range sgRules {
 
 		sgRule := map[string]interface{}{
@@ -205,7 +194,7 @@ func resourceJDCloudNetworkSecurityGroupRulesRead(d *schema.ResourceData, meta i
 }
 
 func resourceJDCloudNetworkSecurityGroupRulesUpdate(d *schema.ResourceData, m interface{}) error {
-	d.Partial(true)
+
 	if d.HasChange("security_group_rules") {
 
 		pInterface, cInterface := d.GetChange("security_group_rules")
@@ -223,10 +212,9 @@ func resourceJDCloudNetworkSecurityGroupRulesUpdate(d *schema.ResourceData, m in
 			return err
 		}
 
-		d.SetPartial("security_group_rules")
 	}
-	d.Partial(false)
-	return nil
+
+	return resourceJDCloudNetworkSecurityGroupRulesRead(d, m)
 }
 
 func resourceJDCloudNetworkSecurityGroupRulesDelete(d *schema.ResourceData, m interface{}) error {

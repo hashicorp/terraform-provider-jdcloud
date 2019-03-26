@@ -30,6 +30,9 @@ func TestAccJDCloudKeyPairs_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 
 					testAccIfKeyPairsExists("jdcloud_key_pairs.keypairs_1", &keyName),
+					resource.TestCheckResourceAttr("jdcloud_key_pairs.keypairs_1", "key_name", "JDCLODU-123312FMK"),
+					resource.TestCheckResourceAttrSet("jdcloud_key_pairs.keypairs_1", "key_finger_print"),
+					resource.TestCheckResourceAttrSet("jdcloud_key_pairs.keypairs_1", "private_key"),
 				),
 			},
 		},

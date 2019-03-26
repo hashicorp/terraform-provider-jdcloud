@@ -1,3 +1,5 @@
+# Before everything starts you have to provide [access key and secret key]
+# What are these keys -> https://docs.jdcloud.com/cn/account-management/accesskey-management
 provider "jdcloud" {
   access_key = "${var.access_key}"
   secret_key = "${var.secret_key}"
@@ -87,12 +89,14 @@ resource "jdcloud_route_table_association" "rt-association-1" {
 # Candidates for "next_hop_type" : instance/internet/vpc_peering/bgw
 # "address_prefix" : if (next_hop_type == "internet") then there's
 #  no overlap between address prefixes. Default priority for a rule is 100
-resource "jdcloud_route_table_rule" "routetablerule-1" {
-  route_table_id = "${jdcloud_route_table.jd-route-table-1.id}"
-  address_prefix = "0.0.0.0/0"
-  next_hop_id = "internet"
-  next_hop_type = "internet"
-  priority = "100"
+resource "jdcloud_route_table_rules" "rule-example"{
+  route_table_id = "rtb-example"
+  rule_specs = [{
+    next_hop_type = "internet"
+    next_hop_id   = "internet"
+    address_prefix= "10.0.0.0/16"
+    priority      = 100
+  }]
 }
 
 # ---------------------------------------------------------- SECURITY-GROUP
@@ -190,7 +194,7 @@ resource "jdcloud_eip_association" "eip-association-TEST-1"{
 # public-read: Owner has full control, other people can read from this but no writing is allowed
 # public-read-write: Everyone can read/write from this bucket
 resource "jdcloud_oss_bucket" "jd-bucket-2" {
-  bucket = "example"
+  bucket_name = "example"
   acl = "private"
 }
 
@@ -215,6 +219,8 @@ resource "jdcloud_instance" "vm-1" {
   ################################################
   # 1. VM Config
   ################################################
+  # Password is a optional field. By missing this
+  # Field,passwords will be sent by email and SMS
   az = "cn-north-1a"
   instance_name = "my-vm-1"
   instance_type = "c.n1.large"
@@ -258,13 +264,13 @@ resource "jdcloud_instance" "vm-1" {
   ################################################
   # You can attach multiple data-disk with this instance
   # Device name for disk must be unique
-  data_disk = {
+  data_disk = [
+  {
     disk_category = "local"
     auto_delete = true
     device_name = "vdb"
-  }
-
-  data_disk = {
+  },
+  {
     disk_category = "cloud"
     auto_delete = true
     device_name = "vdc"
@@ -272,9 +278,9 @@ resource "jdcloud_instance" "vm-1" {
     az = "cn-north-1a"
     disk_name = "vm1-datadisk-1"
     description = "test"
-    disk_type = "premium-hdd"
+    disk_type = "ssd"
     disk_size_gb = 50
-  }
+  }]
 }
 
 
@@ -331,6 +337,43 @@ resource "jdcloud_rds_privilege" "pri-test" {
     {db_name = "cloudb1",privilege = "ro"},
     {db_name = "cloudb2",privilege = "rw"},
   ]
+}
+
+# ---------------------------------------------------------- INSTANCE-TEMPLATE
+####################################################################################################
+# Full parameters ->
+#
+#   + instance_type : g.n2.medium/g.n2.large...Just different type of instance , by default its g.n2.medium
+#   + password : Optional, if you leave it blank. password will be sent to you by email and SMS.
+#   + image_id : If you would like to start your instance from an image , fill in here, by default its Ubuntu:16.04
+#   + bandwidth: Optional. if you leave it blank, no public IP will be assigned to this instance
+#   + ip_service_provider : [BGP/nonBGP] , by default it's set to BGP
+#   + charge_mode : [bandwith/flow] , by default it's set to bandwith
+#   + subnet_id : Each instance is supposed to exists under a subnet, fill its id here
+#   + security_group_ids : You can make your instance exists under multuple SGs, fill them here as an array
+#   + local_disk/data_disk
+#       - disk_category : [local/cloud] : For system disk, local disk is recommended
+#       - disk_type : [premium-hdd/ssd] : For system disk, we would recommend premium-hdd
+#                                         For data disk , ssd, since premium-hdd ususally out of stock
+#       - auto_delete: [true/false] : Disks will be deleted automatically once it's been detached from instance
+#       - disk_size : [20~1000] - Must be multiples of 10, that's 20,30,40... by default it is set  to 40GB
+#       - device_name : [vda/vdb/vdc....] - Attach point of disk, points must be unique among all disks
+#                                       we would recommend to leave it blank if you're not farmiliar with it
+#       - snapshot_id : If you would like to build a template from snapshot, fill in its id here
+####################################################################################################
+
+# ---------------------------------------------------------- AVAILABILITY-GROUP
+# Parameters and candidates
+#     1. [AZ] is an array which, candidates lists as follows ["cn-north-1a","cn-north-1b","cn-east-1b","cn-east-1a","cn-south-1a"]
+#     2. [AG_TYPE] is a string, candidates are : "kvm", "docker"
+# [Ag_name] and [Description] are updatable while the remaining not.
+#
+resource "jdcloud_availability_group" "ag_01" {
+  availability_group_name = "example_ag_name"
+  az = ["cn-north-1a","cn-north-1b"]
+  instance_template_id = "example_template_id"
+  description  = "This is an example description"
+  ag_type = "docker"
 }
 
 # ---------------------------------------------------------- KEY-PAIRS

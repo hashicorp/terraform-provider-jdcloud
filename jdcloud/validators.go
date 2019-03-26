@@ -2,15 +2,20 @@ package jdcloud
 
 import (
 	"fmt"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/jdcloud-api/jdcloud-sdk-go/core"
 	vpcApis "github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/apis"
 	vpcClient "github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/client"
 	"github.com/satori/go.uuid"
+	"math/rand"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"runtime"
 	"strings"
+	"sync"
+	"time"
 )
 
 func validateStringInSlice(validSlice []string, ignoreCase bool) schema.SchemaValidateFunc {
@@ -166,4 +171,181 @@ func formatArraySetErrorMessage(e error) error {
 
 func ignoreModify(k, old, new string, d *schema.ResourceData) bool {
 	return true
+}
+
+func validateDiskSize() schema.SchemaValidateFunc {
+	return func(v interface{}, k string) (ws []string, errors []error) {
+
+		diskSize := v.(int)
+		if diskSize < MIN_DISK_SIZE || diskSize > MAX_DISK_SIZE {
+			errors = append(errors, fmt.Errorf("[ERROR] Valid disk size varies from 20~3000, yours: %#v", diskSize))
+		}
+		if diskSize%10 != 0 {
+			errors = append(errors, fmt.Errorf("[ERROR] Valid disk size must be in multiples of [10], that is,10,20,30..."))
+		}
+		return
+	}
+}
+
+func validateStringCandidates(c ...string) schema.SchemaValidateFunc {
+	return func(v interface{}, k string) (ws []string, errors []error) {
+
+		target, ok := v.(string)
+		if !ok {
+			errors = append(errors, fmt.Errorf("[ERROR] Your parameters seems invalid, Parameter has to be a string , Yours:%v", target))
+			return
+		}
+
+		invalid := true
+		for _, candidate := range c {
+			if target == candidate {
+				invalid = false
+			}
+		}
+		if invalid {
+			errors = append(errors, fmt.Errorf("[ERROR] Your parameters seems invalid, \n\n\t Candidates: %v,\n\t Yours:%v", c, target))
+		}
+		return
+	}
+}
+
+func generateDiskIndex(i interface{}) int {
+	return rand.Intn(100)
+}
+
+// Nothing special, we modified the refresh frequency here
+// This function is used rather than resource.Retry since under some
+// bad network condition 500 ms is too short for a request to return
+func RetryWithParamsSpecified(frequency, timeout time.Duration, f resource.RetryFunc) error {
+	var resultErr error
+	var resultErrMu sync.Mutex
+
+	c := &resource.StateChangeConf{
+		Pending:    []string{"retryableerror"},
+		Target:     []string{"success"},
+		Timeout:    timeout,
+		MinTimeout: frequency,
+		Refresh: func() (interface{}, string, error) {
+			rerr := f()
+
+			resultErrMu.Lock()
+			defer resultErrMu.Unlock()
+
+			if rerr == nil {
+				resultErr = nil
+				return 42, "success", nil
+			}
+
+			resultErr = rerr.Err
+
+			if rerr.Retryable {
+				return 42, "retryableerror", nil
+			}
+			return nil, "quit", rerr.Err
+		},
+	}
+
+	_, waitErr := c.WaitForState()
+
+	// Need to acquire the lock here to be able to avoid race using resultErr as
+	// the return value
+	resultErrMu.Lock()
+	defer resultErrMu.Unlock()
+
+	// resultErr may be nil because the wait timed out and resultErr was never
+	// set; this is still an error
+	if resultErr == nil {
+		return waitErr
+	}
+	// resultErr takes precedence over waitErr if both are set because it is
+	// more likely to be useful
+	return resultErr
+}
+
+func randomStringWithLength(i int) string {
+
+	b := make([]rune, i)
+	letters := []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+	for i := range b {
+		b[i] = letters[rand.Intn(len(letters))]
+	}
+	return string(b)
+}
+
+/*
+
+client := newClient
+req := apis.NewRequest
+
+func command(){
+	return client.CreateVPC(req)
+}
+*/
+
+func commonRetryFunc(t time.Duration, command func() (interface{}, error)) (resp interface{}, e error) {
+
+	c := &resource.StateChangeConf{
+		Pending:    []string{"retryableerror"},
+		Target:     []string{"success"},
+		Timeout:    t,
+		MinTimeout: 500 * time.Millisecond,
+		Refresh: func() (interface{}, string, error) {
+
+			// returned from API call
+			resp, err := command()
+			val, _ := getVal(resp)
+			retryable, ok := dealWithErr(err)
+
+			if ok {
+				return val, "success", nil
+			}
+
+			if retryable {
+				return 42, "retryableerror", nil
+			}
+
+			return nil, "quit", err
+		},
+	}
+
+	val, waitErr := c.WaitForState()
+	if waitErr != nil {
+		return nil, waitErr
+	}
+	return val, waitErr
+}
+
+type generalResponse struct {
+	RequestID string
+	Error     core.ErrorResponse
+	Result    interface{}
+}
+
+func getVal(i interface{}) (generalResponse, error) {
+	if reflect.ValueOf(i).CanInterface() {
+		return generalResponse{
+			RequestID: reflect.ValueOf(i).Field(0).Interface().(string),
+			Error:     reflect.ValueOf(i).Field(1).Interface().(core.ErrorResponse),
+			Result:    reflect.ValueOf(i).Field(2).Interface(),
+		}, nil
+	}
+	return generalResponse{}, fmt.Errorf("Failed in GetVal/reflect/Interface -> generalResponse")
+}
+
+func dealWithErr(e error) (bool, bool) {
+
+	/*
+		bool_1 : retryable
+		bool_2 : err==nil
+	*/
+
+	if e == nil {
+		return true, true
+	}
+
+	if connectionError(e) {
+		return true, false
+	}
+
+	return false, false
 }

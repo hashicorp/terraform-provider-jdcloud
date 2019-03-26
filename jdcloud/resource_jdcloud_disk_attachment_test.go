@@ -9,27 +9,78 @@ import (
 	"testing"
 )
 
-const TestAccDiskAttachmentConfig = `
-resource "jdcloud_disk_attachment" "disk-attachment-TEST-1"{
+/*
+	TestCase : 1-[Pass].common stuff only. Not yet found any tricky point requires extra attention
+			   2. TODO Concurrent disk attaching -> To same instance
+*/
+
+const TestAccDiskAttachmentTemplate = `
+resource "jdcloud_disk_attachment" "terraform_da"{
 	instance_id = "i-g6xse7qb0z" 
 	disk_id = "vol-masm0gcxn8"
+	auto_delete = %s
 }
 `
+
+func diskAttachmentConfig(a string) string {
+	return fmt.Sprintf(TestAccDiskAttachmentTemplate, a)
+}
 
 func TestAccJDCloudDiskAttachment_basic(t *testing.T) {
 
 	var instanceId, diskId string
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccDiskAttachmentDestroy(&instanceId, &diskId),
+
+		IDRefreshName: "jdcloud_disk_attachment.terraform_da",
+		PreCheck:      func() { testAccPreCheck(t) },
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccDiskAttachmentDestroy(&instanceId, &diskId),
 		Steps: []resource.TestStep{
 			{
-				Config: TestAccDiskAttachmentConfig,
+				Config: diskAttachmentConfig("true"),
 				Check: resource.ComposeTestCheckFunc(
 
-					testAccIfDiskAttachmentExists("jdcloud_disk_attachment.disk-attachment-TEST-1", &instanceId, &diskId),
+					// Assigned values
+					testAccIfDiskAttachmentExists(
+						"jdcloud_disk_attachment.terraform_da", &instanceId, &diskId),
+					resource.TestCheckResourceAttr(
+						"jdcloud_disk_attachment.terraform_da", "instance_id", "i-g6xse7qb0z"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_disk_attachment.terraform_da", "disk_id", "vol-masm0gcxn8"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_disk_attachment.terraform_da", "auto_delete", "true"),
+
+					// After resource_XYZ_Read these values will be set.
+					resource.TestCheckResourceAttrSet(
+						"jdcloud_disk_attachment.terraform_da", "device_name"),
+
+					// These values not supposed to exists after resource_XYZ_Read
+					resource.TestCheckNoResourceAttr(
+						"jdcloud_disk_attachment.terraform_da", "force_detach"),
+				),
+			},
+			{
+				Config: diskAttachmentConfig("false"),
+				Check: resource.ComposeTestCheckFunc(
+
+					// Assigned values
+					testAccIfDiskAttachmentExists(
+						"jdcloud_disk_attachment.terraform_da", &instanceId, &diskId),
+					resource.TestCheckResourceAttr(
+						"jdcloud_disk_attachment.terraform_da", "instance_id", "i-g6xse7qb0z"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_disk_attachment.terraform_da", "disk_id", "vol-masm0gcxn8"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_disk_attachment.terraform_da", "auto_delete", "false"),
+
+					// After resource_XYZ_Read these value will be set.
+					resource.TestCheckResourceAttrSet(
+						"jdcloud_disk_attachment.terraform_da", "device_name"),
+
+					// These values not supposed to exists after resource_XYZ_Read
+					resource.TestCheckNoResourceAttr(
+						"jdcloud_disk_attachment.terraform_da", "force_detach"),
 				),
 			},
 		},

@@ -40,6 +40,11 @@ const (
 	MAX_DISK_COUNT          = 1
 	DISK_AVAILABLE          = "available"
 	DISK_DELETED            = "deleted"
+	DISK_DELETING           = "deleting"
+	DISK_CREATING           = "creating"
+	DISK_ATTACHING          = "attaching"
+	DISK_DETACHING          = "detaching"
+	DISK_INUSE              = "in-use"
 	DISK_TIMEOUT            = 60
 	DISK_ATTACHMENT_TIMEOUT = 60
 	DISK_ATTACHED           = "attached"
@@ -68,9 +73,19 @@ const (
 
 	RDS_TIMEOUT       = 300
 	RDS_READY         = "RUNNING"
-	RDS_DELETED       = ""
+	RDS_CREATING      = "BUILDING"
+	RDS_UNCERTAIN     = ""
+	RDS_DELETING      = "DELETING"
+	RDS_DELETED       = "DELETED"
+	RDS_UPDATING      = "MIGRATING"
 	RDS_MAX_RECONNECT = 6
 	CONNECT_FAILED    = "Client.Timeout exceeded"
+
+	DEFAULT_DEVICE_INDEX                  = 1
+	DEFAULT_NETWORK_INTERFACE_AUTO_DELETE = true
+	DEFAULT_SANITY_CHECK                  = 1
+	MIN_DISK_SIZE                         = 20
+	MAX_DISK_SIZE                         = 3000
 )
 
 func initConfig(d *schema.ResourceData) (interface{}, error) {

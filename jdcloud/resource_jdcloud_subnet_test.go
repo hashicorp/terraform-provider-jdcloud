@@ -9,12 +9,30 @@ import (
 	"testing"
 )
 
+/*
+	TestCase : 1-[Pass].common stuff only. Not yet found any tricky point requires extra attention
+*/
+
 const TestAccSubnetConfig = `
 resource "jdcloud_subnet" "subnet-TEST"{
 	vpc_id = "vpc-npvvk4wr5j"
 	cidr_block = "10.0.128.0/24"
 	subnet_name = "DevOps2018"
 	description = "test"
+}`
+const TestAccSubnetConfigUpdate = `
+resource "jdcloud_subnet" "subnet-TEST"{
+	vpc_id = "vpc-npvvk4wr5j"
+	cidr_block = "10.0.128.0/24"
+	subnet_name = "DevOps2019"
+	description = "test with another name"
+}
+`
+const TestAccSubnetConfigMin = `
+resource "jdcloud_subnet" "subnet-TEST"{
+	vpc_id = "vpc-npvvk4wr5j"
+	cidr_block = "10.0.128.0/24"
+	subnet_name = "DevOps2019"
 }
 `
 
@@ -28,6 +46,17 @@ func TestAccJDCloudSubnet_basic(t *testing.T) {
 		CheckDestroy: testAccCheckSubnetDestroy(&subnetId),
 		Steps: []resource.TestStep{
 			{
+				Config: TestAccSubnetConfigMin,
+				Check: resource.ComposeTestCheckFunc(
+
+					testAccIfSubnetExists("jdcloud_subnet.subnet-TEST", &subnetId),
+					resource.TestCheckResourceAttr("jdcloud_subnet.subnet-TEST", "vpc_id", "vpc-npvvk4wr5j"),
+					resource.TestCheckResourceAttr("jdcloud_subnet.subnet-TEST", "cidr_block", "10.0.128.0/24"),
+					resource.TestCheckResourceAttr("jdcloud_subnet.subnet-TEST", "subnet_name", "DevOps2019"),
+					resource.TestCheckResourceAttr("jdcloud_subnet.subnet-TEST", "description", ""),
+				),
+			},
+			{
 				Config: TestAccSubnetConfig,
 				Check: resource.ComposeTestCheckFunc(
 
@@ -37,6 +66,22 @@ func TestAccJDCloudSubnet_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("jdcloud_subnet.subnet-TEST", "subnet_name", "DevOps2018"),
 					resource.TestCheckResourceAttr("jdcloud_subnet.subnet-TEST", "description", "test"),
 				),
+			},
+			{
+				Config: TestAccSubnetConfigUpdate,
+				Check: resource.ComposeTestCheckFunc(
+
+					testAccIfSubnetExists("jdcloud_subnet.subnet-TEST", &subnetId),
+					resource.TestCheckResourceAttr("jdcloud_subnet.subnet-TEST", "vpc_id", "vpc-npvvk4wr5j"),
+					resource.TestCheckResourceAttr("jdcloud_subnet.subnet-TEST", "cidr_block", "10.0.128.0/24"),
+					resource.TestCheckResourceAttr("jdcloud_subnet.subnet-TEST", "subnet_name", "DevOps2019"),
+					resource.TestCheckResourceAttr("jdcloud_subnet.subnet-TEST", "description", "test with another name"),
+				),
+			},
+			{
+				ResourceName:      "jdcloud_subnet.subnet-TEST",
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 		},
 	})

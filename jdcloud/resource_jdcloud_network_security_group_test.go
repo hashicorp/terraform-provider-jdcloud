@@ -10,10 +10,13 @@ import (
 	"testing"
 )
 
-const TestAccSecurityGroupConfig = `
+/*
+	TestCase : 1.common stuff only. Not yet found any tricky point requires extra attention
+*/
+const TestAccSecurityGroupTemplate = `
 resource "jdcloud_network_security_group" "TF-TEST"{
-	description = "test"
-	network_security_group_name = "test"
+	description = "%s"
+	network_security_group_name = "%s"
 	vpc_id = "vpc-npvvk4wr5j"
 }
 `
@@ -28,11 +31,25 @@ func TestAccJDCloudSecurityGroup_basic(t *testing.T) {
 		CheckDestroy: testAccCheckSecurityGroupDestroy(&securityGroupId),
 		Steps: []resource.TestStep{
 			{
-				Config: TestAccSecurityGroupConfig,
+				Config: generateSGTemplate("Captain", "JamesMay"),
 				Check: resource.ComposeTestCheckFunc(
-
 					testAccIfSecurityGroupExists("jdcloud_network_security_group.TF-TEST", &securityGroupId),
+					resource.TestCheckResourceAttr("jdcloud_network_security_group.TF-TEST", "network_security_group_name", "JamesMay"),
+					resource.TestCheckResourceAttr("jdcloud_network_security_group.TF-TEST", "description", "Captain"),
 				),
+			},
+			{
+				Config: generateSGTemplate("aha", "RichardHammond"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccIfSecurityGroupExists("jdcloud_network_security_group.TF-TEST", &securityGroupId),
+					resource.TestCheckResourceAttr("jdcloud_network_security_group.TF-TEST", "network_security_group_name", "RichardHammond"),
+					resource.TestCheckResourceAttr("jdcloud_network_security_group.TF-TEST", "description", "aha"),
+				),
+			},
+			{
+				ResourceName:      "jdcloud_network_security_group.TF-TEST",
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 		},
 	})
@@ -97,4 +114,8 @@ func testAccCheckSecurityGroupDestroy(securityGroupIdStoredLocally *string) reso
 		}
 		return nil
 	}
+}
+
+func generateSGTemplate(des, name string) string {
+	return fmt.Sprintf(TestAccSecurityGroupTemplate, des, name)
 }

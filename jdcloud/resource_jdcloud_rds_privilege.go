@@ -128,7 +128,7 @@ func resourceJDCloudRDSPrivilegeCreate(d *schema.ResourceData, m interface{}) er
 	}
 
 	d.SetId(d.Get("username").(string))
-	return nil
+	return resourceJDCloudRDSPrivilegeRead(d, m)
 }
 
 func resourceJDCloudRDSPrivilegeRead(d *schema.ResourceData, meta interface{}) error {
@@ -198,7 +198,7 @@ func resourceJDCloudRDSPrivilegeUpdate(d *schema.ResourceData, m interface{}) er
 		d.SetPartial("account_privilege")
 
 	}
-	return nil
+	return resourceJDCloudRDSPrivilegeRead(d, m)
 }
 
 func resourceJDCloudRDSPrivilegeDelete(d *schema.ResourceData, m interface{}) error {

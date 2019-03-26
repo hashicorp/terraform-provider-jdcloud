@@ -10,6 +10,10 @@ import (
 	"testing"
 )
 
+/*
+	TestCase : 1-[Pass].common stuff only. Not yet found any tricky point requires extra attention
+*/
+
 const TestAccRouteTableRulesConfig = `
 resource "jdcloud_route_table_rules" "rule-TEST-1"{
   route_table_id = "rtb-jgso5x1ein"
@@ -17,7 +21,21 @@ resource "jdcloud_route_table_rules" "rule-TEST-1"{
     next_hop_type = "internet"
     next_hop_id   = "internet"
     address_prefix= "10.0.0.0/16"
-    priority      = 100
+  }]
+}
+`
+const TestAccRouteTableRulesConfigUpdate = `
+resource "jdcloud_route_table_rules" "rule-TEST-1"{
+  route_table_id = "rtb-jgso5x1ein"
+  rule_specs = [{
+    next_hop_type = "internet"
+    next_hop_id   = "internet"
+    address_prefix= "0.0.0.0/0"
+  },{
+    next_hop_type = "internet"
+    next_hop_id   = "internet"
+    address_prefix= "10.0.0.0/16"
+    priority      = 120
   }]
 }
 `
@@ -36,10 +54,21 @@ func TestAccJDCloudRouteTableRules_basic(t *testing.T) {
 			{
 				Config: TestAccRouteTableRulesConfig,
 				Check: resource.ComposeTestCheckFunc(
-
-					// Here we gathered all verification in one function
-					// We did this since the info stored remotely cannot be easily get
 					testAccIfRouteTableRuleExists("jdcloud_route_table_rules.rule-TEST-1", &routeTableId),
+					// Common
+					resource.TestCheckResourceAttr("jdcloud_route_table_rules.rule-TEST-1", "route_table_id", "rtb-jgso5x1ein"),
+					// TypeSet item length
+					resource.TestCheckResourceAttr("jdcloud_route_table_rules.rule-TEST-1", "rule_specs.#", "1"),
+				),
+			},
+			{
+				Config: TestAccRouteTableRulesConfigUpdate,
+				Check: resource.ComposeTestCheckFunc(
+					testAccIfRouteTableRuleExists("jdcloud_route_table_rules.rule-TEST-1", &routeTableId),
+					// Common
+					resource.TestCheckResourceAttr("jdcloud_route_table_rules.rule-TEST-1", "route_table_id", "rtb-jgso5x1ein"),
+					// TypeSet item length
+					resource.TestCheckResourceAttr("jdcloud_route_table_rules.rule-TEST-1", "rule_specs.#", "2"),
 				),
 			},
 		},

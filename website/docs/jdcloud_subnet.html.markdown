@@ -33,15 +33,12 @@ The following arguments are supported:
 
 The following attributes are exported:
 
-* `subnet_id` : id of this subnet, used to reference this subnet
+* `id` : id of this subnet, used to reference this subnet
 
 ### Import
 
-Existing subnet can be imported to Terraform state by specifying the id of this subnet.
+Existing route table can be imported to Terraform state by specifying the route table id:
 
-```text
-terraform import jdcloud_subnet.example subnet-example
+```bash
+terraform import jdcloud_route_table.example rtb-abc12345678
 ```
-
-
-

@@ -49,13 +49,5 @@ The following attributes are exported:
 
 * `rule_id` : Each rule has its own id for attaching/detaching purpose.
 
-### Import
-
-Existing security group rules can be imported to Terraform state by specifying the id of security group.
-
-```text
-terraform import jdcloud_network_security_group_rules.example sg-abc123456
-```
-
 
 

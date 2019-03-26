@@ -10,10 +10,20 @@ import (
 	"testing"
 )
 
+/*
+	TestCase : 1-[Pass].common stuff only. Not yet found any tricky point requires extra attention
+*/
+
 const TestAccRouteTableAssociationConfig = `
 resource "jdcloud_route_table_association" "route-table-association-TEST-1"{
 	route_table_id = "rtb-jgso5x1ein"
 	subnet_id = ["subnet-j8jrei2981"]
+}
+`
+const TestAccRouteTableAssociationConfigUpdate = `
+resource "jdcloud_route_table_association" "route-table-association-TEST-1"{
+	route_table_id = "rtb-jgso5x1ein"
+	subnet_id = ["subnet-j8jrei2981","subnet-7g3j4bzlnf"]
 }
 `
 
@@ -29,8 +39,17 @@ func TestAccJDCloudRouteTableAssociation_basic(t *testing.T) {
 			{
 				Config: TestAccRouteTableAssociationConfig,
 				Check: resource.ComposeTestCheckFunc(
-
 					testAccIfRouteTableAssociationExists("jdcloud_route_table_association.route-table-association-TEST-1", &routeTableId),
+					resource.TestCheckResourceAttr("jdcloud_route_table_association.route-table-association-TEST-1", "route_table_id", "rtb-jgso5x1ein"),
+					resource.TestCheckResourceAttr("jdcloud_route_table_association.route-table-association-TEST-1", "subnet_id.#", "1"),
+				),
+			},
+			{
+				Config: TestAccRouteTableAssociationConfigUpdate,
+				Check: resource.ComposeTestCheckFunc(
+					testAccIfRouteTableAssociationExists("jdcloud_route_table_association.route-table-association-TEST-1", &routeTableId),
+					resource.TestCheckResourceAttr("jdcloud_route_table_association.route-table-association-TEST-1", "route_table_id", "rtb-jgso5x1ein"),
+					resource.TestCheckResourceAttr("jdcloud_route_table_association.route-table-association-TEST-1", "subnet_id.#", "2"),
 				),
 			},
 		},

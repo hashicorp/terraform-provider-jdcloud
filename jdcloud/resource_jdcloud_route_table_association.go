@@ -16,9 +16,6 @@ func resourceJDCloudRouteTableAssociation() *schema.Resource {
 		Read:   resourceRouteTableAssociationRead,
 		Update: resourceRouteTableAssociationUpdate,
 		Delete: resourceRouteTableAssociationDelete,
-		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
-		},
 
 		Schema: map[string]*schema.Schema{
 
@@ -49,7 +46,7 @@ func resourceRouteTableAssociationCreate(d *schema.ResourceData, meta interface{
 		return err
 	} else {
 		d.SetId(routeTableId)
-		return nil
+		return resourceRouteTableAssociationRead(d, meta)
 	}
 }
 
@@ -111,7 +108,7 @@ func resourceRouteTableAssociationUpdate(d *schema.ResourceData, m interface{}) 
 
 	}
 
-	return nil
+	return resourceRouteTableAssociationRead(d, m)
 }
 
 func resourceRouteTableAssociationDelete(d *schema.ResourceData, meta interface{}) error {
