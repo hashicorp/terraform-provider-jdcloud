@@ -11,8 +11,6 @@ Terraform Provider for JDCloud
 
 # Using the provider 
 
-The best way to get familiar with it is to use it. Only three simple steps:
-
 * Prepare a folder for Terraform 
 ```bash
 makedir terraform && cd terraform 
@@ -22,7 +20,7 @@ makedir terraform && cd terraform
 touch jdcloud.tf
 ```
 * Download [Terraform](https://www.terraform.io/downloads.html) 
-* Download [Terraform-Jdcloud-Plugin](baidu.com)
+* Download [Terraform-Jdcloud-Plugin](https://github.com/jdclouddevelopers/terraform-provider-jdcloud)
 * Launch!
 ```bash
 terraform init
@@ -44,6 +42,7 @@ You will need to correctly set up $GOPATH, as well as adding `$GOPATH/bin` to yo
 
 ### 2.Compile project
 
+
 After you have modified the code you can compile this plugin by `make build`. 
 Remember to format your code by using `go fmt`. If it works fine. Plugin will be in your $GOPATH/bin
 ``` go
@@ -56,6 +55,7 @@ terraform-provider-jdcloud
 ```   
 
 ### 3.Running Acceptance Test
+
 
 Acceptance test can be an important part of developing process. Basically, it will first create a resource,
 validate its attributes and see if it works as expected. Update this resource if applied and eventually delete this resource.
@@ -72,6 +72,7 @@ _Note_
 
 Contact us JDCloud-Team <ark@jd.com>
 
+
 ## License
 
-Mozilla Public License 2.0
+Apache License Version 2

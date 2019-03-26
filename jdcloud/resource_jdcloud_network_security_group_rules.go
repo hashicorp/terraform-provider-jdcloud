@@ -7,7 +7,6 @@ import (
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/apis"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/client"
 	vpc "github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/models"
-	"log"
 	"time"
 )
 
@@ -149,8 +148,8 @@ func resourceJDCloudNetworkSecurityGroupRulesCreate(d *schema.ResourceData, m in
 	}
 
 	d.SetId(d.Get("security_group_id").(string))
-	//return resourceJDCloudNetworkSecurityGroupRulesRead(d, m)
-	return nil
+	
+	return resourceJDCloudNetworkSecurityGroupRulesRead(d, m)
 }
 
 func resourceJDCloudNetworkSecurityGroupRulesRead(d *schema.ResourceData, meta interface{}) error {
