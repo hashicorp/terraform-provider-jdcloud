@@ -75,5 +75,5 @@ Contact us JDCloud-Team <ark@jd.com>
 
 ## License
 
-Apache License Version 2
+Mozilla Public License 2.0
 
