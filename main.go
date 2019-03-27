@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/hashicorp/terraform/plugin"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/jdclouddevelopers/terraform-provider-jdcloud/jdcloud"
+	"github.com/terraform-providers/terraform-provider-jdcloud/jdcloud"
 )
 
 func main() {
