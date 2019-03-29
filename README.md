@@ -70,7 +70,7 @@ _Note_
 
 ## Contact Us 
 
-Contact us JDCloud-Team <ark@jd.com>
+Contact us JDCloud-Team <devops@jd.com>
 
 
 ## License
