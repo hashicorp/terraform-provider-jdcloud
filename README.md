@@ -13,7 +13,7 @@ Terraform Provider for JDCloud
 
 * Prepare a folder for Terraform 
 ```bash
-makedir terraform && cd terraform 
+mkdir terraform && cd terraform 
 ```
 * Prepare your `jdcloud.tf`. This is where Terraform begins 
 ```bash
