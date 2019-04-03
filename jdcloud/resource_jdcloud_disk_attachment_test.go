@@ -10,10 +10,12 @@ import (
 )
 
 /*
-	TestCase : 1-[Pass].common stuff only. Not yet found any tricky point requires extra attention
-			   2. TODO Concurrent disk attaching -> To same instance
+
+	TestCase : 1-[Pass]. Common stuff only. Not yet found any tricky point requires extra attention
+			   2-[Pass]. Concurrent disk attachment/Detachment
 */
 
+// 1-[Pass]. Common stuff only. Not yet found any tricky point requires extra attention
 const TestAccDiskAttachmentTemplate = `
 resource "jdcloud_disk_attachment" "terraform_da"{
 	instance_id = "i-g6xse7qb0z" 
@@ -87,6 +89,62 @@ func TestAccJDCloudDiskAttachment_basic(t *testing.T) {
 	})
 }
 
+// 2-[Pass]. Concurrent disk attachment/Detachment
+const TestAccDiskAttachmentConcurrentAttach = `
+resource "jdcloud_disk_attachment" "terraform_con_1"{
+	instance_id = "i-g6xse7qb0z" 
+	disk_id = "vol-qm7t7q7pmk"
+}
+resource "jdcloud_disk_attachment" "terraform_con_2"{
+	instance_id = "i-g6xse7qb0z" 
+	disk_id = "vol-9dya7e5rdi"
+}
+`
+
+func TestAccJDCloudDiskAttachment_concurrent_attach(t *testing.T) {
+
+	var instanceId, diskId string
+	var instanceId2, diskId2 string
+
+	resource.Test(t, resource.TestCase{
+
+		IDRefreshName: "jdcloud_disk_attachment.terraform_da",
+		PreCheck:      func() { testAccPreCheck(t) },
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccDiskAttachmentBothDestroy(&instanceId, &diskId, &diskId2),
+		Steps: []resource.TestStep{
+			{
+				Config: TestAccDiskAttachmentConcurrentAttach,
+				Check: resource.ComposeTestCheckFunc(
+
+					// Both of them are supposed to exist
+					testAccIfDiskAttachmentExists(
+						"jdcloud_disk_attachment.terraform_con_1", &instanceId, &diskId),
+					testAccIfDiskAttachmentExists(
+						"jdcloud_disk_attachment.terraform_con_2", &instanceId2, &diskId2),
+
+					resource.TestCheckResourceAttr(
+						"jdcloud_disk_attachment.terraform_con_1", "instance_id", "i-g6xse7qb0z"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_disk_attachment.terraform_con_2", "instance_id", "i-g6xse7qb0z"),
+
+					resource.TestCheckResourceAttr(
+						"jdcloud_disk_attachment.terraform_con_1", "disk_id", "vol-qm7t7q7pmk"),
+					resource.TestCheckResourceAttr(
+						"jdcloud_disk_attachment.terraform_con_2", "disk_id", "vol-9dya7e5rdi"),
+
+					// After resource_XYZ_Read these values will be set.
+					resource.TestCheckResourceAttrSet(
+						"jdcloud_disk_attachment.terraform_con_1", "device_name"),
+					resource.TestCheckResourceAttrSet(
+						"jdcloud_disk_attachment.terraform_con_2", "device_name"),
+				),
+			},
+		},
+	})
+
+}
+
 func testAccIfDiskAttachmentExists(resourceName string, resourceId, diskId *string) resource.TestCheckFunc {
 
 	return func(stateInfo *terraform.State) error {
@@ -139,6 +197,32 @@ func testAccDiskAttachmentDestroy(resourceId *string, diskId *string) resource.T
 
 		for _, disk := range resp.Result.Instance.DataDisks {
 			if *diskId == disk.CloudDisk.DiskId && disk.Status != DISK_DETACHED {
+				return fmt.Errorf("[ERROR] testAccDiskAttachmentDestroy failed,data disk failed in detatching")
+			}
+		}
+		return nil
+	}
+}
+
+func testAccDiskAttachmentBothDestroy(resourceId *string, diskId, diskId2 *string) resource.TestCheckFunc {
+
+	return func(stateInfo *terraform.State) error {
+		config := testAccProvider.Meta().(*JDCloudConfig)
+		vmClient := client.NewVmClient(config.Credential)
+
+		req := apis.NewDescribeInstanceRequest(config.Region, *resourceId)
+
+		resp, err := vmClient.DescribeInstance(req)
+
+		if err != nil {
+			return err
+		}
+
+		for _, disk := range resp.Result.Instance.DataDisks {
+			if *diskId == disk.CloudDisk.DiskId && disk.Status != DISK_DETACHED {
+				return fmt.Errorf("[ERROR] testAccDiskAttachmentDestroy failed,data disk failed in detatching")
+			}
+			if *diskId2 == disk.CloudDisk.DiskId && disk.Status != DISK_DETACHED {
 				return fmt.Errorf("[ERROR] testAccDiskAttachmentDestroy failed,data disk failed in detatching")
 			}
 		}

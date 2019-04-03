@@ -39,6 +39,11 @@ func stringAddr(v interface{}) *string {
 	return &r
 }
 
+func intAddr(v interface{}) *int {
+	r := v.(int)
+	return &r
+}
+
 func boolAddr(v interface{}) *bool {
 	r := v.(bool)
 	return &r
@@ -113,13 +118,14 @@ func waitForInstance(d *schema.ResourceData, m interface{}, expectedStatus strin
 }
 
 // Level 2 -> Based on instanceStatusWaiter
-func StopVmInstance(d *schema.ResourceData, m interface{}) error {
+
+func StopVmInstance(d *schema.ResourceData, m interface{}, instanceId string) error {
 
 	config := m.(*JDCloudConfig)
 	vmClient := client.NewVmClient(config.Credential)
-	req := apis.NewStopInstanceRequest(config.Region, d.Id())
+	req := apis.NewStopInstanceRequest(config.Region, instanceId)
 
-	e := resource.Retry(time.Minute, func() *resource.RetryError {
+	return resource.Retry(time.Minute, func() *resource.RetryError {
 
 		resp, err := vmClient.StopInstance(req)
 
@@ -134,10 +140,10 @@ func StopVmInstance(d *schema.ResourceData, m interface{}) error {
 		}
 	})
 
-	if e != nil {
-		return e
-	}
-	return instanceStatusWaiter(d, m, d.Id(), []string{VM_RUNNING, VM_STOPPING}, []string{VM_STOPPED})
+	//if e != nil {
+	//	return e
+	//}
+	//return instanceStatusWaiter(d, m, d.Id(), []string{VM_RUNNING, VM_STOPPING}, []string{VM_STOPPED,VM_STOPPED_2})
 }
 
 func StartVmInstance(d *schema.ResourceData, m interface{}) error {
@@ -166,12 +172,30 @@ func StartVmInstance(d *schema.ResourceData, m interface{}) error {
 	return instanceStatusWaiter(d, m, d.Id(), []string{VM_STOPPED, VM_STARTING}, []string{VM_RUNNING})
 }
 
-func DeleteVmInstance(d *schema.ResourceData, m interface{}) (*apis.DeleteInstanceResponse, error) {
+func DeleteVmInstance(d *schema.ResourceData, m interface{}, id string) error {
+
 	config := m.(*JDCloudConfig)
 	vmClient := client.NewVmClient(config.Credential)
-	req := apis.NewDeleteInstanceRequest(config.Region, d.Id())
-	resp, err := vmClient.DeleteInstance(req)
-	return resp, err
+
+	err := resource.Retry(time.Minute, func() *resource.RetryError {
+
+		req := apis.NewDeleteInstanceRequest(config.Region, id)
+		resp, err := vmClient.DeleteInstance(req)
+
+		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
+			return nil
+		}
+		if connectionError(err) {
+			return resource.RetryableError(formatConnectionErrorMessage())
+		} else {
+			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
+		}
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func diskIdList(s *schema.Set) []string {
@@ -214,7 +238,6 @@ func instanceStatusRefreshFunc(d *schema.ResourceData, meta interface{}, vmId st
 		if err != nil {
 			return nil, "", err
 		}
-
 		return vmItem, vmStatus, nil
 	}
 }
@@ -232,6 +255,68 @@ func instanceStatusWaiter(d *schema.ResourceData, meta interface{}, id string, p
 	}
 	if _, err = stateConf.WaitForState(); err != nil {
 		return fmt.Errorf("[E] Failed in instanceStatusWaiter/Waiting to reach expected status ,err message:%v", err)
+	}
+	return nil
+}
+
+// Level 2~3  delete a specified instance
+func deleteInstance(d *schema.ResourceData, m interface{}, instanceId string) error {
+
+	// Stop VM
+	err := StopVmInstance(d, m, instanceId)
+	if err != nil {
+		return fmt.Errorf("[E] deleteInstance - InstanceId=%s - Send request to stop fail:%v", instanceId, err)
+	}
+
+	// Wait until stopped
+	err = instanceStatusWaiter(d, m, instanceId, []string{VM_RUNNING, VM_STOPPING}, []string{VM_STOPPED, VM_STOPPED_2})
+	if err != nil {
+		return fmt.Errorf("[E] deleteInstance - InstanceId=%s - Can not make it stop :%v", instanceId, err)
+	}
+
+	// Delete VM
+	err = DeleteVmInstance(d, m, instanceId)
+	if err != nil {
+		return fmt.Errorf("[E] deleteInstance - InstanceId=%s - Can not send requests to delete :%v", instanceId, err)
+	}
+
+	// Wait until deleted
+	if err = instanceStatusWaiter(d, m, instanceId, []string{VM_RUNNING, VM_STOPPING, VM_DELETING}, []string{VM_DELETED}); err != nil {
+		return fmt.Errorf("[E] deleteInstance - InstanceId=%s - Can not wait it delete :%v", instanceId, err)
+	}
+
+	return nil
+}
+
+// Level 2~3 delete some instances
+func deleteInstances(d *schema.ResourceData, m interface{}, instanceIds []string) error {
+
+	// Stop
+	for _, i := range instanceIds {
+		if e := StopVmInstance(d, m, i); e != nil {
+			return fmt.Errorf("[E] deleteInstances - Send request to stop fail:%s", e)
+		}
+	}
+
+	//Wait until stopped
+	for _, i := range instanceIds {
+		if err := instanceStatusWaiter(d, m, i, []string{VM_RUNNING, VM_STOPPING}, []string{VM_STOPPED, VM_STOPPED_2}); err != nil {
+			return fmt.Errorf("[E] deleteInstances - Can not make it stop :%s", err)
+		}
+	}
+
+	// Delete
+	for _, i := range instanceIds {
+		if e := DeleteVmInstance(d, m, i); e != nil {
+			return fmt.Errorf("[E] deleteInstances - Can not send requests to delete:%v", e)
+		}
+	}
+
+	// Wait until deleted
+	for _, i := range instanceIds {
+		if e := instanceStatusWaiter(d, m, i, []string{VM_RUNNING, VM_STOPPING, VM_DELETING}, []string{VM_DELETED}); e != nil {
+			return fmt.Errorf("[E] deleteInstances - Can not wait it delete %v", e)
+		}
 	}
 	return nil
 }
@@ -723,8 +808,11 @@ func resourceJDCloudInstanceUpdate(d *schema.ResourceData, m interface{}) error 
 
 	if d.HasChange("password") {
 		// Stop VM
-		if err := StopVmInstance(d, m); err != nil {
+		if err := StopVmInstance(d, m, d.Id()); err != nil {
 			return fmt.Errorf("stop instance got error:%s", err)
+		}
+		if err := instanceStatusWaiter(d, m, d.Id(), []string{VM_RUNNING, VM_STOPPING}, []string{VM_STOPPED, VM_STOPPED_2}); err != nil {
+			return fmt.Errorf("stop instance got error(2):%s", err)
 		}
 
 		//  Modify password
@@ -754,23 +842,19 @@ func resourceJDCloudInstanceUpdate(d *schema.ResourceData, m interface{}) error 
 func resourceJDCloudInstanceDelete(d *schema.ResourceData, m interface{}) error {
 
 	// Stop VM
-	err := StopVmInstance(d, m)
+	err := StopVmInstance(d, m, d.Id())
 	if err != nil {
 		return fmt.Errorf("stop instance got error:%s", err)
 	}
 
+	// Wait until stopped
+	err = instanceStatusWaiter(d, m, d.Id(), []string{VM_RUNNING, VM_STOPPING}, []string{VM_STOPPED, VM_STOPPED_2})
+	if err != nil {
+		return err
+	}
+
 	// Delete VM
-	err = resource.Retry(time.Minute, func() *resource.RetryError {
-		resp, err := DeleteVmInstance(d, m)
-		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
-			return nil
-		}
-		if connectionError(err) {
-			return resource.RetryableError(formatConnectionErrorMessage())
-		} else {
-			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
-		}
-	})
+	err = DeleteVmInstance(d, m, d.Id())
 	if err != nil {
 		return err
 	}

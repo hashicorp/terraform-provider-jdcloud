@@ -265,22 +265,22 @@ resource "jdcloud_instance" "vm-1" {
   # You can attach multiple data-disk with this instance
   # Device name for disk must be unique
   data_disk = [
-  {
-    disk_category = "local"
-    auto_delete = true
-    device_name = "vdb"
-  },
-  {
-    disk_category = "cloud"
-    auto_delete = true
-    device_name = "vdc"
+    {
+      disk_category = "local"
+      auto_delete = true
+      device_name = "vdb"
+    },
+    {
+      disk_category = "cloud"
+      auto_delete = true
+      device_name = "vdc"
 
-    az = "cn-north-1a"
-    disk_name = "vm1-datadisk-1"
-    description = "test"
-    disk_type = "ssd"
-    disk_size_gb = 50
-  }]
+      az = "cn-north-1a"
+      disk_name = "vm1-datadisk-1"
+      description = "test"
+      disk_type = "ssd"
+      disk_size_gb = 50
+    }]
 }
 
 
@@ -375,6 +375,25 @@ resource "jdcloud_availability_group" "ag_01" {
   description  = "This is an example description"
   ag_type = "docker"
 }
+
+# ---------------------------------------------------------- CREATE-INSTANCE-INSIDE-AG
+# Make sure each instance have different names.
+#
+resource "jdcloud_instance_ag_instance" "ag_set" {
+  "availability_group_id" = "ag-example"
+  "instances" = [
+    {
+      "instance_name" = "ark01"
+    },
+    {
+      "instance_name" = "ark02"
+    },
+    {
+      "instance_name" = "ark03"
+    },
+  ]
+}
+
 
 # ---------------------------------------------------------- KEY-PAIRS
 
