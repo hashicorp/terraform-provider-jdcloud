@@ -40,6 +40,7 @@ The following arguments are supported
 
 * `template_name`  - \(Required\) : A string, name your instance template
 * `password`  - \(Optional\) :  String. Once this filed is set. All instance created from this template will use this password 
+* `key_names` - \(Optional\) Name of the key pair used to login to instance. You can create a template with password or ssh keys, but not both. 
 * `instance_type`  - \(Required\) :  Specs of this Instance. More available instance type lists [Here](https://docs.jdcloud.com/virtual-machines/instance-type-family)
 * `image_id`  - \(Required\) :  A string, which image you would like to use, usually [Ubuntu image or Golang images](https://market.jdcloud.com/#/) are good choices
 * `ElasticIP` - \(Optional\) : If you would like a public IP, fill in here

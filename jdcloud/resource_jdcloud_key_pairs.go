@@ -61,7 +61,8 @@ func resourceJDCloudKeyPairsCreate(d *schema.ResourceData, meta interface{}) err
 			resp, err := vmClient.ImportKeypair(rq)
 
 			if err == nil && resp.Error.Code == REQUEST_COMPLETED {
-				d.SetId(resp.RequestID)
+				d.SetId(keyName)
+				return nil
 			}
 			if err == nil && resp.Error.Code != REQUEST_COMPLETED {
 				return resource.NonRetryableError(fmt.Errorf("[ERROR] import key pairs failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message))

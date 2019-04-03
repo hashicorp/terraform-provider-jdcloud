@@ -3,6 +3,7 @@
 
 FEATURES:
 
+* Now `InstanceTemplate` can be created with ssh keys. Tests,website added [GH-3]
 * `Availability-Group` and `Instance-Template` ([#28](https://github.com/terraform-providers/terraform-provider-jdcloud/issues/28))
 * Updated to Go1.12, `go.mod` and `go.sum` has been generated [[#28](https://github.com/terraform-providers/terraform-provider-jdcloud/issues/28)] 
 * Scanner, back up your current infrastructure and save into a configuration file ([#21](https://github.com/terraform-providers/terraform-provider-jdcloud/issues/21))

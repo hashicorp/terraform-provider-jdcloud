@@ -82,11 +82,17 @@ func resourceJDCloudInstanceTemplate() *schema.Resource {
 				Optional: true,
 			},
 			"password": &schema.Schema{
-				Type:      schema.TypeString,
-				Optional:  true,
-				Sensitive: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				Sensitive:     true,
+				ConflictsWith: []string{"key_names"},
 			},
-
+			"key_names": &schema.Schema{
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"password"},
+			},
 			"bandwidth": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
@@ -164,6 +170,9 @@ func resourceJDCloudInstanceTemplateCreate(d *schema.ResourceData, m interface{}
 	if _, ok := d.GetOk("system_disk"); ok {
 		templateSpec.SystemDisk = typeListToDiskTemplateList(d.Get("system_disk").([]interface{}))[0]
 	}
+	if _, ok := d.GetOk("key_names"); ok {
+		templateSpec.KeyNames = []string{d.Get("key_names").(string)}
+	}
 	if _, ok := d.GetOk("data_disks"); ok {
 		templateSpec.DataDisks = typeListToDiskTemplateList(d.Get("data_disks").([]interface{}))
 	}
@@ -216,6 +225,9 @@ func resourceJDCloudInstanceTemplateRead(d *schema.ResourceData, m interface{}) 
 				return resource.NonRetryableError(fmt.Errorf("[E] Failed in setting data disks"))
 			}
 
+			if len(resp.Result.InstanceTemplate.InstanceTemplateData.KeyNames) > 0 {
+				d.Set("key_names", resp.Result.InstanceTemplate.InstanceTemplateData.KeyNames[0])
+			}
 			sysDisk := typeListToDiskTemplateMap([]vm.InstanceTemplateDiskAttachment{resp.Result.InstanceTemplate.InstanceTemplateData.SystemDisk})
 			sysDisk[0]["disk_type"] = d.Get("system_disk.0.disk_type")
 			sysDisk[0]["device_name"] = d.Get("system_disk.0.device_name")
