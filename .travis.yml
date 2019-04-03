@@ -27,15 +27,6 @@ script:
 - zip Windows-amd64.zip terraform-provider-jdcloud.exe
 #- make website-test
 
-
-branches:
-  only:
-  - master
-matrix:
-  fast_finish: true
-  allow_failures:
-  - go: tip
-
 deploy:
   provider: releases
   api_key: ${GITHUB_TOKEN}
