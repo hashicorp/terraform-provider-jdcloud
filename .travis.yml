@@ -27,6 +27,7 @@ script:
 - zip Windows-amd64.zip terraform-provider-jdcloud.exe
 #- make website-test
 
+
 branches:
   only:
   - master
