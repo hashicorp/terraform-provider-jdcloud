@@ -5,8 +5,6 @@ services:
 language: go
 go:
   - "1.9"
-  - "1.10"
-  - master
 
 install:
 # This script is used by the Travis build to install a cookie for
@@ -20,9 +18,13 @@ script:
 - make test
 - make vendor-status
 - make vet
+- CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o terraform-provider-jdcloud
+- tar zcvf Linux-amd64.tar.gz terraform-provider-jdcloud
+- CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -o terraform-provider-jdcloud
+- tar zcvf OSX-amd64.tar.gz terraform-provider-jdcloud
+- CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o terraform-provider-jdcloud.exe
+- zip Windows-amd64.zip terraform-provider-jdcloud.exe
 #- make website-test
-# This branch is currently discarded since we have to
-# Add some soft links to make middle man working
 
 branches:
   only:
@@ -31,3 +33,14 @@ matrix:
   fast_finish: true
   allow_failures:
   - go: tip
+
+deploy:
+  provider: releases
+  api_key: ${GITHUB_TOKEN}
+  file:
+    - Linux-amd64.tar.gz
+    - OSX-amd64.tar.gz
+    - Windows-amd64.zip
+  skip_cleanup: true
+  on:
+    tags: true
