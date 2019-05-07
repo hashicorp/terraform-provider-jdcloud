@@ -8,7 +8,7 @@ description: |-
 
 # JDCloud
 
-JDCloud provider helps managing resources on JDCloud. Before you start with this plugin, 
+JDCloud provider helps managing resources on [JDCloud](https://www.jdcloud.com/en/). Before you start with this plugin, 
 you have to provide a pair of access key and secret to identify yourself. 
 
 -> Navigation bar on the left gives you a brief mind on how to manage resources on JDCloud 
