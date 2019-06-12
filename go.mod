@@ -1,4 +1,4 @@
-module terraform-provider-jdcloud
+module github.com/terraform-providers/terraform-provider-jdcloud
 
 go 1.12
 
