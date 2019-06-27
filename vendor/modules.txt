@@ -225,7 +225,7 @@ github.com/posener/complete
 github.com/posener/complete/cmd/install
 github.com/posener/complete/cmd
 github.com/posener/complete/match
-# github.com/satori/go.uuid v1.2.0
+# github.com/satori/go.uuid v1.2.1-0.20181028125025-b2ce2384e17b
 github.com/satori/go.uuid
 # github.com/spf13/afero v1.2.1
 github.com/spf13/afero
