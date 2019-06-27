@@ -40,7 +40,7 @@ func NewAgClient(credential *core.Credential) *AgClient {
             Credential:  *credential,
             Config:      *config,
             ServiceName: "ag",
-            Revision:    "0.2.0",
+            Revision:    "0.4.0",
             Logger:      core.NewDefaultLogger(core.LogInfo),
         }}
 }
@@ -53,7 +53,7 @@ func (c *AgClient) SetLogger(logger core.Logger) {
     c.Logger = logger
 }
 
-/* 根据 id 查询可用组详情 */
+/* 修改一个高可用组的信息 */
 func (c *AgClient) UpdateAg(request *ag.UpdateAgRequest) (*ag.UpdateAgResponse, error) {
     if request == nil {
         return nil, errors.New("Request object is nil. ")
@@ -73,7 +73,7 @@ func (c *AgClient) UpdateAg(request *ag.UpdateAgRequest) (*ag.UpdateAgResponse, 
     return jdResp, err
 }
 
-/* 根据 id 删除可用组 */
+/* 根据 id 删除高可用组，需确保 AG 中云主机实例已全部删除 */
 func (c *AgClient) DeleteAg(request *ag.DeleteAgRequest) (*ag.DeleteAgResponse, error) {
     if request == nil {
         return nil, errors.New("Request object is nil. ")
@@ -93,7 +93,7 @@ func (c *AgClient) DeleteAg(request *ag.DeleteAgRequest) (*ag.DeleteAgResponse, 
     return jdResp, err
 }
 
-/* 为可用组设（或修改）置实例模板 */
+/* 修改高可用组的实例模板 */
 func (c *AgClient) SetInstanceTemplate(request *ag.SetInstanceTemplateRequest) (*ag.SetInstanceTemplateResponse, error) {
     if request == nil {
         return nil, errors.New("Request object is nil. ")
@@ -133,7 +133,7 @@ func (c *AgClient) DescribeQuotas(request *ag.DescribeQuotasRequest) (*ag.Descri
     return jdResp, err
 }
 
-/* 从可用组中剔除实例 */
+/* 从高可用组中剔除实例 */
 func (c *AgClient) AbandonInstances(request *ag.AbandonInstancesRequest) (*ag.AbandonInstancesResponse, error) {
     if request == nil {
         return nil, errors.New("Request object is nil. ")
@@ -153,7 +153,7 @@ func (c *AgClient) AbandonInstances(request *ag.AbandonInstancesRequest) (*ag.Ab
     return jdResp, err
 }
 
-/* 创建一个可用组 */
+/* 创建一个高可用组 */
 func (c *AgClient) CreateAg(request *ag.CreateAgRequest) (*ag.CreateAgResponse, error) {
     if request == nil {
         return nil, errors.New("Request object is nil. ")
@@ -173,27 +173,7 @@ func (c *AgClient) CreateAg(request *ag.CreateAgRequest) (*ag.CreateAgResponse, 
     return jdResp, err
 }
 
-/* 修改(ag)配额，内部接口 */
-func (c *AgClient) ModifyQuota(request *ag.ModifyQuotaRequest) (*ag.ModifyQuotaResponse, error) {
-    if request == nil {
-        return nil, errors.New("Request object is nil. ")
-    }
-    resp, err := c.Send(request, c.ServiceName)
-    if err != nil {
-        return nil, err
-    }
-
-    jdResp := &ag.ModifyQuotaResponse{}
-    err = json.Unmarshal(resp, jdResp)
-    if err != nil {
-        c.Logger.Log(core.LogError, "Unmarshal json failed, resp: %s", string(resp))
-        return nil, err
-    }
-
-    return jdResp, err
-}
-
-/* 根据 id 查询可用组详情 */
+/* 根据 id 查询高可用组详情 */
 func (c *AgClient) DescribeAg(request *ag.DescribeAgRequest) (*ag.DescribeAgResponse, error) {
     if request == nil {
         return nil, errors.New("Request object is nil. ")
@@ -213,47 +193,7 @@ func (c *AgClient) DescribeAg(request *ag.DescribeAgRequest) (*ag.DescribeAgResp
     return jdResp, err
 }
 
-/* 关闭可用组的自动伸缩属性 */
-func (c *AgClient) StopAutoScaling(request *ag.StopAutoScalingRequest) (*ag.StopAutoScalingResponse, error) {
-    if request == nil {
-        return nil, errors.New("Request object is nil. ")
-    }
-    resp, err := c.Send(request, c.ServiceName)
-    if err != nil {
-        return nil, err
-    }
-
-    jdResp := &ag.StopAutoScalingResponse{}
-    err = json.Unmarshal(resp, jdResp)
-    if err != nil {
-        c.Logger.Log(core.LogError, "Unmarshal json failed, resp: %s", string(resp))
-        return nil, err
-    }
-
-    return jdResp, err
-}
-
-/* 开启可用组的自动伸缩属性 */
-func (c *AgClient) StartAutoScaling(request *ag.StartAutoScalingRequest) (*ag.StartAutoScalingResponse, error) {
-    if request == nil {
-        return nil, errors.New("Request object is nil. ")
-    }
-    resp, err := c.Send(request, c.ServiceName)
-    if err != nil {
-        return nil, err
-    }
-
-    jdResp := &ag.StartAutoScalingResponse{}
-    err = json.Unmarshal(resp, jdResp)
-    if err != nil {
-        c.Logger.Log(core.LogError, "Unmarshal json failed, resp: %s", string(resp))
-        return nil, err
-    }
-
-    return jdResp, err
-}
-
-/* 使用过滤条件查询一个或多个可用组 */
+/* 使用过滤条件查询一个或多个高可用组 */
 func (c *AgClient) DescribeAgs(request *ag.DescribeAgsRequest) (*ag.DescribeAgsResponse, error) {
     if request == nil {
         return nil, errors.New("Request object is nil. ")

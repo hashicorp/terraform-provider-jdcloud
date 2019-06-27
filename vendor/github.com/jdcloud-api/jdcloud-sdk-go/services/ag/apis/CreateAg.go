@@ -27,29 +27,35 @@ type CreateAgRequest struct {
     /* 地域  */
     RegionId string `json:"regionId"`
 
-    /* 支持的可用区，最少一个 (Optional) */
+    /* 支持的可用区，最少一个  */
     Azs []string `json:"azs"`
 
-    /* 可用组名称 (Optional) */
-    AgName *string `json:"agName"`
+    /* 高可用组名称，只支持中文、数字、大小写字母、英文下划线 “_” 及中划线 “-”，且不能超过 32 字符  */
+    AgName string `json:"agName"`
 
-    /* 可用组类型，支持compute/container (Optional) */
+    /* 高可用组类型，支持vm (Optional) */
     AgType *string `json:"agType"`
 
-    /* 启动模板的Id (Optional) */
-    InstanceTemplateId *string `json:"instanceTemplateId"`
+    /* 实例模板的Id  */
+    InstanceTemplateId string `json:"instanceTemplateId"`
 
-    /* 描述，长度不超过 256 字节 (Optional) */
+    /* 描述，长度不超过 256 字符 (Optional) */
     Description *string `json:"description"`
 }
 
 /*
  * param regionId: 地域 (Required)
+ * param azs: 支持的可用区，最少一个 (Required)
+ * param agName: 高可用组名称，只支持中文、数字、大小写字母、英文下划线 “_” 及中划线 “-”，且不能超过 32 字符 (Required)
+ * param instanceTemplateId: 实例模板的Id (Required)
  *
  * @Deprecated, not compatible when mandatory parameters changed
  */
 func NewCreateAgRequest(
     regionId string,
+    azs []string,
+    agName string,
+    instanceTemplateId string,
 ) *CreateAgRequest {
 
 	return &CreateAgRequest{
@@ -60,23 +66,26 @@ func NewCreateAgRequest(
 			Version: "v1",
 		},
         RegionId: regionId,
+        Azs: azs,
+        AgName: agName,
+        InstanceTemplateId: instanceTemplateId,
 	}
 }
 
 /*
  * param regionId: 地域 (Required)
- * param azs: 支持的可用区，最少一个 (Optional)
- * param agName: 可用组名称 (Optional)
- * param agType: 可用组类型，支持compute/container (Optional)
- * param instanceTemplateId: 启动模板的Id (Optional)
- * param description: 描述，长度不超过 256 字节 (Optional)
+ * param azs: 支持的可用区，最少一个 (Required)
+ * param agName: 高可用组名称，只支持中文、数字、大小写字母、英文下划线 “_” 及中划线 “-”，且不能超过 32 字符 (Required)
+ * param agType: 高可用组类型，支持vm (Optional)
+ * param instanceTemplateId: 实例模板的Id (Required)
+ * param description: 描述，长度不超过 256 字符 (Optional)
  */
 func NewCreateAgRequestWithAllParams(
     regionId string,
     azs []string,
-    agName *string,
+    agName string,
     agType *string,
-    instanceTemplateId *string,
+    instanceTemplateId string,
     description *string,
 ) *CreateAgRequest {
 
@@ -114,27 +123,27 @@ func (r *CreateAgRequest) SetRegionId(regionId string) {
     r.RegionId = regionId
 }
 
-/* param azs: 支持的可用区，最少一个(Optional) */
+/* param azs: 支持的可用区，最少一个(Required) */
 func (r *CreateAgRequest) SetAzs(azs []string) {
     r.Azs = azs
 }
 
-/* param agName: 可用组名称(Optional) */
+/* param agName: 高可用组名称，只支持中文、数字、大小写字母、英文下划线 “_” 及中划线 “-”，且不能超过 32 字符(Required) */
 func (r *CreateAgRequest) SetAgName(agName string) {
-    r.AgName = &agName
+    r.AgName = agName
 }
 
-/* param agType: 可用组类型，支持compute/container(Optional) */
+/* param agType: 高可用组类型，支持vm(Optional) */
 func (r *CreateAgRequest) SetAgType(agType string) {
     r.AgType = &agType
 }
 
-/* param instanceTemplateId: 启动模板的Id(Optional) */
+/* param instanceTemplateId: 实例模板的Id(Required) */
 func (r *CreateAgRequest) SetInstanceTemplateId(instanceTemplateId string) {
-    r.InstanceTemplateId = &instanceTemplateId
+    r.InstanceTemplateId = instanceTemplateId
 }
 
-/* param description: 描述，长度不超过 256 字节(Optional) */
+/* param description: 描述，长度不超过 256 字符(Optional) */
 func (r *CreateAgRequest) SetDescription(description string) {
     r.Description = &description
 }

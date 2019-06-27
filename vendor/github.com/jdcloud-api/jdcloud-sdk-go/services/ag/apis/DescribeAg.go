@@ -28,13 +28,13 @@ type DescribeAgRequest struct {
     /* 地域  */
     RegionId string `json:"regionId"`
 
-    /* 可用组 ID  */
+    /* 高可用组 ID  */
     AgId string `json:"agId"`
 }
 
 /*
  * param regionId: 地域 (Required)
- * param agId: 可用组 ID (Required)
+ * param agId: 高可用组 ID (Required)
  *
  * @Deprecated, not compatible when mandatory parameters changed
  */
@@ -57,7 +57,7 @@ func NewDescribeAgRequest(
 
 /*
  * param regionId: 地域 (Required)
- * param agId: 可用组 ID (Required)
+ * param agId: 高可用组 ID (Required)
  */
 func NewDescribeAgRequestWithAllParams(
     regionId string,
@@ -94,7 +94,7 @@ func (r *DescribeAgRequest) SetRegionId(regionId string) {
     r.RegionId = regionId
 }
 
-/* param agId: 可用组 ID(Required) */
+/* param agId: 高可用组 ID(Required) */
 func (r *DescribeAgRequest) SetAgId(agId string) {
     r.AgId = agId
 }

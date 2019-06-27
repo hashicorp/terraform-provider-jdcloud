@@ -28,13 +28,13 @@ type AvailabilityGroup struct {
     /* 描述，length:0-256 (Optional) */
     Description string `json:"description"`
 
-    /* 启动模板的Id (Optional) */
+    /* 实例模板的Id (Optional) */
     InstanceTemplateId string `json:"instanceTemplateId"`
 
     /* 可用区域 (Optional) */
     Azs []string `json:"azs"`
 
-    /* 可用组类型，支持compute/container (Optional) */
+    /* 可用组类型，支持vm (Optional) */
     AgType string `json:"agType"`
 
     /* 创建时间 (Optional) */
