@@ -15,20 +15,20 @@ provider "jdcloud" {
 # Alternatively, you can create a disk while creating an instance
 # -> See it instance part
 # [WARN] If (charge_mode == prepaid_by_duration)
-# You can not delete it before they expired. "postpaid_by_usage" is recommended
+# You can not delete it before they expired. "postpaid_by_duration" is recommended
 resource "jdcloud_disk" "disk_test_1" {
   az           = "cn-north-1a"
-  name         = "test_disk"
+  name         = "terraform_test_disk"
   disk_type    = "premium-hdd"
   disk_size_gb = 60
-  charge_mode  = "postpaid_by_usage"
+  charge_mode  = "postpaid_by_duration"
 }
 
 ################################################
 #  2. Attach a disk to an instance
 ################################################
-# There are two ways to specify an resource, you can either
-# specify its ID number, like following:
+# There are two ways to specify an resource, you can either specify its ID number, like following:
+# [WARN] - Disk itself has to be in the same available zone with instance
 resource "jdcloud_disk_attachment" "disk-attachment-TEST-1"{
   instance_id = "i-exampleid"
   disk_id = "vol-exampleid"
@@ -78,8 +78,10 @@ resource "jdcloud_route_table" "jd-route-table-1" {
 ################################################
 # 2. Associate a Route Table to a Subnet
 ################################################
+# Braces '[]' here is a must since you have to specify TypeSet
+# Explicitly after terraform 0.12
 resource "jdcloud_route_table_association" "rt-association-1" {
-  subnet_id = "${jdcloud_subnet.jd-subnet-1.id}"
+  subnet_id = ["${jdcloud_subnet.jd-subnet-1.id}"]
   route_table_id = "${jdcloud_route_table.jd-route-table-1.id}"
 }
 
@@ -91,12 +93,12 @@ resource "jdcloud_route_table_association" "rt-association-1" {
 #  no overlap between address prefixes. Default priority for a rule is 100
 resource "jdcloud_route_table_rules" "rule-example"{
   route_table_id = "rtb-example"
-  rule_specs = [{
+  rule_specs {
     next_hop_type = "internet"
     next_hop_id   = "internet"
     address_prefix= "10.0.0.0/16"
     priority      = 100
-  }]
+  }
 }
 
 # ---------------------------------------------------------- SECURITY-GROUP
@@ -116,22 +118,20 @@ resource "jdcloud_network_security_group" "sg-1" {
 # github.com/jdclouddevelopers/terraform-provider-jdcloud/blob/master/website/docs/jdcloud_network_security_group_rules.html.markdown
 resource "jdcloud_network_security_group_rules" "sg-r-1" {
   security_group_id = "${jdcloud_network_security_group.sg-1.id}"
-  security_group_rules = [
-    {
-      address_prefix = "0.0.0.0/0"
-      direction = "0"
-      from_port = "8000"
-      protocol = "300"
-      to_port = "8900"
-    },
-    {
-      address_prefix = "0.0.0.0/0"
-      direction = "1"
-      from_port = "8000"
-      protocol = "300"
-      to_port = "8900"
-    },
-  ]
+  security_group_rules {
+    address_prefix = "1.2.0.0/16"
+    direction = "0"
+    from_port = "0"
+    protocol = "300"
+    to_port = "0"
+  }
+  security_group_rules {
+    address_prefix = "4.3.0.0/16"
+    direction = "1"
+    from_port = "0"
+    protocol = "300"
+    to_port = "0"
+  }
 }
 
 # ---------------------------------------------------------- NETWORK-INTERFACE
@@ -221,67 +221,62 @@ resource "jdcloud_instance" "vm-1" {
   ################################################
   # Password is a optional field. By missing this
   # Field,passwords will be sent by email and SMS
-  az = "cn-north-1a"
+  az = "cn-north-1c"
   instance_name = "my-vm-1"
-  instance_type = "c.n1.large"
-  image_id = "example_image_id"
-  password = "${var.vm_password}"
-  key_names = "${jdcloud_key_pairs.key-1.key_name}"
+  instance_type = "g.n2.medium"
+  image_id = "img-example"
+  password = "DevOps2018"
   description = "Managed by terraform"
 
   ################################################
   # 2. Create a Network Interface with it
   ################################################
+  # [WARN] You can't specify secondary IPs by the time
+  # You create an instance, if you want more ips, you
+  # can give the amount of them, rather specifying what they are
+  # e.g secondary_ip_count = 2 AND primary_ip , you got len(ip_address)=3
   subnet_id = "${jdcloud_subnet.jd-subnet-1.id}"
   network_interface_name = "veth1"
-  sanity_check = 1
   primary_ip = "172.16.0.13"
-  secondary_ips = [
-    "172.16.0.14",
-    "172.16.0.15"]
+  secondary_ip_count = 2
   security_group_ids = ["${jdcloud_network_security_group.sg-1.id}"]
 
-  ################################################
-  # 3. Create an EIP with it
-  ################################################
   elastic_ip_bandwidth_mbps = 10
   elastic_ip_provider = "bgp"
 
-  ################################################
-  # 4. System-Disk(Required)
-  ################################################
-  # We would recommend local disk as system disk :
-  # System-Disk ─┬── "disk_category" = "local" ──> Always work ,disk size fixed to 40Gb
-  #             └   "disk_category" = "cloud" ──> Works only when az == cn-east
-  system_disk = {
+  system_disk {
     disk_category = "local"
     auto_delete = true
     device_name = "vda"
   }
 
   ################################################
-  # 5. Data-Disk(Optional)
+  # 3. Disks created with instance has to be careful
   ################################################
-  # You can attach multiple data-disk with this instance
-  # Device name for disk must be unique
-  data_disk = [
-    {
-      disk_category = "local"
-      auto_delete = true
-      device_name = "vdb"
-    },
-    {
-      disk_category = "cloud"
-      auto_delete = true
-      device_name = "vdc"
+  # 3-1 We would recommend our user "cloud data disk" rather than local data disk
+  # 3-2 The az of your data disks has to be the same as it was in instance
+  #     i.e instance.az == instance.data_disk.az
+  data_disk {
+    az = "cn-north-1c"
+    disk_category = "cloud"
+    auto_delete = true
+    device_name = "vdb"
+    disk_type = "ssd"
+  }
+  data_disk {
+    disk_category = "cloud"
+    auto_delete = true
+    device_name = "vdc"
 
-      az = "cn-north-1a"
-      disk_name = "vm1-datadisk-1"
-      description = "test"
-      disk_type = "ssd"
-      disk_size_gb = 50
-    }]
+    az = "cn-north-1c"
+    disk_name = "vm1-datadisk-1"
+    description = "test"
+    disk_type = "ssd"
+    disk_size_gb = 50
+  }
 }
+
+
 
 
 # ---------------------------------------------------------- RDS

@@ -51,7 +51,8 @@ func resourceJDCloudAvailabilityGroup() *schema.Resource {
 func resourceJDCloudAvailabilityGroupCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*JDCloudConfig)
 
-	req := apis.NewCreateAgRequest(config.Region)
+	req := apis.NewCreateAgRequestWithoutParam()
+	req.SetRegionId(config.Region)
 	req.SetAzs(typeSetToStringArray(d.Get("az").(*schema.Set)))
 	req.SetAgName(d.Get("availability_group_name").(string))
 	req.SetInstanceTemplateId(d.Get("instance_template_id").(string))

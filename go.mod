@@ -11,3 +11,5 @@ require (
 )
 
 replace github.com/jdclouddevelopers/terraform-provider-jdcloud => ./
+
+replace github.com/jdcloud-api/jdcloud-sdk-go => /go/src/github.com/jdcloud-sdk-go-fake

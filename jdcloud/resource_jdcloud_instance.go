@@ -422,6 +422,16 @@ func cloudDiskStructIntoMap(ss []vm.InstanceDiskAttachment) []map[string]interfa
 	return ms
 }
 
+func sysDiskStructIntoMap(s vm.InstanceDiskAttachment) map[string]interface{} {
+
+	return map[string]interface{}{
+		"disk_category": s.DiskCategory,
+		"auto_delete":   s.AutoDelete,
+		"device_name":   s.DeviceName,
+		"disk_size_gb":  s.LocalDisk.DiskSizeGB,
+	}
+}
+
 func waitCloudDiskId(d *schema.ResourceData, m interface{}) error {
 
 	resp, err := QueryInstanceDetail(d, m, d.Id())
@@ -573,18 +583,8 @@ func resourceJDCloudInstance() *schema.Resource {
 				ForceNew: true,
 			},
 
-			// You set : secondary_ips + secondary_ip_count (Optional)
+			// You set : secondary_ip_count (Optional)
 			// You got : ip_addresses (Computed)
-			"secondary_ips": {
-				Type:      schema.TypeSet,
-				Optional:  true,
-				Sensitive: true,
-				MinItems:  1,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
-				ForceNew: true,
-			},
 			"secondary_ip_count": {
 				Type:      schema.TypeInt,
 				Optional:  true,
@@ -675,10 +675,6 @@ func resourceJDCloudInstanceCreate(d *schema.ResourceData, m interface{}) error 
 
 	if _, ok := d.GetOk("network_interface_name"); ok {
 		spec.PrimaryNetworkInterface.NetworkInterface.NetworkInterfaceName = GetStringAddr(d, "network_interface_name")
-	}
-
-	if _, ok := d.GetOk("secondary_ips"); ok {
-		spec.PrimaryNetworkInterface.NetworkInterface.SecondaryIpAddresses = typeSetToStringArray(d.Get("secondary_ips").(*schema.Set))
 	}
 
 	if _, ok := d.GetOk("secondary_ip_count"); ok {
@@ -773,7 +769,7 @@ func resourceJDCloudInstanceRead(d *schema.ResourceData, m interface{}) error {
 		return fmt.Errorf("[ERROR] Failed in setting data_disk, reasons:%s", errSet.Error())
 	}
 
-	if errSet := d.Set("system_disk", cloudDiskStructIntoMap([]vm.InstanceDiskAttachment{vmInstanceDetail.Result.Instance.SystemDisk})); err != nil {
+	if errSet := d.Set("system_disk", sysDiskStructIntoMap(vmInstanceDetail.Result.Instance.SystemDisk)); err != nil {
 		return fmt.Errorf("[ERROR] Failed in setting system_disk, reasons:%s", errSet.Error())
 	}
 
