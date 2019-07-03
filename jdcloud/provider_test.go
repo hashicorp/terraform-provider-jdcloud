@@ -14,6 +14,7 @@ var packer_subnet = "subnet-rht03mi6o0"
 var	packer_vpc = "vpc-z9q9xwmb1d"
 var	packer_image = "img-m82soo3mes"
 var	packer_sg = "sg-s0ardxmz3a"
+var	packer_sgs= `["sg-s0ardxmz3a","sg-js9if78wqp"]`
 
 func init() {
 	testAccProvider = Provider()

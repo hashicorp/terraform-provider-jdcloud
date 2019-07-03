@@ -21,6 +21,7 @@ import (
 							  // *Unavailable since local-data-disk out of stock :-(
 
                4. [Image-ID][Pass] Create a vm with a private , customised image(rather than trivial Ubuntu stuff)
+				  [Combined] We start using private image in test-1, this test was removed
 
 			   5. [Primary-IP] Create a vm without primary IP, they were supposed to be assigned a random one
 			   6. [Security-Groups] Create a vm with random number of Security Groups
@@ -32,22 +33,22 @@ import (
 //1. Common stuff
 const testAccInstanceGeneral = `
 resource "jdcloud_instance" "terraform-normal-case" {
- az            = "cn-north-1a"
+ az            = "cn-north-1c"
  instance_name = "%s"
- instance_type = "c.n1.large"
- image_id      = "img-chn8lfcn6j"
+ instance_type = "g.n2.medium"
+ image_id      = "%s"
  password      = "%s"
  description   = "%s"
 
- subnet_id              = "subnet-j8jrei2981"
+ subnet_id              = "%s"
  network_interface_name = "jdcloud"
  primary_ip             = "10.0.5.0"
- security_group_ids     = ["sg-ym9yp1egi0"]
+ security_group_ids     = ["%s"]
 
  elastic_ip_bandwidth_mbps = 10
  elastic_ip_provider       = "bgp"
 
- system_disk = {
+ system_disk {
    disk_category = "local"
    auto_delete   = true
    device_name   = "vda"
@@ -57,7 +58,7 @@ resource "jdcloud_instance" "terraform-normal-case" {
 `
 
 func generateInstanceConfig(instanceName, password, description string) string {
-	return fmt.Sprintf(testAccInstanceGeneral, instanceName, password, description)
+	return fmt.Sprintf(testAccInstanceGeneral, instanceName,packer_image,password, description,packer_subnet,packer_sg)
 }
 
 func TestAccJDCloudInstance_basic(t *testing.T) {
@@ -82,17 +83,17 @@ func TestAccJDCloudInstance_basic(t *testing.T) {
 					testAccIfInstanceExists(
 						"jdcloud_instance.terraform-normal-case", &instanceId),
 					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-normal-case", "az", "cn-north-1a"),
+						"jdcloud_instance.terraform-normal-case", "az", "cn-north-1c"),
 					resource.TestCheckResourceAttr(
 						"jdcloud_instance.terraform-normal-case", "instance_name", name1),
 					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-normal-case", "instance_type", "c.n1.large"),
+						"jdcloud_instance.terraform-normal-case", "instance_type", "g.n2.medium"),
 					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-normal-case", "image_id", "img-chn8lfcn6j"),
+						"jdcloud_instance.terraform-normal-case", "image_id", packer_image),
 					resource.TestCheckResourceAttr(
 						"jdcloud_instance.terraform-normal-case", "description", des1),
 					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-normal-case", "subnet_id", "subnet-j8jrei2981"),
+						"jdcloud_instance.terraform-normal-case", "subnet_id", packer_subnet),
 					resource.TestCheckResourceAttr(
 						"jdcloud_instance.terraform-normal-case", "network_interface_name", "jdcloud"),
 					resource.TestCheckResourceAttr(
@@ -114,17 +115,17 @@ func TestAccJDCloudInstance_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccIfInstanceExists("jdcloud_instance.terraform-normal-case", &instanceId),
 					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-normal-case", "az", "cn-north-1a"),
+						"jdcloud_instance.terraform-normal-case", "az", "cn-north-1c"),
 					resource.TestCheckResourceAttr(
 						"jdcloud_instance.terraform-normal-case", "instance_name", name2),
 					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-normal-case", "instance_type", "c.n1.large"),
+							"jdcloud_instance.terraform-normal-case", "instance_type", "g.n2.medium"),
 					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-normal-case", "image_id", "img-chn8lfcn6j"),
+						"jdcloud_instance.terraform-normal-case", "image_id", packer_image),
 					resource.TestCheckResourceAttr(
 						"jdcloud_instance.terraform-normal-case", "description", des2),
 					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-normal-case", "subnet_id", "subnet-j8jrei2981"),
+						"jdcloud_instance.terraform-normal-case", "subnet_id", packer_subnet),
 					resource.TestCheckResourceAttr(
 						"jdcloud_instance.terraform-normal-case", "network_interface_name", "jdcloud"),
 					resource.TestCheckResourceAttr(
@@ -296,150 +297,11 @@ func TestAccJDCloudInstance_cloudSysDisk(t *testing.T) {
 }
 */
 
-// 4. [Image-ID] Create a vm with a private , customised image
-const testAccInstancePrivateImage = `
-resource "jdcloud_instance" "terraform-private-image" {
-az            = "cn-north-1a"
-instance_name = "%s"
-instance_type = "g.n2.medium"
-image_id      = "%s"
-password      = "%s"
-description   = "%s"
-
-subnet_id              = "%s"
-security_group_ids     = ["%s"]
-elastic_ip_bandwidth_mbps = 10
-elastic_ip_provider       = "bgp"
-
-system_disk = {
-  disk_category = "local"
-  auto_delete   = true
-  device_name   = "vda"
-  disk_size_gb =  40
-}
-}
-`
-
-func instanceConfigPrivateImage(instanceName, image_id, password, description, subnet, sg string) string {
-	return fmt.Sprintf(testAccInstancePrivateImage, instanceName, image_id, password, description, subnet, sg)
-}
-
-func TestAccJDCloudInstance_PrivateImage(t *testing.T) {
-
-	var instanceId string
-	name1 := randomStringWithLength(10)
-	des1 := randomStringWithLength(20)
-	name2 := randomStringWithLength(10)
-	des2 := randomStringWithLength(20)
-	img_id := "img-c9hue6ckxd"
-	subnet_id := "subnet-rht03mi6o0"
-	sg := "sg-hzdy2lpzao"
-
-	resource.Test(t, resource.TestCase{
-		PreCheck:      func() { testAccPreCheck(t) },
-		Providers:     testAccProviders,
-		IDRefreshName: "jdcloud_instance.terraform-private-image",
-		CheckDestroy:  testAccDiskInstanceDestroy("jdcloud_instance.terraform-private-image", &instanceId),
-		Steps: []resource.TestStep{
-			{
-				Config: instanceConfigPrivateImage(name1, img_id, "DevOps2018~", des1, subnet_id, sg),
-				Check: resource.ComposeTestCheckFunc(
-
-					// Assigned values
-					testAccIfInstanceExists(
-						"jdcloud_instance.terraform-private-image", &instanceId),
-					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-private-image", "az", "cn-north-1a"),
-					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-private-image", "instance_name", name1),
-					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-private-image", "instance_type", "g.n2.medium"),
-					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-private-image", "image_id", img_id),
-					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-private-image", "description", des1),
-					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-private-image", "subnet_id", subnet_id),
-					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-private-image", "security_group_ids.#", "1"),
-					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-private-image", "elastic_ip_bandwidth_mbps", "10"),
-					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-private-image", "elastic_ip_provider", "bgp"),
-
-					// After resource_XYZ_Read these value will be set.
-					resource.TestCheckResourceAttrSet(
-						"jdcloud_instance.terraform-private-image", "ip_addresses.#"),
-
-					// Validate specs on system disk
-					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-private-image", "system_disk.#", "1"),
-					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-private-image", "system_disk.0.disk_category", "local"),
-					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-private-image", "system_disk.0.disk_size_gb", "40"),
-					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-private-image", "system_disk.0.device_name", "vda"),
-					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-private-image", "system_disk.0.auto_delete", "true"),
-
-					// These values not supposed to exists after resource_XYZ_Read
-					resource.TestCheckNoResourceAttr(
-						"jdcloud_instance.terraform-private-image", "data_disk"),
-				),
-			},
-			{
-				Config: instanceConfigPrivateImage(name2, img_id, "DevOps2018!", des2, subnet_id, sg),
-				Check: resource.ComposeTestCheckFunc(
-					testAccIfInstanceExists("jdcloud_instance.terraform-private-image", &instanceId),
-					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-private-image", "az", "cn-north-1a"),
-					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-private-image", "instance_name", name2),
-					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-private-image", "instance_type", "g.n2.medium"),
-					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-private-image", "image_id", img_id),
-					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-private-image", "description", des2),
-					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-private-image", "subnet_id", subnet_id),
-					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-private-image", "security_group_ids.#", "1"),
-					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-private-image", "elastic_ip_bandwidth_mbps", "10"),
-					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-private-image", "elastic_ip_provider", "bgp"),
-
-					// After resource_XYZ_Read these value will be set.
-					resource.TestCheckResourceAttrSet(
-						"jdcloud_instance.terraform-private-image", "ip_addresses.#"),
-
-					// Validate specs on system disk
-					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-private-image", "system_disk.#", "1"),
-					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-private-image", "system_disk.0.disk_category", "local"),
-					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-private-image", "system_disk.0.disk_size_gb", "40"),
-					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-private-image", "system_disk.0.device_name", "vda"),
-					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-private-image", "system_disk.0.auto_delete", "true"),
-
-					// These values not supposed to exists after resource_XYZ_Read
-					resource.TestCheckNoResourceAttr(
-						"jdcloud_instance.terraform-private-image", "data_disk"),
-				),
-			},
-		},
-	})
-}
 
 // 5. [Primary-IP] Create a vm without primary IP, they were supposed to be assigned a random one
 const testAccInstancePrimaryIP = `
 resource "jdcloud_instance" "terraform-primary-ip" {
-az            = "cn-north-1a"
+az            = "cn-north-1c"
 instance_name = "%s"
 instance_type = "g.n2.medium"
 image_id      = "%s"
@@ -451,7 +313,7 @@ security_group_ids     = ["%s"]
 elastic_ip_bandwidth_mbps = 10
 elastic_ip_provider       = "bgp"
 
-system_disk = {
+system_disk  {
   disk_category = "local"
   auto_delete   = true
   device_name   = "vda"
@@ -469,9 +331,6 @@ func TestAccJDCloudInstance_PrimaryIP(t *testing.T) {
 	var instanceId string
 	name1 := randomStringWithLength(10)
 	des1 := randomStringWithLength(20)
-	img_id := "img-chn8lfcn6j"
-	subnet_id := "subnet-rht03mi6o0"
-	sg := "sg-hzdy2lpzao"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:      func() { testAccPreCheck(t) },
@@ -480,24 +339,24 @@ func TestAccJDCloudInstance_PrimaryIP(t *testing.T) {
 		CheckDestroy:  testAccDiskInstanceDestroy("jdcloud_instance.terraform-primary-ip", &instanceId),
 		Steps: []resource.TestStep{
 			{
-				Config: instanceConfigPrimaryIP(name1, img_id, "DevOps2018~", des1, subnet_id, sg),
+				Config: instanceConfigPrimaryIP(name1, packer_image, "DevOps2018~", des1, packer_subnet, packer_sg),
 				Check: resource.ComposeTestCheckFunc(
 
 					// Assigned values
 					testAccIfInstanceExists(
 						"jdcloud_instance.terraform-primary-ip", &instanceId),
 					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-primary-ip", "az", "cn-north-1a"),
+						"jdcloud_instance.terraform-primary-ip", "az", "cn-north-1c"),
 					resource.TestCheckResourceAttr(
 						"jdcloud_instance.terraform-primary-ip", "instance_name", name1),
 					resource.TestCheckResourceAttr(
 						"jdcloud_instance.terraform-primary-ip", "instance_type", "g.n2.medium"),
 					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-primary-ip", "image_id", img_id),
+						"jdcloud_instance.terraform-primary-ip", "image_id", packer_image),
 					resource.TestCheckResourceAttr(
 						"jdcloud_instance.terraform-primary-ip", "description", des1),
 					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-primary-ip", "subnet_id", subnet_id),
+						"jdcloud_instance.terraform-primary-ip", "subnet_id", packer_subnet),
 					resource.TestCheckResourceAttr(
 						"jdcloud_instance.terraform-primary-ip", "security_group_ids.#", "1"),
 					resource.TestCheckResourceAttr(
@@ -533,7 +392,7 @@ func TestAccJDCloudInstance_PrimaryIP(t *testing.T) {
 // 6. [Security-Groups] Create a vm with random number of Security Groups
 const testAccInstanceSG = `
 resource "jdcloud_instance" "terraform-instance-sg" {
-az            = "cn-north-1a"
+az            = "cn-north-1c"
 instance_name = "%s"
 instance_type = "g.n2.medium"
 image_id      = "%s"
@@ -545,7 +404,7 @@ security_group_ids     = %s
 elastic_ip_bandwidth_mbps = 10
 elastic_ip_provider       = "bgp"
 
-system_disk = {
+system_disk  {
   disk_category = "local"
   auto_delete   = true
   device_name   = "vda"
@@ -563,9 +422,6 @@ func TestAccJDCloudInstanceSG(t *testing.T) {
 	var instanceId string
 	name1 := randomStringWithLength(10)
 	des1 := randomStringWithLength(20)
-	img_id := "img-c9hue6ckxd"
-	subnet_id := "subnet-rht03mi6o0"
-	sg := `["sg-cl6uv4i782","sg-xmjw0695x0","sg-hzdy2lpzao"]`
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:      func() { testAccPreCheck(t) },
@@ -574,24 +430,24 @@ func TestAccJDCloudInstanceSG(t *testing.T) {
 		CheckDestroy:  testAccDiskInstanceDestroy("jdcloud_instance.terraform-instance-sg", &instanceId),
 		Steps: []resource.TestStep{
 			{
-				Config: instanceConfigSG(name1, img_id, "DevOps2018~", des1, subnet_id, sg),
+				Config: instanceConfigSG(name1, packer_image, "DevOps2018~", des1, packer_subnet, packer_sgs),
 				Check: resource.ComposeTestCheckFunc(
 
 					// Assigned values
 					testAccIfInstanceExists(
 						"jdcloud_instance.terraform-instance-sg", &instanceId),
 					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-instance-sg", "az", "cn-north-1a"),
+						"jdcloud_instance.terraform-instance-sg", "az", "cn-north-1c"),
 					resource.TestCheckResourceAttr(
 						"jdcloud_instance.terraform-instance-sg", "instance_name", name1),
 					resource.TestCheckResourceAttr(
 						"jdcloud_instance.terraform-instance-sg", "instance_type", "g.n2.medium"),
 					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-instance-sg", "image_id", img_id),
+						"jdcloud_instance.terraform-instance-sg", "image_id", packer_image),
 					resource.TestCheckResourceAttr(
 						"jdcloud_instance.terraform-instance-sg", "description", des1),
 					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-instance-sg", "subnet_id", subnet_id),
+						"jdcloud_instance.terraform-instance-sg", "subnet_id", packer_subnet),
 					resource.TestCheckResourceAttr(
 						"jdcloud_instance.terraform-instance-sg", "elastic_ip_bandwidth_mbps", "10"),
 					resource.TestCheckResourceAttr(
@@ -605,7 +461,7 @@ func TestAccJDCloudInstanceSG(t *testing.T) {
 					resource.TestCheckResourceAttrSet(
 						"jdcloud_instance.terraform-instance-sg", "security_group_ids.#"),
 					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-instance-sg", "security_group_ids.#", "3"),
+						"jdcloud_instance.terraform-instance-sg", "security_group_ids.#", "2"),
 
 					// Validate specs on system disk
 					resource.TestCheckResourceAttr(
@@ -631,7 +487,7 @@ func TestAccJDCloudInstanceSG(t *testing.T) {
 // 7. [Password] Create a vm without password
 const testAccInstancePassword = `
 resource "jdcloud_instance" "terraform-instance-pw" {
- az            = "cn-north-1a"
+ az            = "cn-north-1c"
  instance_name = "%s"
  instance_type = "g.n2.medium"
  image_id      = "%s"
@@ -642,7 +498,7 @@ resource "jdcloud_instance" "terraform-instance-pw" {
  elastic_ip_bandwidth_mbps = 10
  elastic_ip_provider       = "bgp"
 
- system_disk = {
+ system_disk  {
    disk_category = "local"
    auto_delete   = true
    device_name   = "vda"
@@ -660,9 +516,6 @@ func TestAccJDCloudInstancePW(t *testing.T) {
 	var instanceId string
 	name1 := randomStringWithLength(10)
 	des1 := randomStringWithLength(20)
-	img_id := "img-c9hue6ckxd"
-	subnet_id := "subnet-rht03mi6o0"
-	sg := `["sg-cl6uv4i782","sg-xmjw0695x0","sg-hzdy2lpzao"]`
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:      func() { testAccPreCheck(t) },
@@ -671,24 +524,24 @@ func TestAccJDCloudInstancePW(t *testing.T) {
 		CheckDestroy:  testAccDiskInstanceDestroy("jdcloud_instance.terraform-instance-pw", &instanceId),
 		Steps: []resource.TestStep{
 			{
-				Config: instanceConfigPW(name1, img_id, des1, subnet_id, sg),
+				Config: instanceConfigPW(name1, packer_image, des1, packer_subnet , packer_sgs ),
 				Check: resource.ComposeTestCheckFunc(
 
 					// Assigned values
 					testAccIfInstanceExists(
 						"jdcloud_instance.terraform-instance-pw", &instanceId),
 					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-instance-pw", "az", "cn-north-1a"),
+						"jdcloud_instance.terraform-instance-pw", "az", "cn-north-1c"),
 					resource.TestCheckResourceAttr(
 						"jdcloud_instance.terraform-instance-pw", "instance_name", name1),
 					resource.TestCheckResourceAttr(
 						"jdcloud_instance.terraform-instance-pw", "instance_type", "g.n2.medium"),
 					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-instance-pw", "image_id", img_id),
+						"jdcloud_instance.terraform-instance-pw", "image_id", packer_image),
 					resource.TestCheckResourceAttr(
 						"jdcloud_instance.terraform-instance-pw", "description", des1),
 					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-instance-pw", "subnet_id", subnet_id),
+						"jdcloud_instance.terraform-instance-pw", "subnet_id", packer_subnet),
 					resource.TestCheckResourceAttr(
 						"jdcloud_instance.terraform-instance-pw", "elastic_ip_bandwidth_mbps", "10"),
 					resource.TestCheckResourceAttr(
@@ -702,7 +555,7 @@ func TestAccJDCloudInstancePW(t *testing.T) {
 					resource.TestCheckResourceAttrSet(
 						"jdcloud_instance.terraform-instance-pw", "security_group_ids.#"),
 					resource.TestCheckResourceAttr(
-						"jdcloud_instance.terraform-instance-pw", "security_group_ids.#", "3"),
+						"jdcloud_instance.terraform-instance-pw", "security_group_ids.#", "2"),
 
 					// Validate specs on system disk
 					resource.TestCheckResourceAttr(

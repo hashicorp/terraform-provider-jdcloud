@@ -250,7 +250,7 @@ func instanceStatusWaiter(d *schema.ResourceData, meta interface{}, id string, p
 		Target:     target,
 		Refresh:    instanceStatusRefreshFunc(d, meta, id),
 		Delay:      3 * time.Second,
-		Timeout:    2 * time.Minute,
+		Timeout:    3 * time.Minute,
 		MinTimeout: 1 * time.Second,
 	}
 	if _, err = stateConf.WaitForState(); err != nil {
