@@ -60,7 +60,8 @@ func testAccIfRDSDatabaseExists(resourceName string) resource.TestCheckFunc {
 		config := testAccProvider.Meta().(*JDCloudConfig)
 		rdsClient := client.NewRdsClient(config.Credential)
 
-		req := apis.NewDescribeDatabasesRequestWithAllParams(config.Region, instanceId, &dbName)
+		req := apis.NewDescribeDatabasesRequest(config.Region, instanceId)
+		req.SetDbName(dbName)
 		resp, err := rdsClient.DescribeDatabases(req)
 
 		if err != nil {
