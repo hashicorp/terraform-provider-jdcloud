@@ -312,12 +312,12 @@ resource "jdcloud_rds_account" "rds-test1"{
 # [WARN] Currently any modification on Database resource
 # is banned. Trying to modify will result in returning errors
 resource "jdcloud_rds_database" "db-TEST"{
-  instance_id = "mysql-g0afoqpl6y"
+  instance_id = "${jdcloud_rds_instance.rds-test.id}"
   db_name = "cloudb1"
   character_set = "utf8"
 }
 resource "jdcloud_rds_database" "db-TEST-2"{
-  instance_id = "mysql-g0afoqpl6y"
+  instance_id = "${jdcloud_rds_instance.rds-test.id}"
   db_name = "cloudb2"
   character_set = "utf8"
 }
@@ -326,12 +326,16 @@ resource "jdcloud_rds_database" "db-TEST-2"{
 # 3. Grant privilege for user accounts
 ################################################
 resource "jdcloud_rds_privilege" "pri-test" {
-  instance_id = "mysql-g0afoqpl6y"
+  instance_id = "${jdcloud_rds_instance.rds-test.id}"
   username = "DevOps"
-  account_privilege = [
-    {db_name = "cloudb1",privilege = "ro"},
-    {db_name = "cloudb2",privilege = "rw"},
-  ]
+  account_privilege {
+    db_name = "cloudb1"
+    privilege = "ro"
+  }
+  account_privilege {
+    db_name = "cloudb2"
+    privilege = "rw"
+  }
 }
 
 # ---------------------------------------------------------- INSTANCE-TEMPLATE
@@ -339,6 +343,7 @@ resource "jdcloud_rds_privilege" "pri-test" {
 # Full parameters ->
 #
 #   + instance_type : g.n2.medium/g.n2.large...Just different type of instance , by default its g.n2.medium
+#                     [WARN] region-id was fixed to 'cn-north-1', if more region is required, leave issue on github
 #   + password : Optional, if you leave it blank. password will be sent to you by email and SMS.
 #   + image_id : If you would like to start your instance from an image , fill in here, by default its Ubuntu:16.04
 #   + bandwidth: Optional. if you leave it blank, no public IP will be assigned to this instance
@@ -356,6 +361,20 @@ resource "jdcloud_rds_privilege" "pri-test" {
 #                                       we would recommend to leave it blank if you're not farmiliar with it
 #       - snapshot_id : If you would like to build a template from snapshot, fill in its id here
 ####################################################################################################
+resource "jdcloud_instance_template" "instance_template" {
+  template_name = "created_by_terraform"
+  instance_type = "g.n2.medium"
+  image_id = "img-example"
+  password = "DevOps2018"
+  subnet_id = "subnet-example"
+  security_group_ids = ["sg-example"]
+  system_disk  {
+    disk_category = "local"
+  }
+  data_disks  {
+    disk_category = "cloud"
+  }
+}
 
 # ---------------------------------------------------------- AVAILABILITY-GROUP
 # Parameters and candidates
@@ -375,18 +394,16 @@ resource "jdcloud_availability_group" "ag_01" {
 # Make sure each instance have different names.
 #
 resource "jdcloud_instance_ag_instance" "ag_set" {
-  "availability_group_id" = "ag-example"
-  "instances" = [
-    {
-      "instance_name" = "ark01"
-    },
-    {
-      "instance_name" = "ark02"
-    },
-    {
-      "instance_name" = "ark03"
-    },
-  ]
+  availability_group_id = "${jdcloud_availability_group.ag_01.id}"
+  instances {
+    instance_name = "teratera_01"
+  }
+  instances {
+    instance_name = "teratera_02"
+  }
+  instances {
+    instance_name = "teratera_03"
+  }
 }
 
 
