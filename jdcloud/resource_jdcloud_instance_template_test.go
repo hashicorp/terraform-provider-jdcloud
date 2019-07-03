@@ -15,28 +15,28 @@ import (
 	TestCase : 1.common stuff
 			   2. [Data-Disk] Build an instance template with multiple same data-disks
 			   3. [EIP] REALLY annoying, create one with EIP and one without EIP
-			   4. [Key] - Creating templates using key
+			   4. [Key] - Expected to be added in the future
 */
 // 1 Common stuff (Without EIP)
 const TestAccInstanceTemplateTemplate = `
 resource "jdcloud_instance_template" "instance_template" {
-  "template_name" = "%s"
-  "instance_type" = "g.n2.medium"
-  "image_id" = "img-chn8lfcn6j"
-  "password" = "DevOps2018"
-  "subnet_id" = "subnet-rht03mi6o0"
-  "security_group_ids" = ["sg-hzdy2lpzao"]
-  "system_disk" = {
+  template_name = "%s"
+  instance_type = "g.n2.medium"
+  image_id = "%s"
+  password = "DevOps2018"
+  subnet_id = "%s"
+  security_group_ids = ["%s"]
+  system_disk  {
     disk_category = "local"
   }
-  "data_disks" = {
+  data_disks  {
     disk_category = "cloud"
   }
 }
 `
 
 func generateInstanceTemplate(name string) string {
-	return fmt.Sprintf(TestAccInstanceTemplateTemplate, name)
+	return fmt.Sprintf(TestAccInstanceTemplateTemplate, name,packer_image,packer_subnet,packer_sg)
 }
 
 func TestAccJDCloudInstanceTemplate_basic(t *testing.T) {
@@ -53,8 +53,8 @@ func TestAccJDCloudInstanceTemplate_basic(t *testing.T) {
 					testAccIfTemplateExists("jdcloud_instance_template.instance_template", &instanceTemplateId),
 					resource.TestCheckResourceAttr("jdcloud_instance_template.instance_template", "template_name", "terraform_auto_change_name"),
 					resource.TestCheckResourceAttr("jdcloud_instance_template.instance_template", "instance_type", "g.n2.medium"),
-					resource.TestCheckResourceAttr("jdcloud_instance_template.instance_template", "image_id", "img-chn8lfcn6j"),
-					resource.TestCheckResourceAttr("jdcloud_instance_template.instance_template", "subnet_id", "subnet-rht03mi6o0"),
+					resource.TestCheckResourceAttr("jdcloud_instance_template.instance_template", "image_id", packer_image),
+					resource.TestCheckResourceAttr("jdcloud_instance_template.instance_template", "subnet_id", packer_subnet),
 					resource.TestCheckResourceAttr("jdcloud_instance_template.instance_template", "security_group_ids.#", "1"),
 					resource.TestCheckResourceAttr("jdcloud_instance_template.instance_template", "system_disk.#", "1"),
 					resource.TestCheckResourceAttr("jdcloud_instance_template.instance_template", "data_disks.#", "1"),
@@ -67,8 +67,8 @@ func TestAccJDCloudInstanceTemplate_basic(t *testing.T) {
 					testAccIfTemplateExists("jdcloud_instance_template.instance_template", &instanceTemplateId),
 					resource.TestCheckResourceAttr("jdcloud_instance_template.instance_template", "template_name", "another_name"),
 					resource.TestCheckResourceAttr("jdcloud_instance_template.instance_template", "instance_type", "g.n2.medium"),
-					resource.TestCheckResourceAttr("jdcloud_instance_template.instance_template", "image_id", "img-chn8lfcn6j"),
-					resource.TestCheckResourceAttr("jdcloud_instance_template.instance_template", "subnet_id", "subnet-rht03mi6o0"),
+					resource.TestCheckResourceAttr("jdcloud_instance_template.instance_template", "image_id", packer_image),
+					resource.TestCheckResourceAttr("jdcloud_instance_template.instance_template", "subnet_id", packer_subnet),
 					resource.TestCheckResourceAttr("jdcloud_instance_template.instance_template", "security_group_ids.#", "1"),
 					resource.TestCheckResourceAttr("jdcloud_instance_template.instance_template", "system_disk.#", "1"),
 					resource.TestCheckResourceAttr("jdcloud_instance_template.instance_template", "data_disks.#", "1"),
@@ -82,30 +82,29 @@ func TestAccJDCloudInstanceTemplate_basic(t *testing.T) {
 //2. Build an instance template with multiple same data-disks (Without EIP)
 const TestAccInstanceTemplateMultipleDisk = `
 resource "jdcloud_instance_template" "instance_template_md" {
- "template_name" = "%s"
- "instance_type" = "g.n2.medium"
- "image_id" = "img-chn8lfcn6j"
- "password" = "DevOps2018"
- "subnet_id" = "subnet-rht03mi6o0"
- "security_group_ids" = ["sg-hzdy2lpzao"]
- "system_disk" = {
-   disk_category = "local"
- }
- "data_disks" = [
- {
-   disk_category = "cloud"
- },
- {
-   disk_category = "cloud"
- },
- {
-   disk_category = "cloud"
- }]
+  template_name = "%s"
+  instance_type = "g.n2.medium"
+  image_id = "%s"
+  password = "DevOps2018"
+  subnet_id = "%s"
+  security_group_ids = ["%s"]
+  system_disk  {
+    disk_category = "local"
+  }
+  data_disks  {
+    disk_category = "cloud"
+  }
+  data_disks  {
+    disk_category = "cloud"
+  }
+  data_disks  {
+    disk_category = "cloud"
+  }
 }
 `
 
 func instanceTemplateMD(name string) string {
-	return fmt.Sprintf(TestAccInstanceTemplateMultipleDisk, name)
+	return fmt.Sprintf(TestAccInstanceTemplateMultipleDisk, name,packer_image,packer_subnet,packer_sg)
 }
 
 func TestAccJDCloudInstanceTemplate_MultipleDisk(t *testing.T) {
@@ -128,9 +127,9 @@ func TestAccJDCloudInstanceTemplate_MultipleDisk(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"jdcloud_instance_template.instance_template_md", "instance_type", "g.n2.medium"),
 					resource.TestCheckResourceAttr(
-						"jdcloud_instance_template.instance_template_md", "image_id", "img-chn8lfcn6j"),
+						"jdcloud_instance_template.instance_template_md", "image_id", packer_image),
 					resource.TestCheckResourceAttr(
-						"jdcloud_instance_template.instance_template_md", "subnet_id", "subnet-rht03mi6o0"),
+						"jdcloud_instance_template.instance_template_md", "subnet_id", packer_subnet),
 					resource.TestCheckResourceAttr(
 						"jdcloud_instance_template.instance_template_md", "security_group_ids.#", "1"),
 					resource.TestCheckResourceAttr(
@@ -180,88 +179,29 @@ func TestAccJDCloudInstanceTemplate_MultipleDisk(t *testing.T) {
 //3. [EIP] - Create one with EIP
 const TestAccInstanceTemplateBandwidth = `
 resource "jdcloud_instance_template" "instance_template_bandwidth" {
- "template_name" = "%s"
- "instance_type" = "g.n2.medium"
- "image_id" = "img-chn8lfcn6j"
- "password" = "DevOps2018"
- "bandwidth" = 5
- "ip_service_provider" = "BGP"
- "charge_mode" = "bandwith"
- "subnet_id" = "subnet-rht03mi6o0"
- "security_group_ids" = ["sg-hzdy2lpzao"]
- "system_disk" = {
-   disk_category = "local"
- }
- "data_disks" = [
- {
-   disk_category = "cloud"
- }]
-}
-`
-
-//4. [Key] - Creating templates using key
-const TestAccInstanceTemplateKey = `
-
-resource "jdcloud_key_pairs" "key-1" {
-  key_name = "terraform-testing"
-  public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC2nxFV1JZmtk7SKINLyj7e4GjrGCP9o2eZLwvc0suonAlT98+YgSsRgegpNMWWuS4DN2iENNSt8HTeBETeh210EokHIxN9XhV1z8yxx1bOwKGpbafSyaQf6+PJ36NC0UPt57l2pm4mGOUkTsVXZgx3TPN2UX1ZJSjAJK0/qN+FVpL6h5YY4ZzcPTvJTWrA7hg56gRk1YMWng8KetcJP7qCzdbNXXBhWIB6W6CpnHIgcFkE0xr7t97JcbLiJsuIzQ3L4VWaiOEok1eCisX77Nh5pfdWmSYXElLQy4U65CvU972nd5Zy4Mu3tRJY2dCEYOTeTqj2pTKvbd00itKoFAOR liangxiaohan@Alienware-15"
-}
-
-resource "jdcloud_instance_template" "instance_template_key" {
-  "template_name" = "jdcloud-terraform"
-  "instance_type" = "g.n2.medium"
-  "image_id" = "img-chn8lfcn6j"
-  "key_names" = "${jdcloud_key_pairs.key-1.id}"
-  "subnet_id" = "subnet-rht03mi6o0"
-  "security_group_ids" = ["sg-hzdy2lpzao"]
-  "system_disk" = {
+  template_name = "%s"
+  instance_type = "g.n2.medium"
+  image_id = "%s"
+  password = "DevOps2018"
+  bandwidth = 5
+  ip_service_provider = "BGP"
+  charge_mode = "bandwith"
+  subnet_id = "%s"
+  security_group_ids = ["%s"]
+  system_disk  {
     disk_category = "local"
   }
+  data_disks  {
+    disk_category = "cloud"
+  }
 }
-
 `
 
-func TestAccJDCloudInstanceTemplate_Keys(t *testing.T) {
-
-	var instanceTemplateId string
-
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccIfTemplateDestroyed(&instanceTemplateId),
-		Steps: []resource.TestStep{
-			{
-				Config: TestAccInstanceTemplateKey,
-				Check: resource.ComposeTestCheckFunc(
-					testAccIfTemplateExists(
-						"jdcloud_instance_template.instance_template_key", &instanceTemplateId),
-					resource.TestCheckResourceAttr(
-						"jdcloud_instance_template.instance_template_key", "template_name", "jdcloud-terraform"),
-					resource.TestCheckResourceAttr(
-						"jdcloud_instance_template.instance_template_key", "instance_type", "g.n2.medium"),
-					resource.TestCheckResourceAttr(
-						"jdcloud_instance_template.instance_template_key", "image_id", "img-chn8lfcn6j"),
-					resource.TestCheckResourceAttr(
-						"jdcloud_instance_template.instance_template_key", "subnet_id", "subnet-rht03mi6o0"),
-					resource.TestCheckResourceAttr(
-						"jdcloud_instance_template.instance_template_key", "security_group_ids.#", "1"),
-					resource.TestCheckResourceAttr(
-						"jdcloud_instance_template.instance_template_key", "system_disk.#", "1"),
-
-					// Validate on Keys
-					resource.TestCheckResourceAttr(
-						"jdcloud_instance_template.instance_template_key", "key_names", "terraform-testing"),
-					resource.TestCheckNoResourceAttr(
-						"jdcloud_instance_template.instance_template_key", "password"),
-				),
-			},
-		},
-	})
-}
 
 func instanceTemplateBandwidth(name string) string {
-	return fmt.Sprintf(TestAccInstanceTemplateBandwidth, name)
+	return fmt.Sprintf(TestAccInstanceTemplateBandwidth, name,packer_image,packer_subnet,packer_sg)
 }
+
 
 func TestAccJDCloudInstanceTemplate_Bandwidth(t *testing.T) {
 
@@ -283,9 +223,9 @@ func TestAccJDCloudInstanceTemplate_Bandwidth(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"jdcloud_instance_template.instance_template_bandwidth", "instance_type", "g.n2.medium"),
 					resource.TestCheckResourceAttr(
-						"jdcloud_instance_template.instance_template_bandwidth", "image_id", "img-chn8lfcn6j"),
+						"jdcloud_instance_template.instance_template_bandwidth", "image_id", packer_image),
 					resource.TestCheckResourceAttr(
-						"jdcloud_instance_template.instance_template_bandwidth", "subnet_id", "subnet-rht03mi6o0"),
+						"jdcloud_instance_template.instance_template_bandwidth", "subnet_id", packer_subnet),
 					resource.TestCheckResourceAttr(
 						"jdcloud_instance_template.instance_template_bandwidth", "security_group_ids.#", "1"),
 					resource.TestCheckResourceAttr(
