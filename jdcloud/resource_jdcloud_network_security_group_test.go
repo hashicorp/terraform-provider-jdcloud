@@ -1,23 +1,23 @@
 package jdcloud
 
 import (
-	"fmt"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
-	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/apis"
-	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/client"
-	"github.com/pkg/errors"
-	"testing"
+//"fmt"
+//"github.com/hashicorp/terraform/helper/resource"
+//"github.com/hashicorp/terraform/terraform"
+//"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/apis"
+//"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/client"
+//"github.com/pkg/errors"
+//"testing"
 )
 
 /*
 	TestCase : 1.common stuff only. Not yet found any tricky point requires extra attention
-*/
+
 const TestAccSecurityGroupTemplate = `
 resource "jdcloud_network_security_group" "TF-TEST"{
 	description = "%s"
 	network_security_group_name = "%s"
-	vpc_id = "vpc-npvvk4wr5j"
+	vpc_id = "%s"
 }
 `
 
@@ -115,7 +115,7 @@ func testAccCheckSecurityGroupDestroy(securityGroupIdStoredLocally *string) reso
 		return nil
 	}
 }
-
 func generateSGTemplate(des, name string) string {
-	return fmt.Sprintf(TestAccSecurityGroupTemplate, des, name)
+	return fmt.Sprintf(TestAccSecurityGroupTemplate, des, name,packer_vpc)
 }
+*/

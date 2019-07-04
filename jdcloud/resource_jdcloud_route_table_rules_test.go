@@ -14,31 +14,33 @@ import (
 	TestCase : 1-[Pass].common stuff only. Not yet found any tricky point requires extra attention
 */
 
-const TestAccRouteTableRulesConfig = `
+var TestAccRouteTableRulesConfig = fmt.Sprintf(`
 resource "jdcloud_route_table_rules" "rule-TEST-1"{
-  route_table_id = "rtb-jgso5x1ein"
-  rule_specs = [{
+  route_table_id = "%s"
+  rule_specs {
     next_hop_type = "internet"
     next_hop_id   = "internet"
     address_prefix= "10.0.0.0/16"
-  }]
+  }
 }
-`
-const TestAccRouteTableRulesConfigUpdate = `
+`, packer_route)
+
+var TestAccRouteTableRulesConfigUpdate = fmt.Sprintf(`
 resource "jdcloud_route_table_rules" "rule-TEST-1"{
-  route_table_id = "rtb-jgso5x1ein"
-  rule_specs = [{
+  route_table_id = "%s"
+  rule_specs {
     next_hop_type = "internet"
     next_hop_id   = "internet"
     address_prefix= "0.0.0.0/0"
-  },{
+  }
+  rule_specs {
     next_hop_type = "internet"
     next_hop_id   = "internet"
     address_prefix= "10.0.0.0/16"
     priority      = 120
-  }]
+  }
 }
-`
+`, packer_route)
 
 func TestAccJDCloudRouteTableRules_basic(t *testing.T) {
 
@@ -56,7 +58,7 @@ func TestAccJDCloudRouteTableRules_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccIfRouteTableRuleExists("jdcloud_route_table_rules.rule-TEST-1", &routeTableId),
 					// Common
-					resource.TestCheckResourceAttr("jdcloud_route_table_rules.rule-TEST-1", "route_table_id", "rtb-jgso5x1ein"),
+					resource.TestCheckResourceAttr("jdcloud_route_table_rules.rule-TEST-1", "route_table_id", packer_route),
 					// TypeSet item length
 					resource.TestCheckResourceAttr("jdcloud_route_table_rules.rule-TEST-1", "rule_specs.#", "1"),
 				),
@@ -66,7 +68,7 @@ func TestAccJDCloudRouteTableRules_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccIfRouteTableRuleExists("jdcloud_route_table_rules.rule-TEST-1", &routeTableId),
 					// Common
-					resource.TestCheckResourceAttr("jdcloud_route_table_rules.rule-TEST-1", "route_table_id", "rtb-jgso5x1ein"),
+					resource.TestCheckResourceAttr("jdcloud_route_table_rules.rule-TEST-1", "route_table_id", packer_route),
 					// TypeSet item length
 					resource.TestCheckResourceAttr("jdcloud_route_table_rules.rule-TEST-1", "rule_specs.#", "2"),
 				),

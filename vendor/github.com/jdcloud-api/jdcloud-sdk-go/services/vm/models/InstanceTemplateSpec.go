@@ -34,9 +34,6 @@ type InstanceTemplateSpec struct {
     /* 主网卡主IP关联的弹性IP规格 (Optional) */
     ElasticIp *InstanceTemplateElasticIpSpec `json:"elasticIp"`
 
-    //  /* 主网卡主IP关联的弹性IP规格 (Optional) */
-    //  ElasticIp InstanceTemplateElasticIpSpec `json:"elasticIp"`
-
     /* 主网卡配置信息  */
     PrimaryNetworkInterface InstanceTemplateNetworkInterfaceAttachmentSpec `json:"primaryNetworkInterface"`
 

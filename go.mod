@@ -3,16 +3,13 @@ module github.com/terraform-providers/terraform-provider-jdcloud
 go 1.12
 
 require (
-	github.com/aws/aws-sdk-go v1.18.2
-	github.com/hashicorp/terraform v0.11.13
-	github.com/jdcloud-api/jdcloud-sdk-go v1.5.0
-	github.com/jdclouddevelopers/terraform-provider-jdcloud v0.0.0-20190312095238-e8421309c082
-	github.com/pkg/errors v0.8.1
-	github.com/satori/go.uuid v1.2.0
+	github.com/aws/aws-sdk-go v1.19.18
+	github.com/hashicorp/terraform v0.12.0
+	github.com/jdcloud-api/jdcloud-sdk-go v1.9.0
+	github.com/pkg/errors v0.8.1 // indirect
+	github.com/satori/go.uuid v1.2.1-0.20181028125025-b2ce2384e17b
 )
 
-replace github.com/jdcloud-api/jdcloud-sdk-go => ./vendor/github.com/jdcloud-api/jdcloud-sdk-go/
-
-replace github.com/satori/go.uuid => ./vendor/github.com/satori/go.uuid
-
 replace github.com/jdclouddevelopers/terraform-provider-jdcloud => ./
+
+replace github.com/jdcloud-api/jdcloud-sdk-go => /go/src/github.com/jdcloud-sdk-go-fake

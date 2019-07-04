@@ -27,22 +27,24 @@ type SetInstanceTemplateRequest struct {
     /* 地域  */
     RegionId string `json:"regionId"`
 
-    /* 可用组 ID  */
+    /* 高可用组 ID  */
     AgId string `json:"agId"`
 
-    /* 实力模板 id (Optional) */
-    InstanceTemplateId *string `json:"instanceTemplateId"`
+    /* 实例模板 id  */
+    InstanceTemplateId string `json:"instanceTemplateId"`
 }
 
 /*
  * param regionId: 地域 (Required)
- * param agId: 可用组 ID (Required)
+ * param agId: 高可用组 ID (Required)
+ * param instanceTemplateId: 实例模板 id (Required)
  *
  * @Deprecated, not compatible when mandatory parameters changed
  */
 func NewSetInstanceTemplateRequest(
     regionId string,
     agId string,
+    instanceTemplateId string,
 ) *SetInstanceTemplateRequest {
 
 	return &SetInstanceTemplateRequest{
@@ -54,18 +56,19 @@ func NewSetInstanceTemplateRequest(
 		},
         RegionId: regionId,
         AgId: agId,
+        InstanceTemplateId: instanceTemplateId,
 	}
 }
 
 /*
  * param regionId: 地域 (Required)
- * param agId: 可用组 ID (Required)
- * param instanceTemplateId: 实力模板 id (Optional)
+ * param agId: 高可用组 ID (Required)
+ * param instanceTemplateId: 实例模板 id (Required)
  */
 func NewSetInstanceTemplateRequestWithAllParams(
     regionId string,
     agId string,
-    instanceTemplateId *string,
+    instanceTemplateId string,
 ) *SetInstanceTemplateRequest {
 
     return &SetInstanceTemplateRequest{
@@ -99,14 +102,14 @@ func (r *SetInstanceTemplateRequest) SetRegionId(regionId string) {
     r.RegionId = regionId
 }
 
-/* param agId: 可用组 ID(Required) */
+/* param agId: 高可用组 ID(Required) */
 func (r *SetInstanceTemplateRequest) SetAgId(agId string) {
     r.AgId = agId
 }
 
-/* param instanceTemplateId: 实力模板 id(Optional) */
+/* param instanceTemplateId: 实例模板 id(Required) */
 func (r *SetInstanceTemplateRequest) SetInstanceTemplateId(instanceTemplateId string) {
-    r.InstanceTemplateId = &instanceTemplateId
+    r.InstanceTemplateId = instanceTemplateId
 }
 
 // GetRegionId returns path parameter 'regionId' if exist,

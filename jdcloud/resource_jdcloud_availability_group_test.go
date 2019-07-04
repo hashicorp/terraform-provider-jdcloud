@@ -16,31 +16,16 @@ import (
 */
 
 func agConfigSingleAz(name, description string) string {
-	return fmt.Sprintf(testAccAGTemplate, name, description)
+	return fmt.Sprintf(testAccAGTemplate, name, packer_template, description)
 }
 
 const testAccAGTemplate = `
 resource "jdcloud_availability_group" "terraform_ag" {
   availability_group_name = "%s"
-  az = ["cn-north-1a"]
-  instance_template_id = "it-fpxvfdch26"
+  az = ["cn-north-1c"]
+  instance_template_id = "%s"
   description  = "%s"
   ag_type = "kvm"
-}
-`
-
-// Multi-Az requires them to be in the same location ->> cn-north-1a & cn-north-1b
-//                                                   ->> cn-east-1a & cn-east-1b
-func agConfigDualAz(name string) string {
-	return fmt.Sprintf(testAccAGTemplateDualAzTemplate, name)
-}
-
-const testAccAGTemplateDualAzTemplate = `
-resource "jdcloud_availability_group" "terraform_ag_daz" {
-  availability_group_name = "%s"
-  az = ["cn-north-1a","cn-north-1b"]
-  instance_template_id = "it-fpxvfdch26"
-  ag_type = "docker"
 }
 `
 
@@ -69,7 +54,7 @@ func TestAccJDCloudAvailabilityGroup_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"jdcloud_availability_group.terraform_ag", "az.#", "1"),
 					resource.TestCheckResourceAttr(
-						"jdcloud_availability_group.terraform_ag", "instance_template_id", "it-fpxvfdch26"),
+						"jdcloud_availability_group.terraform_ag", "instance_template_id", packer_template),
 					resource.TestCheckResourceAttr(
 						"jdcloud_availability_group.terraform_ag", "description", description1),
 					resource.TestCheckResourceAttr(
@@ -85,65 +70,11 @@ func TestAccJDCloudAvailabilityGroup_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"jdcloud_availability_group.terraform_ag", "az.#", "1"),
 					resource.TestCheckResourceAttr(
-						"jdcloud_availability_group.terraform_ag", "instance_template_id", "it-fpxvfdch26"),
+						"jdcloud_availability_group.terraform_ag", "instance_template_id", packer_template),
 					resource.TestCheckResourceAttr(
 						"jdcloud_availability_group.terraform_ag", "description", description2),
 					resource.TestCheckResourceAttr(
 						"jdcloud_availability_group.terraform_ag", "ag_type", "kvm"),
-				),
-			},
-		},
-	})
-}
-
-// dual az test
-func TestAccJDCloudAvailabilityGroup_dual_az(t *testing.T) {
-
-	var agId string
-	name1 := randomStringWithLength(10)
-	name2 := randomStringWithLength(10)
-
-	resource.Test(t, resource.TestCase{
-
-		IDRefreshName: "jdcloud_availability_group.terraform_ag_daz",
-		PreCheck:      func() { testAccPreCheck(t) },
-		Providers:     testAccProviders,
-		CheckDestroy:  testAccIfAgDestroyed(&agId),
-		Steps: []resource.TestStep{
-			{
-				Config: agConfigDualAz(name1),
-				Check: resource.ComposeTestCheckFunc(
-					testAccIfAgExists("jdcloud_availability_group.terraform_ag_daz", &agId),
-					resource.TestCheckResourceAttr(
-						"jdcloud_availability_group.terraform_ag_daz", "availability_group_name", name1),
-					resource.TestCheckResourceAttr(
-						"jdcloud_availability_group.terraform_ag_daz", "az.#", "2"),
-					resource.TestCheckResourceAttr(
-						"jdcloud_availability_group.terraform_ag_daz", "instance_template_id", "it-fpxvfdch26"),
-					resource.TestCheckResourceAttr(
-						"jdcloud_availability_group.terraform_ag_daz", "ag_type", "docker"),
-
-					// Description is set during resource_XXX_read, expected to be "nil"
-					resource.TestCheckResourceAttr(
-						"jdcloud_availability_group.terraform_ag_daz", "description", ""),
-				),
-			},
-			{
-				Config: agConfigDualAz(name2),
-				Check: resource.ComposeTestCheckFunc(
-					testAccIfAgExists("jdcloud_availability_group.terraform_ag_daz", &agId),
-					resource.TestCheckResourceAttr(
-						"jdcloud_availability_group.terraform_ag_daz", "availability_group_name", name2),
-					resource.TestCheckResourceAttr(
-						"jdcloud_availability_group.terraform_ag_daz", "az.#", "2"),
-					resource.TestCheckResourceAttr(
-						"jdcloud_availability_group.terraform_ag_daz", "instance_template_id", "it-fpxvfdch26"),
-					resource.TestCheckResourceAttr(
-						"jdcloud_availability_group.terraform_ag_daz", "ag_type", "docker"),
-
-					// Description is set during resource_XXX_read, expected to be "nil"
-					resource.TestCheckResourceAttr(
-						"jdcloud_availability_group.terraform_ag_daz", "description", ""),
 				),
 			},
 		},

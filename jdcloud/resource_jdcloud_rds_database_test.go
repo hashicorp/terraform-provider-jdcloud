@@ -15,11 +15,15 @@ import (
 
 const TestAccRDSDatabaseConfig = `
 resource "jdcloud_rds_database" "db-TEST"{
-  instance_id = "mysql-155pjskhpy"
+  instance_id = "%s"
   db_name = "devops2018"
   character_set = "utf8"
 }
 `
+
+func generateRDSDatabase() string {
+	return fmt.Sprintf(TestAccRDSDatabaseConfig, packer_rds)
+}
 
 func TestAccJDCloudRDSDatabase_basic(t *testing.T) {
 
@@ -29,11 +33,11 @@ func TestAccJDCloudRDSDatabase_basic(t *testing.T) {
 		CheckDestroy: testAccRDSDatabaseDestroy("jdcloud_rds_database.db-TEST"),
 		Steps: []resource.TestStep{
 			{
-				Config: TestAccRDSDatabaseConfig,
+				Config: generateRDSDatabase(),
 				Check: resource.ComposeTestCheckFunc(
 
 					testAccIfRDSDatabaseExists("jdcloud_rds_database.db-TEST"),
-					resource.TestCheckResourceAttr("jdcloud_rds_database.db-TEST", "instance_id", "mysql-155pjskhpy"),
+					resource.TestCheckResourceAttr("jdcloud_rds_database.db-TEST", "instance_id", packer_rds),
 					resource.TestCheckResourceAttr("jdcloud_rds_database.db-TEST", "db_name", "devops2018"),
 					resource.TestCheckResourceAttr("jdcloud_rds_database.db-TEST", "character_set", "utf8"),
 				),
@@ -60,7 +64,8 @@ func testAccIfRDSDatabaseExists(resourceName string) resource.TestCheckFunc {
 		config := testAccProvider.Meta().(*JDCloudConfig)
 		rdsClient := client.NewRdsClient(config.Credential)
 
-		req := apis.NewDescribeDatabasesRequestWithAllParams(config.Region, instanceId, &dbName)
+		req := apis.NewDescribeDatabasesRequest(config.Region, instanceId)
+		req.SetDbName(dbName)
 		resp, err := rdsClient.DescribeDatabases(req)
 
 		if err != nil {

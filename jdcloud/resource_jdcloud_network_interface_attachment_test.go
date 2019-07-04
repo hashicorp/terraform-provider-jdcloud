@@ -11,10 +11,14 @@ import (
 
 const TestAccNetworkInterfaceAttachmentConfig = `
 resource "jdcloud_network_interface_attachment" "attachment-TEST-1"{
-  instance_id = "i-g6xse7qb0z"
-  network_interface_id = "port-4nwidjolb3"
+  instance_id = "%s"
+  network_interface_id = "%s"
 }
 `
+
+func generateInterface() string {
+	return fmt.Sprintf(TestAccNetworkInterfaceAttachmentConfig, packer_instance, packer_interface)
+}
 
 func TestAccJDCloudNetworkInterfaceAttachment_basic(t *testing.T) {
 
@@ -26,12 +30,11 @@ func TestAccJDCloudNetworkInterfaceAttachment_basic(t *testing.T) {
 		CheckDestroy: testAccCheckNetworkInterfaceAttachmentDestroy(&networkInterfaceId),
 		Steps: []resource.TestStep{
 			{
-				Config: TestAccNetworkInterfaceAttachmentConfig,
+				Config: generateInterface(),
 				Check: resource.ComposeTestCheckFunc(
 
 					testAccIfNetworkInterfaceAttachmentExists("jdcloud_network_interface_attachment.attachment-TEST-1", &networkInterfaceId),
-					resource.TestCheckResourceAttr("jdcloud_network_interface_attachment.attachment-TEST-1", "instance_id", "i-g6xse7qb0z"),
-					resource.TestCheckResourceAttr("jdcloud_network_interface_attachment.attachment-TEST-1", "network_interface_id", "port-4nwidjolb3"),
+					resource.TestCheckResourceAttr("jdcloud_network_interface_attachment.attachment-TEST-1", "network_interface_id", packer_interface),
 
 					// auto_delete shouldn't be here since they were not set in resource_XYZ_Read
 					resource.TestCheckNoResourceAttr("jdcloud_network_interface_attachment.attachment-TEST-1", "auto_delete"),

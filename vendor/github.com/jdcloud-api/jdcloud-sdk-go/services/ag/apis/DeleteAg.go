@@ -27,13 +27,13 @@ type DeleteAgRequest struct {
     /* 地域  */
     RegionId string `json:"regionId"`
 
-    /* 可用组 ID  */
+    /* 高可用组 ID  */
     AgId string `json:"agId"`
 }
 
 /*
  * param regionId: 地域 (Required)
- * param agId: 可用组 ID (Required)
+ * param agId: 高可用组 ID (Required)
  *
  * @Deprecated, not compatible when mandatory parameters changed
  */
@@ -56,7 +56,7 @@ func NewDeleteAgRequest(
 
 /*
  * param regionId: 地域 (Required)
- * param agId: 可用组 ID (Required)
+ * param agId: 高可用组 ID (Required)
  */
 func NewDeleteAgRequestWithAllParams(
     regionId string,
@@ -93,7 +93,7 @@ func (r *DeleteAgRequest) SetRegionId(regionId string) {
     r.RegionId = regionId
 }
 
-/* param agId: 可用组 ID(Required) */
+/* param agId: 高可用组 ID(Required) */
 func (r *DeleteAgRequest) SetAgId(agId string) {
     r.AgId = agId
 }

@@ -22,7 +22,6 @@ import (
 )
 
 type DescribeInstanceTemplateRequest struct {
-
 	core.JDCloudRequest
 
 	/* 地域ID  */
@@ -50,7 +49,7 @@ func NewDescribeInstanceTemplateRequest(
 			Header:  nil,
 			Version: "v1",
 		},
-		RegionId: regionId,
+		RegionId:           regionId,
 		InstanceTemplateId: instanceTemplateId,
 	}
 }
@@ -71,7 +70,7 @@ func NewDescribeInstanceTemplateRequestWithAllParams(
 			Header:  nil,
 			Version: "v1",
 		},
-		RegionId: regionId,
+		RegionId:           regionId,
 		InstanceTemplateId: instanceTemplateId,
 	}
 }
@@ -106,9 +105,9 @@ func (r DescribeInstanceTemplateRequest) GetRegionId() string {
 }
 
 type DescribeInstanceTemplateResponse struct {
-	RequestID string `json:"requestId"`
-	Error core.ErrorResponse `json:"error"`
-	Result DescribeInstanceTemplateResult `json:"result"`
+	RequestID string                         `json:"requestId"`
+	Error     core.ErrorResponse             `json:"error"`
+	Result    DescribeInstanceTemplateResult `json:"result"`
 }
 
 type DescribeInstanceTemplateResult struct {

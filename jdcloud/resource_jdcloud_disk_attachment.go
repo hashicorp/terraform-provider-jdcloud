@@ -7,6 +7,8 @@ import (
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vm/apis"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vm/client"
 	vm "github.com/jdcloud-api/jdcloud-sdk-go/services/vm/models"
+	"log"
+	"strings"
 	"time"
 )
 
@@ -35,44 +37,128 @@ func diskAttachmentStatusRefreshFunc(d *schema.ResourceData, meta interface{}, i
 	}
 }
 
-// This function will send a request of attachment,do not wait,just send, level 0
-func performDiskAttach(d *schema.ResourceData, meta interface{}, req *apis.AttachDiskRequest) (requestId string, e error) {
+/*
+	This function, performDiskAttach = client.AttachDisk(req)
+				   performDiskDetach = client.DetachDisk(req)
 
-	config := meta.(*JDCloudConfig)
-	c := client.NewVmClient(config.Credential)
-	e = resource.Retry(time.Minute, func() *resource.RetryError {
+	Q: Why is it takes 50+ lines just to send a request ????
+	A: Error happens:
+      *Send_request -> 1. connection Error (bad network)
+                       2. Attach/Detach multiple disks to the same instance concurrently -> 400 Conflict
+						   				         										 -> 500 Server Error
+																				         -> 400 Disk Already Attached (what...)
 
-		resp, err := c.AttachDisk(req)
-		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
-			requestId = resp.RequestID
-			return nil
-		}
-		if connectionError(err) {
-			return resource.RetryableError(formatConnectionErrorMessage())
-		} else {
-			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
-		}
-	})
+*/
+func performDiskAttach(meta interface{}, diskID, instanceID, deviceName string, autoDelete bool) (requestId string, e error) {
+
+	stateConf := &resource.StateChangeConf{
+		Pending: []string{"connection_error", "task_conflict"},
+		Target:  []string{"send_request_complete", "disk_already_attached"},
+		Refresh: func() (diskItem interface{}, diskState string, e error) {
+
+			config := meta.(*JDCloudConfig)
+			c := client.NewVmClient(config.Credential)
+
+			req := apis.NewAttachDiskRequest(config.Region, instanceID, diskID)
+			if len(deviceName) > 0 {
+				req.DeviceName = &deviceName
+			}
+			if autoDelete {
+				req.AutoDelete = &autoDelete
+			}
+			resp, err := c.AttachDisk(req)
+
+			if connectionError(err) {
+				return "send_request_failed", "connection_error", nil
+			}
+			if err != nil {
+				return nil, "", err
+			}
+			if resp.Error.Code == REQUEST_COMPLETED {
+				requestId = resp.RequestID
+				return "send_request_success", "send_request_complete", nil
+			}
+
+			// -----------------------------------------------  Concurrent attachment error
+
+			log.Printf("[D] Disk Attachemt error happens, error=%v ,resp=%v", err, resp)
+			if resp.Error.Code == REQUEST_INVALID && strings.Contains(resp.Error.Message, DISK_CONCURRENT_ATTACHMENT_ERROR) {
+				return "send_request_failed", "task_conflict", nil
+			}
+			if resp.Error.Code == REQUEST_SERVER_ERROR && strings.Contains(resp.Error.Message, DISK_CONCURRENT_ATTACHMENT_ERROR_2) {
+				return "send_request_failed", "task_conflict", nil
+			}
+			if resp.Error.Code == REQUEST_INVALID && strings.Contains(resp.Error.Message, DISK_ALREADY_ATTACHED) && strings.Contains(resp.Error.Message, diskID) {
+				return "send_request_success", "disk_already_attached", nil
+			}
+
+			return "send_request_failed",
+				"unknown_error",
+				fmt.Errorf("Failed in sending disk attachment request, error=%v ,resp=%v", err, resp)
+		},
+		Delay:      3 * time.Second,
+		Timeout:    2 * time.Minute,
+		MinTimeout: 1 * time.Second,
+	}
+
+	if _, err := stateConf.WaitForState(); err != nil {
+		return "", fmt.Errorf("[E] Failed in AttachingDisk/WaitingDiskAttaching ,err message:%v", err)
+	}
 	return requestId, e
 }
 
 // This function will send a request of detachment,do not wait,just send, level 0
-func performDiskDetach(d *schema.ResourceData, meta interface{}, req *apis.DetachDiskRequest) error {
+func performDiskDetach(meta interface{}, diskID, instanceID string, forceDetach bool) error {
 
-	config := meta.(*JDCloudConfig)
-	c := client.NewVmClient(config.Credential)
-	return resource.Retry(time.Minute, func() *resource.RetryError {
+	stateConf := &resource.StateChangeConf{
+		Pending: []string{"connection_error", "task_conflict"},
+		Target:  []string{"send_request_complete", "disk_already_attached"},
+		Refresh: func() (diskItem interface{}, diskState string, e error) {
 
-		resp, err := c.DetachDisk(req)
-		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
-			return nil
-		}
-		if connectionError(err) {
-			return resource.RetryableError(formatConnectionErrorMessage())
-		} else {
-			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
-		}
-	})
+			config := meta.(*JDCloudConfig)
+			c := client.NewVmClient(config.Credential)
+			req := apis.NewDetachDiskRequest(config.Region, instanceID, diskID)
+			if forceDetach {
+				req.Force = &forceDetach
+			}
+			resp, err := c.DetachDisk(req)
+
+			if connectionError(err) {
+				return "send_request_failed", "connection_error", nil
+			}
+			if err != nil {
+				return nil, "", err
+			}
+			if resp.Error.Code == REQUEST_COMPLETED {
+				return "send_request_success", "send_request_complete", nil
+			}
+
+			// -----------------------------------------------  Concurrent attachment error
+
+			log.Printf("[D] Disk Attachemt error happens, error=%v ,resp=%v", err, resp)
+			if resp.Error.Code == REQUEST_INVALID && strings.Contains(resp.Error.Message, DISK_CONCURRENT_ATTACHMENT_ERROR) {
+				return "send_request_failed", "task_conflict", nil
+			}
+			if resp.Error.Code == REQUEST_SERVER_ERROR && strings.Contains(resp.Error.Message, DISK_CONCURRENT_ATTACHMENT_ERROR_2) {
+				return "send_request_failed", "task_conflict", nil
+			}
+			if resp.Error.Code == REQUEST_INVALID && strings.Contains(resp.Error.Message, DISK_ALREADY_ATTACHED) && strings.Contains(resp.Error.Message, diskID) {
+				return "send_request_success", "disk_already_attached", nil
+			}
+
+			return "send_request_failed",
+				"unknown_error",
+				fmt.Errorf("Failed in sending disk attachment request, error=%v ,resp=%v", err, resp)
+		},
+		Delay:      3 * time.Second,
+		Timeout:    2 * time.Minute,
+		MinTimeout: 1 * time.Second,
+	}
+
+	if _, err := stateConf.WaitForState(); err != nil {
+		return fmt.Errorf("[E] Failed in AttachingDisk/WaitingDiskAttaching ,err message:%v", err)
+	}
+	return nil
 }
 
 // This function will wait until certain status has been reached, level 2 -> based on diskAttachmentStatusRefreshFunc
@@ -141,20 +227,18 @@ func resourceJDCloudDiskAttachment() *schema.Resource {
 
 func resourceJDCloudDiskAttachmentCreate(d *schema.ResourceData, meta interface{}) error {
 
-	config := meta.(*JDCloudConfig)
 	instanceID := d.Get("instance_id").(string)
 	diskID := d.Get("disk_id").(string)
-
-	req := apis.NewAttachDiskRequest(config.Region, instanceID, diskID)
+	deviceName := ""
+	autoDelete := false
 	if _, ok := d.GetOk("device_name"); ok {
-		req.DeviceName = GetStringAddr(d, "device_name")
+		deviceName = d.Get("device_name").(string)
 	}
-	if autoDeleteInterface, ok := d.GetOk("auto_delete"); ok {
-		autoDelete := autoDeleteInterface.(bool)
-		req.AutoDelete = &autoDelete
+	if _, ok := d.GetOk("auto_delete"); ok {
+		autoDelete = d.Get("auto_delete").(bool)
 	}
 
-	id, e := performDiskAttach(d, meta, req)
+	id, e := performDiskAttach(meta, diskID, instanceID, deviceName, autoDelete)
 	if e != nil {
 		return e
 	}
@@ -222,12 +306,13 @@ func resourceJDCloudDiskAttachmentUpdate(d *schema.ResourceData, meta interface{
 
 func resourceJDCloudDiskAttachmentDelete(d *schema.ResourceData, meta interface{}) error {
 
-	config := meta.(*JDCloudConfig)
 	instanceID := d.Get("instance_id").(string)
 	diskID := d.Get("disk_id").(string)
-	req := apis.NewDetachDiskRequest(config.Region, instanceID, diskID)
-
-	e := performDiskDetach(d, meta, req)
+	force_detach := false
+	if _, ok := d.GetOk("force_detach"); ok {
+		force_detach = d.Get("force_detach").(bool)
+	}
+	e := performDiskDetach(meta, diskID, instanceID, force_detach)
 	if e != nil {
 		return e
 	}

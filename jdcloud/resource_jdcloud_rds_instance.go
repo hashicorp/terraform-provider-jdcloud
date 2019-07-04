@@ -220,12 +220,26 @@ func resourceJDCloudRDSInstanceUpdate(d *schema.ResourceData, meta interface{}) 
 	// Currently you can not degrade your configuration, only upgrade them is allowed
 	if d.HasChange("instance_class") || d.HasChange("instance_storage_gb") {
 		req := apis.NewModifyInstanceSpecRequest(config.Region, d.Id(), d.Get("instance_class").(string), d.Get("instance_storage_gb").(int))
-		resp, err := rdsClient.ModifyInstanceSpec(req)
+
+		err := resource.Retry(3*time.Minute, func() *resource.RetryError {
+			resp, err := rdsClient.ModifyInstanceSpec(req)
+
+			if resp != nil && resp.Error.Code == REQUEST_INVALID {
+				return resource.RetryableError(fmt.Errorf("already in processing, please wait"))
+			}
+
+			if err != nil {
+				return resource.NonRetryableError(fmt.Errorf("[ERROR] resourceJDCloudRDSUpdate failed %s ", err.Error()))
+			}
+			if resp.Error.Code != REQUEST_COMPLETED {
+				return resource.NonRetryableError(fmt.Errorf("[ERROR] resourceJDCloudRDSUpdate failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message))
+			}
+
+			return nil
+		})
+
 		if err != nil {
-			return fmt.Errorf("[ERROR] resourceJDCloudRDSUpdate failed %s ", err.Error())
-		}
-		if resp.Error.Code != REQUEST_COMPLETED {
-			return fmt.Errorf("[ERROR] resourceJDCloudRDSUpdate failed  code:%d staus:%s message:%s ", resp.Error.Code, resp.Error.Status, resp.Error.Message)
+			return err
 		}
 
 		err = rdsStatusWaiter(d, meta, d.Id(), []string{RDS_UPDATING, RDS_UNCERTAIN}, []string{RDS_READY})
@@ -247,7 +261,7 @@ func resourceJDCloudRDSInstanceDelete(d *schema.ResourceData, meta interface{}) 
 	req := apis.NewDeleteInstanceRequest(config.Region, d.Id())
 
 	// Send an DELETE request
-	err := resource.Retry(5*time.Minute, func() *resource.RetryError {
+	err := resource.Retry(10*time.Minute, func() *resource.RetryError {
 
 		resp, err := rdsClient.DeleteInstance(req)
 

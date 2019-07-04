@@ -1,14 +1,16 @@
-## 0.0.2 (Unreleased)
+## 1.1.0 (Unreleased)
 ## 0.0.1 (March 27, 2019)
 
 FEATURES:
 
+* Now `InstanceTemplate` can be created with ssh keys. Tests,website added [GH-3]
 * `Availability-Group` and `Instance-Template` ([#28](https://github.com/terraform-providers/terraform-provider-jdcloud/issues/28))
 * Updated to Go1.12, `go.mod` and `go.sum` has been generated [[#28](https://github.com/terraform-providers/terraform-provider-jdcloud/issues/28)] 
 * Scanner, back up your current infrastructure and save into a configuration file ([#21](https://github.com/terraform-providers/terraform-provider-jdcloud/issues/21))
 * Importer for various resources is introduced ([#17](https://github.com/terraform-providers/terraform-provider-jdcloud/issues/17))
 * Website files prepared ([#18](https://github.com/terraform-providers/terraform-provider-jdcloud/issues/18))
 * CHANGELOG.md created ([#18](https://github.com/terraform-providers/terraform-provider-jdcloud/issues/18))
+* Compatible to Terraform0.12([#7](https://github.com/terraform-providers/terraform-provider-jdcloud/issues/7))
 
 BUG FIXES:
 

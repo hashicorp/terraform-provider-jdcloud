@@ -36,8 +36,9 @@ type DescribeAgsRequest struct {
     PageSize *int `json:"pageSize"`
 
     /* agName - ag名字，支持模糊匹配
-agId - agId，精确匹配
+agId - ag id，精确匹配
 instanceTemplateId - 实例模板id，精确匹配
+vpcId - vpc id，精确匹配
  (Optional) */
     Filters []common.Filter `json:"filters"`
 }
@@ -67,8 +68,9 @@ func NewDescribeAgsRequest(
  * param pageNumber: 页码；默认为1 (Optional)
  * param pageSize: 分页大小；默认为20；取值范围[10, 100] (Optional)
  * param filters: agName - ag名字，支持模糊匹配
-agId - agId，精确匹配
+agId - ag id，精确匹配
 instanceTemplateId - 实例模板id，精确匹配
+vpcId - vpc id，精确匹配
  (Optional)
  */
 func NewDescribeAgsRequestWithAllParams(
@@ -121,8 +123,9 @@ func (r *DescribeAgsRequest) SetPageSize(pageSize int) {
 }
 
 /* param filters: agName - ag名字，支持模糊匹配
-agId - agId，精确匹配
+agId - ag id，精确匹配
 instanceTemplateId - 实例模板id，精确匹配
+vpcId - vpc id，精确匹配
 (Optional) */
 func (r *DescribeAgsRequest) SetFilters(filters []common.Filter) {
     r.Filters = filters

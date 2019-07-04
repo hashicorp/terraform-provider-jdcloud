@@ -21,7 +21,6 @@ import (
 )
 
 type UpdateInstanceTemplateRequest struct {
-
 	core.JDCloudRequest
 
 	/* 地域ID  */
@@ -55,7 +54,7 @@ func NewUpdateInstanceTemplateRequest(
 			Header:  nil,
 			Version: "v1",
 		},
-		RegionId: regionId,
+		RegionId:           regionId,
 		InstanceTemplateId: instanceTemplateId,
 	}
 }
@@ -80,10 +79,10 @@ func NewUpdateInstanceTemplateRequestWithAllParams(
 			Header:  nil,
 			Version: "v1",
 		},
-		RegionId: regionId,
+		RegionId:           regionId,
 		InstanceTemplateId: instanceTemplateId,
-		Description: description,
-		Name: name,
+		Description:        description,
+		Name:               name,
 	}
 }
 
@@ -127,9 +126,9 @@ func (r UpdateInstanceTemplateRequest) GetRegionId() string {
 }
 
 type UpdateInstanceTemplateResponse struct {
-	RequestID string `json:"requestId"`
-	Error core.ErrorResponse `json:"error"`
-	Result UpdateInstanceTemplateResult `json:"result"`
+	RequestID string                       `json:"requestId"`
+	Error     core.ErrorResponse           `json:"error"`
+	Result    UpdateInstanceTemplateResult `json:"result"`
 }
 
 type UpdateInstanceTemplateResult struct {

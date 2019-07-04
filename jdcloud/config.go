@@ -36,6 +36,7 @@ const (
 	RESOURCE_EMPTY     = 0
 	RESOURCE_NOT_FOUND = 404
 	REQUEST_INVALID    = 400
+	REQUEST_INVALID_2  = 403
 
 	MAX_DISK_COUNT          = 1
 	DISK_AVAILABLE          = "available"
@@ -50,6 +51,11 @@ const (
 	DISK_ATTACHED           = "attached"
 	DISK_DETACHED           = "detached"
 
+	DISK_CONCURRENT_ATTACHMENT_ERROR   = "Conflict with underlay task"
+	REQUEST_SERVER_ERROR               = 500
+	DISK_CONCURRENT_ATTACHMENT_ERROR_2 = "Unknown server error"
+	DISK_ALREADY_ATTACHED              = "already attached"
+
 	MAX_EIP_COUNT     = 1
 	MAX_SYSDISK_COUNT = 1
 	DISKTYPE_CLOUD    = "cloud"
@@ -60,6 +66,7 @@ const (
 	VM_RUNNING        = "running"
 	VM_STOPPING       = "stopping"
 	VM_STOPPED        = "stopped"
+	VM_STOPPED_2      = ""
 	VM_REBOOTING      = "rebooting"
 	VM_REBUILDING     = "rebuilding"
 	VM_RESIZING       = "resizing"

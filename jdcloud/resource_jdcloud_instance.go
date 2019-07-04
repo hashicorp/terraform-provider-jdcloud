@@ -39,6 +39,11 @@ func stringAddr(v interface{}) *string {
 	return &r
 }
 
+func intAddr(v interface{}) *int {
+	r := v.(int)
+	return &r
+}
+
 func boolAddr(v interface{}) *bool {
 	r := v.(bool)
 	return &r
@@ -68,7 +73,7 @@ func QueryInstanceDetail(d *schema.ResourceData, m interface{}, instanceId strin
 			return nil
 		}
 
-		if resp.Error.Code == RESOURCE_NOT_FOUND {
+		if resp != nil && resp.Error.Code == RESOURCE_NOT_FOUND {
 			resp.Result.Instance.Status = VM_DELETED
 			r = resp
 			return nil
@@ -113,18 +118,23 @@ func waitForInstance(d *schema.ResourceData, m interface{}, expectedStatus strin
 }
 
 // Level 2 -> Based on instanceStatusWaiter
-func StopVmInstance(d *schema.ResourceData, m interface{}) error {
+
+func StopVmInstance(d *schema.ResourceData, m interface{}, instanceId string) error {
 
 	config := m.(*JDCloudConfig)
 	vmClient := client.NewVmClient(config.Credential)
-	req := apis.NewStopInstanceRequest(config.Region, d.Id())
+	req := apis.NewStopInstanceRequest(config.Region, instanceId)
 
-	e := resource.Retry(time.Minute, func() *resource.RetryError {
+	return resource.Retry(time.Minute, func() *resource.RetryError {
 
 		resp, err := vmClient.StopInstance(req)
 
 		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
 			return nil
+		}
+
+		if resp.Error.Code == 400 && resp.Error.Status == "FAILED_PRECONDITION" {
+			return resource.RetryableError(fmt.Errorf("Conflict with underlay task"))
 		}
 
 		if connectionError(err) {
@@ -134,10 +144,10 @@ func StopVmInstance(d *schema.ResourceData, m interface{}) error {
 		}
 	})
 
-	if e != nil {
-		return e
-	}
-	return instanceStatusWaiter(d, m, d.Id(), []string{VM_RUNNING, VM_STOPPING}, []string{VM_STOPPED})
+	//if e != nil {
+	//	return e
+	//}
+	//return instanceStatusWaiter(d, m, d.Id(), []string{VM_RUNNING, VM_STOPPING}, []string{VM_STOPPED,VM_STOPPED_2})
 }
 
 func StartVmInstance(d *schema.ResourceData, m interface{}) error {
@@ -166,12 +176,35 @@ func StartVmInstance(d *schema.ResourceData, m interface{}) error {
 	return instanceStatusWaiter(d, m, d.Id(), []string{VM_STOPPED, VM_STARTING}, []string{VM_RUNNING})
 }
 
-func DeleteVmInstance(d *schema.ResourceData, m interface{}) (*apis.DeleteInstanceResponse, error) {
+func DeleteVmInstance(d *schema.ResourceData, m interface{}, id string) error {
+
 	config := m.(*JDCloudConfig)
 	vmClient := client.NewVmClient(config.Credential)
-	req := apis.NewDeleteInstanceRequest(config.Region, d.Id())
-	resp, err := vmClient.DeleteInstance(req)
-	return resp, err
+
+	err := resource.Retry(time.Minute, func() *resource.RetryError {
+
+		req := apis.NewDeleteInstanceRequest(config.Region, id)
+		resp, err := vmClient.DeleteInstance(req)
+
+		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
+			return nil
+		}
+
+		if resp != nil && resp.Error.Code == REQUEST_INVALID_2 && resp.Error.Status == "PERMISSION_DENIED" {
+			return resource.RetryableError(fmt.Errorf("Can't delete no charged resource"))
+		}
+
+		if connectionError(err) {
+			return resource.RetryableError(formatConnectionErrorMessage())
+		} else {
+			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
+		}
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func diskIdList(s *schema.Set) []string {
@@ -214,7 +247,6 @@ func instanceStatusRefreshFunc(d *schema.ResourceData, meta interface{}, vmId st
 		if err != nil {
 			return nil, "", err
 		}
-
 		return vmItem, vmStatus, nil
 	}
 }
@@ -227,11 +259,73 @@ func instanceStatusWaiter(d *schema.ResourceData, meta interface{}, id string, p
 		Target:     target,
 		Refresh:    instanceStatusRefreshFunc(d, meta, id),
 		Delay:      3 * time.Second,
-		Timeout:    2 * time.Minute,
+		Timeout:    10 * time.Minute,
 		MinTimeout: 1 * time.Second,
 	}
 	if _, err = stateConf.WaitForState(); err != nil {
 		return fmt.Errorf("[E] Failed in instanceStatusWaiter/Waiting to reach expected status ,err message:%v", err)
+	}
+	return nil
+}
+
+// Level 2~3  delete a specified instance
+func deleteInstance(d *schema.ResourceData, m interface{}, instanceId string) error {
+
+	// Stop VM
+	err := StopVmInstance(d, m, instanceId)
+	if err != nil {
+		return fmt.Errorf("[E] deleteInstance - InstanceId=%s - Send request to stop fail:%v", instanceId, err)
+	}
+
+	// Wait until stopped
+	err = instanceStatusWaiter(d, m, instanceId, []string{VM_RUNNING, VM_STOPPING}, []string{VM_STOPPED, VM_STOPPED_2})
+	if err != nil {
+		return fmt.Errorf("[E] deleteInstance - InstanceId=%s - Can not make it stop :%v", instanceId, err)
+	}
+
+	// Delete VM
+	err = DeleteVmInstance(d, m, instanceId)
+	if err != nil {
+		return fmt.Errorf("[E] deleteInstance - InstanceId=%s - Can not send requests to delete :%v", instanceId, err)
+	}
+
+	// Wait until deleted
+	if err = instanceStatusWaiter(d, m, instanceId, []string{VM_RUNNING, VM_STOPPING, VM_DELETING}, []string{VM_DELETED}); err != nil {
+		return fmt.Errorf("[E] deleteInstance - InstanceId=%s - Can not wait it delete :%v", instanceId, err)
+	}
+
+	return nil
+}
+
+// Level 2~3 delete some instances
+func deleteInstances(d *schema.ResourceData, m interface{}, instanceIds []string) error {
+
+	// Stop
+	for _, i := range instanceIds {
+		if e := StopVmInstance(d, m, i); e != nil {
+			return fmt.Errorf("[E] deleteInstances - Send request to stop fail:%s", e)
+		}
+	}
+
+	//Wait until stopped
+	for _, i := range instanceIds {
+		if err := instanceStatusWaiter(d, m, i, []string{VM_RUNNING, VM_STOPPING}, []string{VM_STOPPED, VM_STOPPED_2}); err != nil {
+			return fmt.Errorf("[E] deleteInstances - Can not make it stop :%s", err)
+		}
+	}
+
+	// Delete
+	for _, i := range instanceIds {
+		if e := DeleteVmInstance(d, m, i); e != nil {
+			return fmt.Errorf("[E] deleteInstances - Can not send requests to delete:%v", e)
+		}
+	}
+
+	// Wait until deleted
+	for _, i := range instanceIds {
+		if e := instanceStatusWaiter(d, m, i, []string{VM_RUNNING, VM_STOPPING, VM_DELETING}, []string{VM_DELETED}); e != nil {
+			return fmt.Errorf("[E] deleteInstances - Can not wait it delete %v", e)
+		}
 	}
 	return nil
 }
@@ -335,6 +429,16 @@ func cloudDiskStructIntoMap(ss []vm.InstanceDiskAttachment) []map[string]interfa
 	}
 
 	return ms
+}
+
+func sysDiskStructIntoMap(s vm.InstanceDiskAttachment) map[string]interface{} {
+
+	return map[string]interface{}{
+		"disk_category": s.DiskCategory,
+		"auto_delete":   s.AutoDelete,
+		"device_name":   s.DeviceName,
+		"disk_size_gb":  s.LocalDisk.DiskSizeGB,
+	}
 }
 
 func waitCloudDiskId(d *schema.ResourceData, m interface{}) error {
@@ -488,18 +592,8 @@ func resourceJDCloudInstance() *schema.Resource {
 				ForceNew: true,
 			},
 
-			// You set : secondary_ips + secondary_ip_count (Optional)
+			// You set : secondary_ip_count (Optional)
 			// You got : ip_addresses (Computed)
-			"secondary_ips": {
-				Type:      schema.TypeSet,
-				Optional:  true,
-				Sensitive: true,
-				MinItems:  1,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
-				ForceNew: true,
-			},
 			"secondary_ip_count": {
 				Type:      schema.TypeInt,
 				Optional:  true,
@@ -590,10 +684,6 @@ func resourceJDCloudInstanceCreate(d *schema.ResourceData, m interface{}) error 
 
 	if _, ok := d.GetOk("network_interface_name"); ok {
 		spec.PrimaryNetworkInterface.NetworkInterface.NetworkInterfaceName = GetStringAddr(d, "network_interface_name")
-	}
-
-	if _, ok := d.GetOk("secondary_ips"); ok {
-		spec.PrimaryNetworkInterface.NetworkInterface.SecondaryIpAddresses = typeSetToStringArray(d.Get("secondary_ips").(*schema.Set))
 	}
 
 	if _, ok := d.GetOk("secondary_ip_count"); ok {
@@ -688,7 +778,7 @@ func resourceJDCloudInstanceRead(d *schema.ResourceData, m interface{}) error {
 		return fmt.Errorf("[ERROR] Failed in setting data_disk, reasons:%s", errSet.Error())
 	}
 
-	if errSet := d.Set("system_disk", cloudDiskStructIntoMap([]vm.InstanceDiskAttachment{vmInstanceDetail.Result.Instance.SystemDisk})); err != nil {
+	if errSet := d.Set("system_disk", sysDiskStructIntoMap(vmInstanceDetail.Result.Instance.SystemDisk)); err != nil {
 		return fmt.Errorf("[ERROR] Failed in setting system_disk, reasons:%s", errSet.Error())
 	}
 
@@ -723,8 +813,11 @@ func resourceJDCloudInstanceUpdate(d *schema.ResourceData, m interface{}) error 
 
 	if d.HasChange("password") {
 		// Stop VM
-		if err := StopVmInstance(d, m); err != nil {
+		if err := StopVmInstance(d, m, d.Id()); err != nil {
 			return fmt.Errorf("stop instance got error:%s", err)
+		}
+		if err := instanceStatusWaiter(d, m, d.Id(), []string{VM_RUNNING, VM_STOPPING}, []string{VM_STOPPED, VM_STOPPED_2}); err != nil {
+			return fmt.Errorf("stop instance got error(2):%s", err)
 		}
 
 		//  Modify password
@@ -754,23 +847,19 @@ func resourceJDCloudInstanceUpdate(d *schema.ResourceData, m interface{}) error 
 func resourceJDCloudInstanceDelete(d *schema.ResourceData, m interface{}) error {
 
 	// Stop VM
-	err := StopVmInstance(d, m)
+	err := StopVmInstance(d, m, d.Id())
 	if err != nil {
 		return fmt.Errorf("stop instance got error:%s", err)
 	}
 
+	// Wait until stopped
+	err = instanceStatusWaiter(d, m, d.Id(), []string{VM_RUNNING, VM_STOPPING}, []string{VM_STOPPED, VM_STOPPED_2})
+	if err != nil {
+		return err
+	}
+
 	// Delete VM
-	err = resource.Retry(time.Minute, func() *resource.RetryError {
-		resp, err := DeleteVmInstance(d, m)
-		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
-			return nil
-		}
-		if connectionError(err) {
-			return resource.RetryableError(formatConnectionErrorMessage())
-		} else {
-			return resource.NonRetryableError(formatErrorMessage(resp.Error, err))
-		}
-	})
+	err = DeleteVmInstance(d, m, d.Id())
 	if err != nil {
 		return err
 	}

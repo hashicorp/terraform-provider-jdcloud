@@ -13,26 +13,28 @@ import (
 	TestCase : 1-[Pass].common stuff only. Not yet found any tricky point requires extra attention
 */
 
-const TestAccRouteTableConfigMin = `
+var TestAccRouteTableConfigMin = fmt.Sprintf(`
 resource "jdcloud_route_table" "route-table-TEST-1"{
 	route_table_name = "route_table_test"
-	vpc_id = "vpc-npvvk4wr5j"
+	vpc_id = "%s"
 }
-`
-const TestAccRouteTableConfig = `
+`, packer_vpc)
+
+var TestAccRouteTableConfig = fmt.Sprintf(`
 resource "jdcloud_route_table" "route-table-TEST-1"{
 	route_table_name = "route_table_test"
-	vpc_id = "vpc-npvvk4wr5j"
+	vpc_id = "%s"
 	description = "test"
 }
-`
-const TestAccRouteTableConfigUpdate = `
+`, packer_vpc)
+
+var TestAccRouteTableConfigUpdate = fmt.Sprintf(`
 resource "jdcloud_route_table" "route-table-TEST-1"{
 	route_table_name = "route_table_test2"
-	vpc_id = "vpc-npvvk4wr5j"
+	vpc_id = "%s"
 	description = "test with a different name"
 }
-`
+`, packer_vpc)
 
 func TestAccJDCloudRouteTable_basic(t *testing.T) {
 
@@ -49,7 +51,7 @@ func TestAccJDCloudRouteTable_basic(t *testing.T) {
 
 					testAccIfRouteTableExists("jdcloud_route_table.route-table-TEST-1", &routeTableId),
 					resource.TestCheckResourceAttr("jdcloud_route_table.route-table-TEST-1", "route_table_name", "route_table_test"),
-					resource.TestCheckResourceAttr("jdcloud_route_table.route-table-TEST-1", "vpc_id", "vpc-npvvk4wr5j"),
+					resource.TestCheckResourceAttr("jdcloud_route_table.route-table-TEST-1", "vpc_id", packer_vpc),
 					resource.TestCheckResourceAttr("jdcloud_route_table.route-table-TEST-1", "description", ""),
 				),
 			},
@@ -59,7 +61,7 @@ func TestAccJDCloudRouteTable_basic(t *testing.T) {
 
 					testAccIfRouteTableExists("jdcloud_route_table.route-table-TEST-1", &routeTableId),
 					resource.TestCheckResourceAttr("jdcloud_route_table.route-table-TEST-1", "route_table_name", "route_table_test"),
-					resource.TestCheckResourceAttr("jdcloud_route_table.route-table-TEST-1", "vpc_id", "vpc-npvvk4wr5j"),
+					resource.TestCheckResourceAttr("jdcloud_route_table.route-table-TEST-1", "vpc_id", packer_vpc),
 					resource.TestCheckResourceAttr("jdcloud_route_table.route-table-TEST-1", "description", "test"),
 				),
 			},
@@ -69,7 +71,7 @@ func TestAccJDCloudRouteTable_basic(t *testing.T) {
 
 					testAccIfRouteTableExists("jdcloud_route_table.route-table-TEST-1", &routeTableId),
 					resource.TestCheckResourceAttr("jdcloud_route_table.route-table-TEST-1", "route_table_name", "route_table_test2"),
-					resource.TestCheckResourceAttr("jdcloud_route_table.route-table-TEST-1", "vpc_id", "vpc-npvvk4wr5j"),
+					resource.TestCheckResourceAttr("jdcloud_route_table.route-table-TEST-1", "vpc_id", packer_vpc),
 					resource.TestCheckResourceAttr("jdcloud_route_table.route-table-TEST-1", "description", "test with a different name"),
 				),
 			},

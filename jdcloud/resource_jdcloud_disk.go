@@ -26,7 +26,7 @@ func diskStatusRefreshFunc(d *schema.ResourceData, meta interface{}, diskId stri
 
 			resp, err := c.DescribeDisk(req)
 
-			if err == nil && resp.Error.Code == REQUEST_COMPLETED {
+			if err == nil && resp.Error.Code == REQUEST_COMPLETED && resp.Result.Disk.Charge.ChargeMode != "" {
 				diskState = resp.Result.Disk.Status
 				diskItem = resp.Result.Disk
 				return nil

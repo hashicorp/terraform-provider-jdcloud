@@ -27,19 +27,19 @@ type UpdateAgRequest struct {
     /* 地域  */
     RegionId string `json:"regionId"`
 
-    /* 可用组 ID  */
+    /* 高可用组 ID  */
     AgId string `json:"agId"`
 
-    /*  (Optional) */
+    /* 描述，长度不超过 256 字符 (Optional) */
     Description *string `json:"description"`
 
-    /*  (Optional) */
+    /* 高可用组名称，只支持中文、数字、大小写字母、英文下划线 “_” 及中划线 “-”，且不能超过 32 字符 (Optional) */
     Name *string `json:"name"`
 }
 
 /*
  * param regionId: 地域 (Required)
- * param agId: 可用组 ID (Required)
+ * param agId: 高可用组 ID (Required)
  *
  * @Deprecated, not compatible when mandatory parameters changed
  */
@@ -62,9 +62,9 @@ func NewUpdateAgRequest(
 
 /*
  * param regionId: 地域 (Required)
- * param agId: 可用组 ID (Required)
- * param description:  (Optional)
- * param name:  (Optional)
+ * param agId: 高可用组 ID (Required)
+ * param description: 描述，长度不超过 256 字符 (Optional)
+ * param name: 高可用组名称，只支持中文、数字、大小写字母、英文下划线 “_” 及中划线 “-”，且不能超过 32 字符 (Optional)
  */
 func NewUpdateAgRequestWithAllParams(
     regionId string,
@@ -105,17 +105,17 @@ func (r *UpdateAgRequest) SetRegionId(regionId string) {
     r.RegionId = regionId
 }
 
-/* param agId: 可用组 ID(Required) */
+/* param agId: 高可用组 ID(Required) */
 func (r *UpdateAgRequest) SetAgId(agId string) {
     r.AgId = agId
 }
 
-/* param description: (Optional) */
+/* param description: 描述，长度不超过 256 字符(Optional) */
 func (r *UpdateAgRequest) SetDescription(description string) {
     r.Description = &description
 }
 
-/* param name: (Optional) */
+/* param name: 高可用组名称，只支持中文、数字、大小写字母、英文下划线 “_” 及中划线 “-”，且不能超过 32 字符(Optional) */
 func (r *UpdateAgRequest) SetName(name string) {
     r.Name = &name
 }

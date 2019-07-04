@@ -15,10 +15,14 @@ import (
 
 const TestAccEIPAssociationConfig = `
 resource "jdcloud_eip_association" "terraform-eip-association"{
-	instance_id = "i-g6xse7qb0z"
-	elastic_ip_id = "fip-iqu6kxgjuj"
+	instance_id = "%s"
+	elastic_ip_id = "%s"
 }
 `
+
+func generateEIP() string {
+	return fmt.Sprintf(TestAccEIPAssociationConfig, packer_instance, packer_eip)
+}
 
 func TestAccJDCloudEIPAssociation_basic(t *testing.T) {
 
@@ -28,16 +32,16 @@ func TestAccJDCloudEIPAssociation_basic(t *testing.T) {
 		CheckDestroy: testAccDiskEIPAssociationDestroy("jdcloud_eip_association.terraform-eip-association"),
 		Steps: []resource.TestStep{
 			{
-				Config: TestAccEIPAssociationConfig,
+				Config: generateEIP(),
 				Check: resource.ComposeTestCheckFunc(
 
 					// Assigned values
 					testAccIfEIPAssociationExists(
 						"jdcloud_eip_association.terraform-eip-association"),
 					resource.TestCheckResourceAttr(
-						"jdcloud_eip_association.terraform-eip-association", "elastic_ip_id", "fip-iqu6kxgjuj"),
+						"jdcloud_eip_association.terraform-eip-association", "elastic_ip_id", packer_eip),
 					resource.TestCheckResourceAttr(
-						"jdcloud_eip_association.terraform-eip-association", "instance_id", "i-g6xse7qb0z"),
+						"jdcloud_eip_association.terraform-eip-association", "instance_id", packer_instance),
 				),
 			},
 		},

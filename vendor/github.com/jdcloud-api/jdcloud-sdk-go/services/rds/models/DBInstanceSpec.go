@@ -20,7 +20,7 @@ import charge "github.com/jdcloud-api/jdcloud-sdk-go/services/charge/models"
 
 type DBInstanceSpec struct {
 
-    /* 实例名，具体规则可参见帮助中心文档:[名称及密码限制](../../../documentation/Cloud-Database-and-Cache/RDS/Introduction/Restrictions/SQLServer-Restrictions.md) (Optional) */
+    /* 实例名，具体规则可参见帮助中心文档:[名称及密码限制](../../../documentation/Database-and-Cache-Service/RDS/Introduction/Restrictions/SQLServer-Restrictions.md) (Optional) */
     InstanceName *string `json:"instanceName"`
 
     /* 实例引擎类型，参见[枚举参数定义](../Enum-Definitions/Enum-Definitions.md)  */
@@ -29,7 +29,7 @@ type DBInstanceSpec struct {
     /* 实例引擎版本，参见[枚举参数定义](../Enum-Definitions/Enum-Definitions.md)  */
     EngineVersion string `json:"engineVersion"`
 
-    /* 实例规格代码，可以通过[describeInstanceClasses](../instance/describeInstanceClasses.md)接口获取  */
+    /* 实例规格代码，可以查看文档[MySQL 实例规格](../Instance-Specifications/Instance-Specifications-MySQL.md)、[SQL Server实例规格](../Instance-Specifications/Instance-Specifications-SQLServer.md)  */
     InstanceClass string `json:"instanceClass"`
 
     /* 磁盘大小，单位GB  */
@@ -44,6 +44,18 @@ type DBInstanceSpec struct {
     /* 子网ID  */
     SubnetId string `json:"subnetId"`
 
+    /* 参数组ID, 缺省系统会创建一个默认参数组<br>- 仅支持MySQL (Optional) */
+    ParameterGroup *string `json:"parameterGroup"`
+
     /* 计费规格，包括计费类型，计费周期等  */
     ChargeSpec *charge.ChargeSpec `json:"chargeSpec"`
+
+    /* 存储类型，参见[枚举参数定义](../Enum-Definitions/Enum-Definitions.md), 缺省值为：LOCAL_SSD<br>- 仅支持MySQL (Optional) */
+    InstanceStorageType *string `json:"instanceStorageType"`
+
+    /* 实例数据加密(存储类型为云硬盘才支持数据加密)。false：不加密，true：加密，缺省为false<br>- 仅支持MySQL (Optional) */
+    StorageEncrypted *bool `json:"storageEncrypted"`
+
+    /* 实例的高可用架构。standalone：单机，cluster：主备双机架构，缺省为cluster<br>- 仅支持SQL Server (Optional) */
+    InstanceType *string `json:"instanceType"`
 }
