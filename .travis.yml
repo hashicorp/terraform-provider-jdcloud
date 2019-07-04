@@ -15,7 +15,6 @@ install:
 - go get github.com/kardianos/govendor
 
 script:
-- cd ../.. && mv jdclouddevelopers terraform-providers && cd terraform-providers/terraform-provider-jdcloud
 - make test
 - make vendor-status
 - make vet
