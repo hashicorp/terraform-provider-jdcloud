@@ -17,7 +17,7 @@ const packer_image = "img-m82soo3mes"
 const packer_sg = "sg-s0ardxmz3a"
 const packer_sgs = `["sg-s0ardxmz3a","sg-js9if78wqp"]`
 const packer_template = "it-kn5ok4o4hi"
-const packer_ag = "ag-tbf1g08av8"
+const packer_ag = "ag-6mtp6pa11v"
 const packer_instance = "i-8yi4jyr273"
 const packer_disk = "vol-9dya7e5rdi"
 const packer_disk2 = "vol-qm7t7q7pmk"
@@ -26,6 +26,7 @@ const packer_eip2 = "fip-bjvpenb8ux"
 const packer_interface = "port-2phhnk57rw"
 const packer_rds = "mysql-155pjskhpy"
 const packer_route = "rtb-jgso5x1ein"
+const packer_route_association = "rtb-elbnrrw3tu"
 
 func init() {
 	testAccProvider = Provider()

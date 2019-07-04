@@ -34,7 +34,6 @@ func TestAccJDCloudNetworkInterfaceAttachment_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 
 					testAccIfNetworkInterfaceAttachmentExists("jdcloud_network_interface_attachment.attachment-TEST-1", &networkInterfaceId),
-					resource.TestCheckResourceAttr("jdcloud_network_interface_attachment.attachment-TEST-1", "instance_id", packer_instance),
 					resource.TestCheckResourceAttr("jdcloud_network_interface_attachment.attachment-TEST-1", "network_interface_id", packer_interface),
 
 					// auto_delete shouldn't be here since they were not set in resource_XYZ_Read

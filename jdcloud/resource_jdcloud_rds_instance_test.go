@@ -76,40 +76,6 @@ func TestAccJDCloudRDSInstance_basic(t *testing.T) {
 						"jdcloud_rds_instance.tftest", "connection_mode"),
 				),
 			},
-			{
-				Config: generateRDSConfig("db.mysql.s1.medium", "100"),
-				Check: resource.ComposeTestCheckFunc(
-					testAccIfRDSInstanceExists("jdcloud_rds_instance.tftest", &rdsId),
-					resource.TestCheckResourceAttr(
-						"jdcloud_rds_instance.tftest", "instance_name", "tftesting_name"),
-					resource.TestCheckResourceAttr(
-						"jdcloud_rds_instance.tftest", "engine", "MySQL"),
-					resource.TestCheckResourceAttr(
-						"jdcloud_rds_instance.tftest", "engine_version", "5.7"),
-					resource.TestCheckResourceAttr(
-						"jdcloud_rds_instance.tftest", "instance_class", "db.mysql.s1.medium"),
-					resource.TestCheckResourceAttr(
-						"jdcloud_rds_instance.tftest", "instance_storage_gb", "100"),
-					resource.TestCheckResourceAttr(
-						"jdcloud_rds_instance.tftest", "az", "cn-north-1a"),
-					resource.TestCheckResourceAttr(
-						"jdcloud_rds_instance.tftest", "vpc_id", packer_vpc),
-					resource.TestCheckResourceAttr(
-						"jdcloud_rds_instance.tftest", "subnet_id", packer_subnet),
-					resource.TestCheckResourceAttr(
-						"jdcloud_rds_instance.tftest", "charge_mode", "postpaid_by_duration"),
-					resource.TestCheckResourceAttr(
-						"jdcloud_rds_instance.tftest", "charge_unit", "month"),
-					resource.TestCheckResourceAttr(
-						"jdcloud_rds_instance.tftest", "charge_duration", "1"),
-					resource.TestCheckResourceAttrSet(
-						"jdcloud_rds_instance.tftest", "internal_domain_name"),
-					resource.TestCheckResourceAttrSet(
-						"jdcloud_rds_instance.tftest", "instance_port"),
-					resource.TestCheckResourceAttrSet(
-						"jdcloud_rds_instance.tftest", "connection_mode"),
-				),
-			},
 		},
 	})
 }

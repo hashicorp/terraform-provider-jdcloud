@@ -30,6 +30,7 @@ resource "jdcloud_disk" "terraform_dt_nc" {
   description  = "%s"
   disk_type    = "ssd"
   disk_size_gb = %s
+  charge_mode  = "postpaid_by_duration"
 }
 `
 )
@@ -44,8 +45,6 @@ func TestAccJDCloudDisk_default_charge_mode(t *testing.T) {
 	var diskId string
 	name1 := randomStringWithLength(10)
 	des1 := randomStringWithLength(20)
-	name2 := randomStringWithLength(10)
-	des2 := randomStringWithLength(20)
 	randSize := strconv.Itoa((rand.Intn(10) + 5) * 10)
 
 	resource.Test(t, resource.TestCase{
@@ -58,7 +57,6 @@ func TestAccJDCloudDisk_default_charge_mode(t *testing.T) {
 			{
 				Config: generateDiskConfigNoChargeMode(name1, des1, randSize),
 				Check: resource.ComposeTestCheckFunc(
-
 					// Assigned values
 					testAccIfDiskExists("jdcloud_disk.terraform_dt_nc", &diskId),
 					resource.TestCheckResourceAttr(
@@ -75,48 +73,6 @@ func TestAccJDCloudDisk_default_charge_mode(t *testing.T) {
 					// After resource_XYZ_Read these value will be set to a certain value
 					resource.TestCheckResourceAttr(
 						"jdcloud_disk.terraform_dt_nc", "snapshot_id", ""),
-
-					// These values not supposed to exists after resource_XYZ_Read
-					resource.TestCheckResourceAttrSet(
-						"jdcloud_disk.terraform_dt_nc", "charge_mode"),
-					resource.TestCheckNoResourceAttr(
-						"jdcloud_disk.terraform_dt_nc", "charge_duration"),
-					resource.TestCheckNoResourceAttr(
-						"jdcloud_disk.terraform_dt_nc", "charge_unit"),
-				),
-			},
-			{
-				Config: generateDiskConfigNoChargeMode(name2, des2, randSize),
-				Check: resource.ComposeTestCheckFunc(
-
-					// Assigned values
-					testAccIfDiskExists("jdcloud_disk.terraform_dt_nc", &diskId),
-					resource.TestCheckResourceAttr(
-						"jdcloud_disk.terraform_dt_nc", "az", "cn-north-1a"),
-					resource.TestCheckResourceAttr(
-						"jdcloud_disk.terraform_dt_nc", "name", name2),
-					resource.TestCheckResourceAttr(
-						"jdcloud_disk.terraform_dt_nc", "description", des2),
-					resource.TestCheckResourceAttr(
-						"jdcloud_disk.terraform_dt_nc", "disk_type", "ssd"),
-					resource.TestCheckResourceAttr(
-						"jdcloud_disk.terraform_dt_nc", "disk_size_gb", randSize),
-					resource.TestCheckResourceAttr(
-						"jdcloud_disk.terraform_dt_nc", "charge_mode", "postpaid_by_duration"),
-
-					// After resource_XYZ_Read these value will be set to a certain value
-					resource.TestCheckResourceAttrSet(
-						"jdcloud_disk.terraform_dt_nc", "charge_mode"),
-					resource.TestCheckResourceAttr(
-						"jdcloud_disk.terraform_dt_nc", "charge_mode", "postpaid_by_duration"),
-					resource.TestCheckResourceAttr(
-						"jdcloud_disk.terraform_dt_nc", "snapshot_id", ""),
-
-					// These values not supposed to exists after resource_XYZ_Read
-					resource.TestCheckNoResourceAttr(
-						"jdcloud_disk.terraform_dt_nc", "charge_duration"),
-					resource.TestCheckNoResourceAttr(
-						"jdcloud_disk.terraform_dt_nc", "charge_unit"),
 				),
 			},
 			{

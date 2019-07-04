@@ -73,7 +73,7 @@ func QueryInstanceDetail(d *schema.ResourceData, m interface{}, instanceId strin
 			return nil
 		}
 
-		if resp.Error.Code == RESOURCE_NOT_FOUND {
+		if resp != nil && resp.Error.Code == RESOURCE_NOT_FOUND {
 			resp.Result.Instance.Status = VM_DELETED
 			r = resp
 			return nil
@@ -259,7 +259,7 @@ func instanceStatusWaiter(d *schema.ResourceData, meta interface{}, id string, p
 		Target:     target,
 		Refresh:    instanceStatusRefreshFunc(d, meta, id),
 		Delay:      3 * time.Second,
-		Timeout:    3 * time.Minute,
+		Timeout:    10 * time.Minute,
 		MinTimeout: 1 * time.Second,
 	}
 	if _, err = stateConf.WaitForState(); err != nil {

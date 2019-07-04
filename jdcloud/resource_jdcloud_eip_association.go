@@ -51,6 +51,11 @@ func resourceAssociateElasticIpCreate(d *schema.ResourceData, meta interface{}) 
 			return nil
 		}
 
+		if resp != nil && resp.Error.Code == REQUEST_INVALID && resp.Error.Status == "FAILED_PRECONDITION" {
+			d.SetId(resp.RequestID)
+			return nil
+		}
+
 		if connectionError(err) {
 			return resource.RetryableError(formatConnectionErrorMessage())
 		} else {

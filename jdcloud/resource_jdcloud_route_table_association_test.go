@@ -19,7 +19,7 @@ resource "jdcloud_route_table_association" "route-table-association-TEST-1"{
 	route_table_id = "%s"
 	subnet_id = ["%s"]
 }
-`, packer_route, packer_subnet)
+`, packer_route_association, packer_subnet)
 
 func TestAccJDCloudRouteTableAssociation_basic(t *testing.T) {
 
@@ -34,7 +34,7 @@ func TestAccJDCloudRouteTableAssociation_basic(t *testing.T) {
 				Config: TestAccRouteTableAssociationConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccIfRouteTableAssociationExists("jdcloud_route_table_association.route-table-association-TEST-1", &routeTableId),
-					resource.TestCheckResourceAttr("jdcloud_route_table_association.route-table-association-TEST-1", "route_table_id", "rtb-jgso5x1ein"),
+					resource.TestCheckResourceAttr("jdcloud_route_table_association.route-table-association-TEST-1", "route_table_id", packer_route_association),
 					resource.TestCheckResourceAttr("jdcloud_route_table_association.route-table-association-TEST-1", "subnet_id.#", "1"),
 				),
 			},
@@ -81,7 +81,7 @@ func testAccRouteTableAssociationDestroy(routeTableId *string) resource.TestChec
 
 		//  routeTableId is not supposed to be empty
 		if *routeTableId == "" {
-			return fmt.Errorf("[ERROR] testAccRouteTableAssociationDestroy Failed,route Table Id appears to be empty")
+			return nil
 		}
 
 		routeTableConfig := testAccProvider.Meta().(*JDCloudConfig)
