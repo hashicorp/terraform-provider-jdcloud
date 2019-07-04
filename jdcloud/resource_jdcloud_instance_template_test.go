@@ -36,7 +36,7 @@ resource "jdcloud_instance_template" "instance_template" {
 `
 
 func generateInstanceTemplate(name string) string {
-	return fmt.Sprintf(TestAccInstanceTemplateTemplate, name,packer_image,packer_subnet,packer_sg)
+	return fmt.Sprintf(TestAccInstanceTemplateTemplate, name, packer_image, packer_subnet, packer_sg)
 }
 
 func TestAccJDCloudInstanceTemplate_basic(t *testing.T) {
@@ -104,7 +104,7 @@ resource "jdcloud_instance_template" "instance_template_md" {
 `
 
 func instanceTemplateMD(name string) string {
-	return fmt.Sprintf(TestAccInstanceTemplateMultipleDisk, name,packer_image,packer_subnet,packer_sg)
+	return fmt.Sprintf(TestAccInstanceTemplateMultipleDisk, name, packer_image, packer_subnet, packer_sg)
 }
 
 func TestAccJDCloudInstanceTemplate_MultipleDisk(t *testing.T) {
@@ -197,11 +197,9 @@ resource "jdcloud_instance_template" "instance_template_bandwidth" {
 }
 `
 
-
 func instanceTemplateBandwidth(name string) string {
-	return fmt.Sprintf(TestAccInstanceTemplateBandwidth, name,packer_image,packer_subnet,packer_sg)
+	return fmt.Sprintf(TestAccInstanceTemplateBandwidth, name, packer_image, packer_subnet, packer_sg)
 }
-
 
 func TestAccJDCloudInstanceTemplate_Bandwidth(t *testing.T) {
 

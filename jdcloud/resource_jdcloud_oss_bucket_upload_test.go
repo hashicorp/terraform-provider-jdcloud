@@ -17,7 +17,7 @@ import (
 const TestAccOssFileConfig = `
 resource "jdcloud_oss_bucket_upload" "devops" {
   bucket_name = "tffff"
-  file_name = "/home/liangxiaohan/hello.cpp"
+  file_name = "/Users/mac/hello.cpp"
 }`
 
 func TestAccJDCloudOssFile_basic(t *testing.T) {
@@ -34,7 +34,7 @@ func TestAccJDCloudOssFile_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccIfOssFileExists("jdcloud_oss_bucket_upload.devops", &id, &fileName),
 					resource.TestCheckResourceAttr("jdcloud_oss_bucket_upload.devops", "bucket_name", "tffff"),
-					resource.TestCheckResourceAttr("jdcloud_oss_bucket_upload.devops", "file_name", "/home/liangxiaohan/hello.cpp"),
+					resource.TestCheckResourceAttr("jdcloud_oss_bucket_upload.devops", "file_name", "/Users/mac/hello.cpp"),
 					resource.TestCheckResourceAttrSet("jdcloud_oss_bucket_upload.devops", "remote_location"),
 				),
 			},

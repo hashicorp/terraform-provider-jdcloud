@@ -133,6 +133,10 @@ func StopVmInstance(d *schema.ResourceData, m interface{}, instanceId string) er
 			return nil
 		}
 
+		if resp.Error.Code == 400 && resp.Error.Status == "FAILED_PRECONDITION" {
+			return resource.RetryableError(fmt.Errorf("Conflict with underlay task"))
+		}
+
 		if connectionError(err) {
 			return resource.RetryableError(formatConnectionErrorMessage())
 		} else {
@@ -185,6 +189,11 @@ func DeleteVmInstance(d *schema.ResourceData, m interface{}, id string) error {
 		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
 			return nil
 		}
+
+		if resp != nil && resp.Error.Code == REQUEST_INVALID_2 && resp.Error.Status == "PERMISSION_DENIED" {
+			return resource.RetryableError(fmt.Errorf("Can't delete no charged resource"))
+		}
+
 		if connectionError(err) {
 			return resource.RetryableError(formatConnectionErrorMessage())
 		} else {

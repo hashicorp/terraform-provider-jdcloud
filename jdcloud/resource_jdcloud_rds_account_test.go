@@ -15,11 +15,15 @@ import (
 
 const TestAccRDSAccountConfig = `
 resource "jdcloud_rds_account" "rds-test1"{
-  instance_id = "mysql-155pjskhpy"
+  instance_id = "%s"
   username = "DevOps"
   password = "DevOps2018"
 }
 `
+
+func generateRDSAccount() string {
+	return fmt.Sprintf(TestAccRDSAccountConfig, packer_rds)
+}
 
 func TestAccJDCloudRDSAccount_basic(t *testing.T) {
 
@@ -29,11 +33,11 @@ func TestAccJDCloudRDSAccount_basic(t *testing.T) {
 		CheckDestroy: testAccRDSAccountDestroy("jdcloud_rds_account.rds-test1"),
 		Steps: []resource.TestStep{
 			{
-				Config: TestAccRDSAccountConfig,
+				Config: generateRDSAccount(),
 				Check: resource.ComposeTestCheckFunc(
 
 					testAccIfRDSAccountExists("jdcloud_rds_account.rds-test1"),
-					resource.TestCheckResourceAttr("jdcloud_rds_account.rds-test1", "instance_id", "mysql-155pjskhpy"),
+					resource.TestCheckResourceAttr("jdcloud_rds_account.rds-test1", "instance_id", packer_rds),
 					resource.TestCheckResourceAttr("jdcloud_rds_account.rds-test1", "username", "DevOps"),
 					resource.TestCheckResourceAttr("jdcloud_rds_account.rds-test1", "password", "DevOps2018"),
 				),

@@ -126,6 +126,7 @@ github.com/hashicorp/logutils
 # github.com/hashicorp/terraform v0.12.0
 github.com/hashicorp/terraform/plugin
 github.com/hashicorp/terraform/terraform
+github.com/hashicorp/terraform/helper/customdiff
 github.com/hashicorp/terraform/helper/resource
 github.com/hashicorp/terraform/helper/schema
 github.com/hashicorp/terraform/configs/configschema
@@ -173,7 +174,7 @@ github.com/hashicorp/terraform/svchost/auth
 github.com/hashicorp/terraform-config-inspect/tfconfig
 # github.com/hashicorp/yamux v0.0.0-20180604194846-3520598351bb
 github.com/hashicorp/yamux
-# github.com/jdcloud-api/jdcloud-sdk-go v1.9.0
+# github.com/jdcloud-api/jdcloud-sdk-go v1.9.0 => /go/src/github.com/jdcloud-sdk-go-fake
 github.com/jdcloud-api/jdcloud-sdk-go/core
 github.com/jdcloud-api/jdcloud-sdk-go/services/ag/apis
 github.com/jdcloud-api/jdcloud-sdk-go/services/ag/client
@@ -218,8 +219,6 @@ github.com/mitchellh/mapstructure
 github.com/mitchellh/reflectwalk
 # github.com/oklog/run v1.0.0
 github.com/oklog/run
-# github.com/pkg/errors v0.8.1
-github.com/pkg/errors
 # github.com/posener/complete v1.2.1
 github.com/posener/complete
 github.com/posener/complete/cmd/install

@@ -36,6 +36,7 @@ const (
 	RESOURCE_EMPTY     = 0
 	RESOURCE_NOT_FOUND = 404
 	REQUEST_INVALID    = 400
+	REQUEST_INVALID_2  = 403
 
 	MAX_DISK_COUNT          = 1
 	DISK_AVAILABLE          = "available"

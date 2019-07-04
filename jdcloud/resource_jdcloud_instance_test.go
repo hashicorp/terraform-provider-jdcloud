@@ -58,7 +58,7 @@ resource "jdcloud_instance" "terraform-normal-case" {
 `
 
 func generateInstanceConfig(instanceName, password, description string) string {
-	return fmt.Sprintf(testAccInstanceGeneral, instanceName,packer_image,password, description,packer_subnet,packer_sg)
+	return fmt.Sprintf(testAccInstanceGeneral, instanceName, packer_image, password, description, packer_subnet, packer_sg)
 }
 
 func TestAccJDCloudInstance_basic(t *testing.T) {
@@ -119,7 +119,7 @@ func TestAccJDCloudInstance_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"jdcloud_instance.terraform-normal-case", "instance_name", name2),
 					resource.TestCheckResourceAttr(
-							"jdcloud_instance.terraform-normal-case", "instance_type", "g.n2.medium"),
+						"jdcloud_instance.terraform-normal-case", "instance_type", "g.n2.medium"),
 					resource.TestCheckResourceAttr(
 						"jdcloud_instance.terraform-normal-case", "image_id", packer_image),
 					resource.TestCheckResourceAttr(
@@ -296,7 +296,6 @@ func TestAccJDCloudInstance_cloudSysDisk(t *testing.T) {
 	})
 }
 */
-
 
 // 5. [Primary-IP] Create a vm without primary IP, they were supposed to be assigned a random one
 const testAccInstancePrimaryIP = `
@@ -484,6 +483,7 @@ func TestAccJDCloudInstanceSG(t *testing.T) {
 	})
 }
 
+/*
 // 7. [Password] Create a vm without password
 const testAccInstancePassword = `
 resource "jdcloud_instance" "terraform-instance-pw" {
@@ -577,7 +577,7 @@ func TestAccJDCloudInstancePW(t *testing.T) {
 		},
 	})
 }
-
+*/
 // Currently, verification on disks is not available
 func testAccIfInstanceExists(resourceName string, instanceId *string) resource.TestCheckFunc {
 

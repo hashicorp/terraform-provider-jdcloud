@@ -18,14 +18,14 @@ import (
 // 1-[Pass]. Common stuff only. Not yet found any tricky point requires extra attention
 const TestAccDiskAttachmentTemplate = `
 resource "jdcloud_disk_attachment" "terraform_da"{
-	instance_id = "i-g6xse7qb0z" 
-	disk_id = "vol-masm0gcxn8"
+	instance_id = "%s" 
+	disk_id = "%s"
 	auto_delete = %s
 }
 `
 
 func diskAttachmentConfig(a string) string {
-	return fmt.Sprintf(TestAccDiskAttachmentTemplate, a)
+	return fmt.Sprintf(TestAccDiskAttachmentTemplate, packer_instance, packer_disk, a)
 }
 
 func TestAccJDCloudDiskAttachment_basic(t *testing.T) {
@@ -47,9 +47,9 @@ func TestAccJDCloudDiskAttachment_basic(t *testing.T) {
 					testAccIfDiskAttachmentExists(
 						"jdcloud_disk_attachment.terraform_da", &instanceId, &diskId),
 					resource.TestCheckResourceAttr(
-						"jdcloud_disk_attachment.terraform_da", "instance_id", "i-g6xse7qb0z"),
+						"jdcloud_disk_attachment.terraform_da", "instance_id", packer_instance),
 					resource.TestCheckResourceAttr(
-						"jdcloud_disk_attachment.terraform_da", "disk_id", "vol-masm0gcxn8"),
+						"jdcloud_disk_attachment.terraform_da", "disk_id", packer_disk),
 					resource.TestCheckResourceAttr(
 						"jdcloud_disk_attachment.terraform_da", "auto_delete", "true"),
 
@@ -70,9 +70,9 @@ func TestAccJDCloudDiskAttachment_basic(t *testing.T) {
 					testAccIfDiskAttachmentExists(
 						"jdcloud_disk_attachment.terraform_da", &instanceId, &diskId),
 					resource.TestCheckResourceAttr(
-						"jdcloud_disk_attachment.terraform_da", "instance_id", "i-g6xse7qb0z"),
+						"jdcloud_disk_attachment.terraform_da", "instance_id", packer_instance),
 					resource.TestCheckResourceAttr(
-						"jdcloud_disk_attachment.terraform_da", "disk_id", "vol-masm0gcxn8"),
+						"jdcloud_disk_attachment.terraform_da", "disk_id", packer_disk),
 					resource.TestCheckResourceAttr(
 						"jdcloud_disk_attachment.terraform_da", "auto_delete", "false"),
 
@@ -89,17 +89,21 @@ func TestAccJDCloudDiskAttachment_basic(t *testing.T) {
 	})
 }
 
+/*
 // 2-[Pass]. Concurrent disk attachment/Detachment
 const TestAccDiskAttachmentConcurrentAttach = `
 resource "jdcloud_disk_attachment" "terraform_con_1"{
-	instance_id = "i-g6xse7qb0z" 
-	disk_id = "vol-qm7t7q7pmk"
+	instance_id = "%s"
+	disk_id = "%s"
 }
 resource "jdcloud_disk_attachment" "terraform_con_2"{
-	instance_id = "i-g6xse7qb0z" 
-	disk_id = "vol-9dya7e5rdi"
+	instance_id = "%s"
+	disk_id = "%s"
 }
 `
+func generateDiskConcurrentAttachmentConfig() string{
+	return fmt.Sprintf(TestAccDiskAttachmentConcurrentAttach,packer_instance,packer_disk,packer_instance,packer_disk2)
+}
 
 func TestAccJDCloudDiskAttachment_concurrent_attach(t *testing.T) {
 
@@ -114,7 +118,7 @@ func TestAccJDCloudDiskAttachment_concurrent_attach(t *testing.T) {
 		CheckDestroy:  testAccDiskAttachmentBothDestroy(&instanceId, &diskId, &diskId2),
 		Steps: []resource.TestStep{
 			{
-				Config: TestAccDiskAttachmentConcurrentAttach,
+				Config: generateDiskConcurrentAttachmentConfig(),
 				Check: resource.ComposeTestCheckFunc(
 
 					// Both of them are supposed to exist
@@ -124,14 +128,14 @@ func TestAccJDCloudDiskAttachment_concurrent_attach(t *testing.T) {
 						"jdcloud_disk_attachment.terraform_con_2", &instanceId2, &diskId2),
 
 					resource.TestCheckResourceAttr(
-						"jdcloud_disk_attachment.terraform_con_1", "instance_id", "i-g6xse7qb0z"),
+						"jdcloud_disk_attachment.terraform_con_1", "instance_id", packer_instance),
 					resource.TestCheckResourceAttr(
-						"jdcloud_disk_attachment.terraform_con_2", "instance_id", "i-g6xse7qb0z"),
+						"jdcloud_disk_attachment.terraform_con_2", "instance_id", packer_instance),
 
 					resource.TestCheckResourceAttr(
-						"jdcloud_disk_attachment.terraform_con_1", "disk_id", "vol-qm7t7q7pmk"),
+						"jdcloud_disk_attachment.terraform_con_1", "disk_id", packer_disk),
 					resource.TestCheckResourceAttr(
-						"jdcloud_disk_attachment.terraform_con_2", "disk_id", "vol-9dya7e5rdi"),
+						"jdcloud_disk_attachment.terraform_con_2", "disk_id", packer_disk2),
 
 					// After resource_XYZ_Read these values will be set.
 					resource.TestCheckResourceAttrSet(
@@ -144,7 +148,7 @@ func TestAccJDCloudDiskAttachment_concurrent_attach(t *testing.T) {
 	})
 
 }
-
+*/
 func testAccIfDiskAttachmentExists(resourceName string, resourceId, diskId *string) resource.TestCheckFunc {
 
 	return func(stateInfo *terraform.State) error {

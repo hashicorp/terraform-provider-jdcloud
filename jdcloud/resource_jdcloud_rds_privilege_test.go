@@ -16,24 +16,36 @@ import (
 
 const TestAccRDSPrivilegeConfig = `
 resource "jdcloud_rds_privilege" "pri-test" {
-  instance_id = "mysql-155pjskhpy"
+  instance_id = "%s"
   username = "jdcloudDevOps"
-  account_privilege = [
-    {db_name = "jdcloud2017",privilege = "rw"},
-    {db_name = "jdcloud2018",privilege = "rw"},
-    {db_name = "jdcloud2019",privilege = "ro"},
-  ]
+  account_privilege {
+	db_name = "jdcloud2017"
+	privilege = "rw"
+  }
+  account_privilege {
+	db_name = "jdcloud2018"
+	privilege = "rw"
+  }
+  account_privilege {
+	db_name = "jdcloud2019"
+	privilege = "ro"
+  }
 }
 `
 const TestAccRDSPrivilegeConfigUpdate = `
 resource "jdcloud_rds_privilege" "pri-test" {
   instance_id = "mysql-155pjskhpy"
   username = "jdcloudDevOps"
-  account_privilege = [
-    {db_name = "jdcloud2017",privilege = "rw"},
-  ]
+  account_privilege {
+	db_name = "jdcloud2017"
+	privilege = "rw"
+  }
 }
 `
+
+func generateRDSPriv(template string) string {
+	return fmt.Sprintf(template, packer_rds)
+}
 
 func TestAccJDCloudRDSPrivilege_basic(t *testing.T) {
 
@@ -43,10 +55,10 @@ func TestAccJDCloudRDSPrivilege_basic(t *testing.T) {
 		CheckDestroy: testAccRDSPrivilegeDestroy("jdcloud_rds_privilege.pri-test"),
 		Steps: []resource.TestStep{
 			{
-				Config: TestAccRDSPrivilegeConfig,
+				Config: generateRDSPriv(TestAccRDSPrivilegeConfig),
 				Check: resource.ComposeTestCheckFunc(
 					testAccIfRDSPrivilegeExists("jdcloud_rds_privilege.pri-test"),
-					resource.TestCheckResourceAttr("jdcloud_rds_privilege.pri-test", "instance_id", "mysql-155pjskhpy"),
+					resource.TestCheckResourceAttr("jdcloud_rds_privilege.pri-test", "instance_id", packer_rds),
 					resource.TestCheckResourceAttr("jdcloud_rds_privilege.pri-test", "username", "jdcloudDevOps"),
 					resource.TestCheckResourceAttr("jdcloud_rds_privilege.pri-test", "account_privilege.#", "3"),
 				),

@@ -12,42 +12,38 @@ import (
 
 const TestAccSecurityGroupRuleTemplate = `
 resource "jdcloud_network_security_group_rules" "sg-TEST-1" {
-  security_group_id = "sg-ym9yp1egi0"
-  security_group_rules = %s
+  security_group_id = "%s"
+  security_group_rules {
+      address_prefix = "1.2.0.0/16"
+      direction = "0"
+      from_port = "0"
+      protocol = "300"
+      to_port = "0"
+    }
 }
 `
-
-const commonSGRule = `
-  [{
-      address_prefix = "0.0.0.0/0"
+const TestAccSecurityGroupRuleTemplateMulti = `
+resource "jdcloud_network_security_group_rules" "sg-TEST-1" {
+  security_group_id ="%s"
+  security_group_rules {
+      address_prefix = "1.2.0.0/16"
       direction = "0"
       from_port = "0"
       protocol = "300"
       to_port = "0"
-    }]
-`
-const multipleSGRule = `
-[
-    {
-      address_prefix = "0.0.0.0/0"
-      direction = "0"
-      from_port = "0"
-      protocol = "300"
-      to_port = "0"
-    },
-    {
-      address_prefix = "0.0.0.0/0"
+    }
+  security_group_rules {
+      address_prefix = "4.3.0.0/16"
       direction = "1"
       from_port = "0"
       protocol = "300"
       to_port = "0"
-	  description = "TheGrandTour"
-    },
-  ]
+    }
+}
 `
 
-func generateSGRulesTemplate(c string) string {
-	return fmt.Sprintf(TestAccSecurityGroupRuleTemplate, c)
+func generateSGRulesTemplate(template string) string {
+	return fmt.Sprintf(template, packer_sg)
 }
 
 func TestAccJDCloudSecurityGroupRule_basic(t *testing.T) {
@@ -60,12 +56,12 @@ func TestAccJDCloudSecurityGroupRule_basic(t *testing.T) {
 		CheckDestroy: testAccCheckSecurityGroupRuleDestroy(&SecurityGroupRuleId),
 		Steps: []resource.TestStep{
 			{
-				Config: generateSGRulesTemplate(commonSGRule),
+				Config: generateSGRulesTemplate(TestAccSecurityGroupRuleTemplate),
 				Check: resource.ComposeTestCheckFunc(
 					testAccIfSecurityGroupRuleExists(
 						"jdcloud_network_security_group_rules.sg-TEST-1", &SecurityGroupRuleId),
 					resource.TestCheckResourceAttr(
-						"jdcloud_network_security_group_rules.sg-TEST-1", "security_group_id", "sg-ym9yp1egi0"),
+						"jdcloud_network_security_group_rules.sg-TEST-1", "security_group_id", packer_sg),
 
 					// Sg rules are arranged in TypeSet form, thus cannot find a way to inspect its detail
 					resource.TestCheckResourceAttr(
@@ -73,12 +69,12 @@ func TestAccJDCloudSecurityGroupRule_basic(t *testing.T) {
 				),
 			},
 			{
-				Config: generateSGRulesTemplate(multipleSGRule),
+				Config: generateSGRulesTemplate(TestAccSecurityGroupRuleTemplateMulti),
 				Check: resource.ComposeTestCheckFunc(
 					testAccIfSecurityGroupRuleExists(
 						"jdcloud_network_security_group_rules.sg-TEST-1", &SecurityGroupRuleId),
 					resource.TestCheckResourceAttr(
-						"jdcloud_network_security_group_rules.sg-TEST-1", "security_group_id", "sg-ym9yp1egi0"),
+						"jdcloud_network_security_group_rules.sg-TEST-1", "security_group_id", packer_sg),
 					resource.TestCheckResourceAttr(
 						"jdcloud_network_security_group_rules.sg-TEST-1", "security_group_rules.#", "2"),
 				),

@@ -11,10 +11,14 @@ import (
 
 const TestAccAclConfig = `
 resource "jdcloud_network_acl" "acl-test" {
-  vpc_id = "vpc-npvvk4wr5j",
-  name = "devops",
+  vpc_id = "%s"
+  name = "devops"
 }
 `
+
+func generateACL() string {
+	return fmt.Sprintf(TestAccAclConfig, packer_vpc)
+}
 
 func TestAccJDCloudAcl_basic(t *testing.T) {
 
@@ -26,10 +30,10 @@ func TestAccJDCloudAcl_basic(t *testing.T) {
 		CheckDestroy: testAccAclDestroy(&aclId),
 		Steps: []resource.TestStep{
 			{
-				Config: TestAccAclConfig,
+				Config: generateACL(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccIfAclExists("jdcloud_network_acl.acl-test", &aclId),
-					resource.TestCheckResourceAttr("jdcloud_network_acl.acl-test", "vpc_id", "vpc-npvvk4wr5j"),
+					resource.TestCheckResourceAttr("jdcloud_network_acl.acl-test", "vpc_id", packer_vpc),
 					resource.TestCheckResourceAttr("jdcloud_network_acl.acl-test", "name", "devops"),
 					resource.TestCheckResourceAttr("jdcloud_network_acl.acl-test", "description", ""),
 				),

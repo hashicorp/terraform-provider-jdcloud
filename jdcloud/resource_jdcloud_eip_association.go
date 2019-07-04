@@ -42,7 +42,7 @@ func resourceAssociateElasticIpCreate(d *schema.ResourceData, meta interface{}) 
 
 	vmClient := client.NewVmClient(config.Credential)
 	rq := apis.NewAssociateElasticIpRequest(config.Region, instanceID, elasticIpId)
-	err := resource.Retry(time.Minute, func() *resource.RetryError {
+	err := resource.Retry(3*time.Minute, func() *resource.RetryError {
 
 		resp, err := vmClient.AssociateElasticIp(rq)
 
@@ -72,7 +72,7 @@ func resourceAssociateElasticIpRead(d *schema.ResourceData, meta interface{}) er
 	c := vpcClient.NewVpcClient(config.Credential)
 	req := vpcApis.NewDescribeElasticIpRequest(config.Region, elasticIpId)
 
-	return resource.Retry(time.Minute, func() *resource.RetryError {
+	return resource.Retry(3*time.Minute, func() *resource.RetryError {
 		resp, err := c.DescribeElasticIp(req)
 		if err == nil && resp.Error.Code == REQUEST_COMPLETED {
 			d.Set("elastic_ip_id", resp.Result.ElasticIp.ElasticIpId)
@@ -101,7 +101,7 @@ func resourceAssociateElasticIpDelete(d *schema.ResourceData, meta interface{}) 
 	rq := apis.NewDisassociateElasticIpRequest(config.Region, instanceID, elasticIpId)
 	vmClient := client.NewVmClient(config.Credential)
 
-	return resource.Retry(time.Minute, func() *resource.RetryError {
+	return resource.Retry(3*time.Minute, func() *resource.RetryError {
 
 		resp, err := vmClient.DisassociateElasticIp(rq)
 

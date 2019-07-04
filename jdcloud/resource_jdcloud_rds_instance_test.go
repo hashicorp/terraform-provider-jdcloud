@@ -15,36 +15,25 @@ import (
 				   -> Rds Database doesn't support "postpaid_by_usage", you can only use postpaid_by_duration
 */
 
-const TestAccRDSInstanceConfig = `
+const TestAccRDSInstanceConfigTemplate = `
 resource "jdcloud_rds_instance" "tftest"{
   instance_name = "tftesting_name"
   engine = "MySQL"
   engine_version = "5.7"
-  instance_class = "db.mysql.s1.micro"
-  instance_storage_gb = "20"
+  instance_class = "%s"
+  instance_storage_gb = "%s"
   az = "cn-north-1a"
-  vpc_id = "vpc-npvvk4wr5j"
-  subnet_id = "subnet-j8jrei2981"
+  vpc_id = "%s"
+  subnet_id = "%s"
   charge_mode = "postpaid_by_duration"
   charge_unit = "month"
   charge_duration = "1"
 }
 `
-const TestAccRDSInstanceConfigUpdate = `
-resource "jdcloud_rds_instance" "tftest"{
-  instance_name = "tftesting_name"
-  engine = "MySQL"
-  engine_version = "5.7"
-  instance_class = "db.mysql.s1.medium"
-  instance_storage_gb = "100"
-  az = "cn-north-1a"
-  vpc_id = "vpc-npvvk4wr5j"
-  subnet_id = "subnet-j8jrei2981"
-  charge_mode = "postpaid_by_duration"
-  charge_unit = "month"
-  charge_duration = "1"
+
+func generateRDSConfig(class, size string) string {
+	return fmt.Sprintf(TestAccRDSInstanceConfigTemplate, class, size, packer_vpc, packer_subnet)
 }
-`
 
 func TestAccJDCloudRDSInstance_basic(t *testing.T) {
 	var rdsId string
@@ -54,7 +43,7 @@ func TestAccJDCloudRDSInstance_basic(t *testing.T) {
 		CheckDestroy: testAccRDSInstanceDestroy(&rdsId),
 		Steps: []resource.TestStep{
 			{
-				Config: TestAccRDSInstanceConfig,
+				Config: generateRDSConfig("db.mysql.s1.micro", "20"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccIfRDSInstanceExists("jdcloud_rds_instance.tftest", &rdsId),
 					resource.TestCheckResourceAttr(
@@ -70,9 +59,9 @@ func TestAccJDCloudRDSInstance_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"jdcloud_rds_instance.tftest", "az", "cn-north-1a"),
 					resource.TestCheckResourceAttr(
-						"jdcloud_rds_instance.tftest", "vpc_id", "vpc-npvvk4wr5j"),
+						"jdcloud_rds_instance.tftest", "vpc_id", packer_vpc),
 					resource.TestCheckResourceAttr(
-						"jdcloud_rds_instance.tftest", "subnet_id", "subnet-j8jrei2981"),
+						"jdcloud_rds_instance.tftest", "subnet_id", packer_subnet),
 					resource.TestCheckResourceAttr(
 						"jdcloud_rds_instance.tftest", "charge_mode", "postpaid_by_duration"),
 					resource.TestCheckResourceAttr(
@@ -88,7 +77,7 @@ func TestAccJDCloudRDSInstance_basic(t *testing.T) {
 				),
 			},
 			{
-				Config: TestAccRDSInstanceConfigUpdate,
+				Config: generateRDSConfig("db.mysql.s1.medium", "100"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccIfRDSInstanceExists("jdcloud_rds_instance.tftest", &rdsId),
 					resource.TestCheckResourceAttr(
@@ -104,9 +93,9 @@ func TestAccJDCloudRDSInstance_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"jdcloud_rds_instance.tftest", "az", "cn-north-1a"),
 					resource.TestCheckResourceAttr(
-						"jdcloud_rds_instance.tftest", "vpc_id", "vpc-npvvk4wr5j"),
+						"jdcloud_rds_instance.tftest", "vpc_id", packer_vpc),
 					resource.TestCheckResourceAttr(
-						"jdcloud_rds_instance.tftest", "subnet_id", "subnet-j8jrei2981"),
+						"jdcloud_rds_instance.tftest", "subnet_id", packer_subnet),
 					resource.TestCheckResourceAttr(
 						"jdcloud_rds_instance.tftest", "charge_mode", "postpaid_by_duration"),
 					resource.TestCheckResourceAttr(
@@ -124,76 +113,6 @@ func TestAccJDCloudRDSInstance_basic(t *testing.T) {
 		},
 	})
 }
-
-/*  Failed RDS database does not support postpaid_by_usage
-// [ChargeMode] Try to create one with "postpaid_by_usage", not quite sure if they are available
-const TestAccRDSInstanceConfigChargeMode = `
-resource "jdcloud_rds_instance" "terraform-rds"{
-  instance_name = "rdschargetest"
-  engine = "MySQL"
-  engine_version = "5.7"
-  instance_class = "db.mysql.s1.medium"
-  instance_storage_gb = "40"
-  az = "cn-north-1a"
-  vpc_id = "vpc-npvvk4wr5j"
-  subnet_id = "subnet-j8jrei2981"
-
-  charge_mode = "postpaid_by_usage"
-}
-`
-
-func TestAccJDCloudRDSInstance_ChargeMode(t *testing.T) {
-	var rdsId string
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccRDSInstanceDestroy(&rdsId),
-		Steps: []resource.TestStep{
-			{
-				Config: TestAccRDSInstanceConfigChargeMode,
-				Check: resource.ComposeTestCheckFunc(
-
-					// Assigned values
-					testAccIfRDSInstanceExists("jdcloud_rds_instance.terraform-rds", &rdsId),
-					resource.TestCheckResourceAttr(
-						"jdcloud_rds_instance.terraform-rds", "instance_name", "rdschargetest"),
-					resource.TestCheckResourceAttr(
-						"jdcloud_rds_instance.terraform-rds", "engine", "MySQL"),
-					resource.TestCheckResourceAttr(
-						"jdcloud_rds_instance.terraform-rds", "engine_version", "5.7"),
-					resource.TestCheckResourceAttr(
-						"jdcloud_rds_instance.terraform-rds", "instance_class", "db.mysql.s1.micro"),
-					resource.TestCheckResourceAttr(
-						"jdcloud_rds_instance.terraform-rds", "instance_storage_gb", "40"),
-					resource.TestCheckResourceAttr(
-						"jdcloud_rds_instance.terraform-rds", "az", "cn-north-1a"),
-					resource.TestCheckResourceAttr(
-						"jdcloud_rds_instance.terraform-rds", "vpc_id", "vpc-npvvk4wr5j"),
-					resource.TestCheckResourceAttr(
-						"jdcloud_rds_instance.terraform-rds", "subnet_id", "subnet-j8jrei2981"),
-
-					// After resource_XYZ_Read these value will be set.
-					resource.TestCheckResourceAttrSet(
-						"jdcloud_rds_instance.terraform-rds", "internal_domain_name"),
-					resource.TestCheckResourceAttrSet(
-						"jdcloud_rds_instance.terraform-rds", "instance_port"),
-					resource.TestCheckResourceAttrSet(
-						"jdcloud_rds_instance.terraform-rds", "connection_mode"),
-
-					// Validate on ChargeMode related properties
-					resource.TestCheckResourceAttr(
-						"jdcloud_rds_instance.terraform-rds", "charge_mode", "postpaid_by_usage"),
-					// They were not supposed to be here since they weren't set in resource_XYZ_Read
-					resource.TestCheckNoResourceAttr(
-						"jdcloud_rds_instance.terraform-rds", "charge_unit"),
-					resource.TestCheckNoResourceAttr(
-						"jdcloud_rds_instance.terraform-rds", "charge_duration"),
-				),
-			},
-		},
-	})
-}
-*/
 
 func testAccIfRDSInstanceExists(resourceName string, resourceId *string) resource.TestCheckFunc {
 	return func(stateInfo *terraform.State) error {

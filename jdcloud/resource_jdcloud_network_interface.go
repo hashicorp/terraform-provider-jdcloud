@@ -2,6 +2,7 @@ package jdcloud
 
 import (
 	"fmt"
+	"github.com/hashicorp/terraform/helper/customdiff"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/jdcloud-api/jdcloud-sdk-go/services/vpc/apis"
@@ -18,6 +19,9 @@ func resourceJDCloudNetworkInterface() *schema.Resource {
 		Read:   resourceJDCloudNetworkInterfaceRead,
 		Update: resourceJDCloudNetworkInterfaceUpdate,
 		Delete: resourceJDCloudNetworkInterfaceDelete,
+		CustomizeDiff: customdiff.ComputedIf("ip_addresses", func(d *schema.ResourceDiff, meta interface{}) bool {
+			return d.HasChange("secondary_ip_addresses") || d.HasChange("secondary_ip_count")
+		}),
 
 		Schema: map[string]*schema.Schema{
 			"subnet_id": &schema.Schema{
@@ -175,9 +179,11 @@ func resourceJDCloudNetworkInterfaceRead(d *schema.ResourceData, meta interface{
 				d.Set("primary_ip_address", resp.Result.NetworkInterface.PrimaryIp.ElasticIpAddress)
 			}
 
+			log.Printf("****We have ip_addr here=%v", ipList(resp.Result.NetworkInterface.SecondaryIps))
 			if errSetIp := d.Set("ip_addresses", ipList(resp.Result.NetworkInterface.SecondaryIps)); errSetIp != nil {
 				return resource.NonRetryableError(formatArraySetErrorMessage(errSetIp))
 			}
+			log.Printf("****After updating here=%v", d.Get("ip_addresses").(*schema.Set))
 
 			// sg - Exclude default sg
 			sgRemote := resp.Result.NetworkInterface.NetworkSecurityGroupIds
