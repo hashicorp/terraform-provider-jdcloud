@@ -1,4 +1,4 @@
-## 0.0.2 (Unreleased)
+## 1.1.0 (Unreleased)
 ## 0.0.1 (March 27, 2019)
 
 FEATURES:
@@ -10,6 +10,7 @@ FEATURES:
 * Importer for various resources is introduced ([#17](https://github.com/terraform-providers/terraform-provider-jdcloud/issues/17))
 * Website files prepared ([#18](https://github.com/terraform-providers/terraform-provider-jdcloud/issues/18))
 * CHANGELOG.md created ([#18](https://github.com/terraform-providers/terraform-provider-jdcloud/issues/18))
+* Compatible to Terraform0.12([#7](https://github.com/terraform-providers/terraform-provider-jdcloud/issues/7))
 
 BUG FIXES:
 
