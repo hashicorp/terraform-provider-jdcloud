@@ -28,11 +28,7 @@ fmtcheck:
 errcheck:
 	@sh -c "'$(CURDIR)/scripts/errcheck.sh'"
 
-vendor-status:
-	@govendor status
-
 tools:
-	go get -u github.com/kardianos/govendor
 	go get -u github.com/alecthomas/gometalinter
 	gometalinter --install
 
