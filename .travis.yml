@@ -6,17 +6,19 @@ language: go
 go:
   - "1.12"
 
+env:
+  global:
+    - GOFLAGS=-mod=vendor GO111MODULE=on
+
 install:
 # This script is used by the Travis build to install a cookie for
 # go.googlesource.com so rate limits are higher when using `go get` to fetch
 # packages that live there.
 # See: https://github.com/golang/go/issues/12933
 - bash scripts/gogetcookie.sh
-- go get github.com/kardianos/govendor
 
 script:
 - make test
-- make vendor-status
 - make vet
 - CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o terraform-provider-jdcloud
 - tar zcvf Linux-amd64.tar.gz terraform-provider-jdcloud
