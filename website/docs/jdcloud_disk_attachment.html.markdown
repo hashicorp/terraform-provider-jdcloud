@@ -13,9 +13,9 @@ After a disk has been created, you probably need to attach it to an instance
 ### Example Usage 
 
 ```hcl
-resource "jdcloud_disk_attachment" "disk-attachment-example"{
+resource "jdcloud_disk_attachment" "disk-attachment-example" {
   instance_id = "i-example"
-  disk_id = "vol-example"
+  disk_id     = "vol-example"
 }
 ```
 

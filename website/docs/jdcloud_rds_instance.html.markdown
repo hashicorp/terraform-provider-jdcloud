@@ -13,16 +13,16 @@ Provides a JDCloud RDS instance.
 ### Example Usage
 
 ```hcl
-resource "jdcloud_rds_instance" "rds_example"{
-  instance_name = "example"
-  engine = "MySQL"
-  engine_version = "5.7"
-  instance_class = "db.mysql.s1.micro"
+resource "jdcloud_rds_instance" "rds_example" {
+  instance_name       = "example"
+  engine              = "MySQL"
+  engine_version      = "5.7"
+  instance_class      = "db.mysql.s1.micro"
   instance_storage_gb = "20"
-  az = "cn-north-1a"
-  vpc_id = "vpc-example"
-  subnet_id = "subnet-example"
-  charge_mode = "postpaid_by_usage"
+  az                  = "cn-north-1a"
+  vpc_id              = "vpc-example"
+  subnet_id           = "subnet-example"
+  charge_mode         = "postpaid_by_usage"
 }
 ```
 

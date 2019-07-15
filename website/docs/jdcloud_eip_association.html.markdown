@@ -13,8 +13,8 @@ After you have created an EIP, you can attach this EIP with an instance
 ### Example Usage
 
 ```hcl
-resource "jdcloud_eip_association" "eip-association-example"{
-  instance_id = "i-example"
+resource "jdcloud_eip_association" "eip-association-example" {
+  instance_id   = "i-example"
   elastic_ip_id = "fip-example"
 }
 ```

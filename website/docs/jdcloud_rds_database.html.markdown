@@ -11,9 +11,9 @@ description: |-
 After a RDS instance has been created, you probably need to create some databases on this instance
 
 ```hcl
-resource "jdcloud_rds_database" "db-example"{
-  instance_id = "mysql-example"
-  db_name = " example"
+resource "jdcloud_rds_database" "db-example" {
+  instance_id   = "mysql-example"
+  db_name       = " example"
   character_set = "utf8"
 }
 ```

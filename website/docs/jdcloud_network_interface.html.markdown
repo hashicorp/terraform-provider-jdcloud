@@ -14,7 +14,7 @@ Provides a JDCloud network interface
 
 ```hcl
 resource "jdcloud_network_interface" "example-ineterface" {
-  subnet_id = "subnet-example"
+  subnet_id              = "subnet-example"
   network_interface_name = "example"
 }
 ```

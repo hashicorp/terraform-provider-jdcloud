@@ -17,7 +17,7 @@ After the OSS bucket has been created, you can upload file to this OSS bucket
 ```hcl
 resource "jdcloud_oss_bucket_upload" "example" {
   bucket_name = "bucket_example"
-  file_name = "/path/to/file"
+  file_name   = "/path/to/file"
 }
 ```
 

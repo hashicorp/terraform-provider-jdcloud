@@ -12,10 +12,10 @@ Set up users for each RDS instance
 ### Example Usage
 
 ```hcl
-resource "jdcloud_rds_account" "account_example"{
+resource "jdcloud_rds_account" "account_example" {
   instance_id = "mysql-example"
-  username = "example"
-  password = "example2018"
+  username    = "example"
+  password    = "example2018"
 }
 ```
 

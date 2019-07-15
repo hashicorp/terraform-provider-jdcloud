@@ -13,7 +13,7 @@ Provides a JDCloud route table
 
 ```hcl
 resource "jdcloud_route_table" "example" {
-  vpc_id = "vpc-example"
+  vpc_id           = "vpc-example"
   route_table_name = "example"
 }
 ```

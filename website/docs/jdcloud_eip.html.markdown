@@ -13,8 +13,8 @@ Provides a JDCloud elastic IP address
 ### Example Usage 
 
 ```hcl
-resource "jdcloud_eip" "example"{
-  eip_provider = "bgp"
+resource "jdcloud_eip" "example" {
+  eip_provider   = "bgp"
   bandwidth_mbps = 1
 }
 ```
