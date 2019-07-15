@@ -13,9 +13,9 @@ Provides a JDCloud VPC
 ### Example Usage
 
 ```hcl
-resource "jdcloud_vpc" "vpc-example"{
-	vpc_name = "example"
-	cidr_block = "172.16.0.0/19"
+resource "jdcloud_vpc" "vpc-example" {
+  vpc_name   = "example"
+  cidr_block = "172.16.0.0/19"
 }
 ```
 

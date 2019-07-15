@@ -13,8 +13,8 @@ After you have created network interface, you can attach this network interface 
 ### Example Usage 
 
 ```hcl
-resource "jdcloud_network_interface_attachment" "attachment-example"{
-  instance_id = "i-example"
+resource "jdcloud_network_interface_attachment" "attachment-example" {
+  instance_id          = "i-example"
   network_interface_id = "port-example"
 }
 ```

@@ -15,7 +15,7 @@ Provides a JDCloud network security group
 ```hcl
 resource "jdcloud_network_security_group" "sg-example" {
   network_security_group_name = "sg-example"
-  vpc_id = "vpc-example"
+  vpc_id                      = "vpc-example"
 }
 ```
 

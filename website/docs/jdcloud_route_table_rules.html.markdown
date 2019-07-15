@@ -13,21 +13,21 @@ After a route table is created, you probably need to add some routing rules to t
 ### Example Usage
 
 ```hcl
-resource "jdcloud_route_table_rules" "rule-example"{
+resource "jdcloud_route_table_rules" "rule-example" {
   route_table_id = "rtb-example"
   rule_specs = [
 
     {
-      next_hop_type = "internet"
-      next_hop_id   = "internet"
-      address_prefix= "10.0.0.0/16"
+      next_hop_type  = "internet"
+      next_hop_id    = "internet"
+      address_prefix = "10.0.0.0/16"
     },
 
     {
-      next_hop_type = "instance"
-      next_hop_id   = "i-example"
-      address_prefix= "10.0.2.0/16"
-    }]
+      next_hop_type  = "instance"
+      next_hop_id    = "i-example"
+      address_prefix = "10.0.2.0/16"
+  }]
 
 }
 ```

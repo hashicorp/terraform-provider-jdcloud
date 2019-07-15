@@ -14,12 +14,12 @@ Assign privileges to each account
 ```hcl
 resource "jdcloud_rds_privilege" "pri-example" {
   instance_id = "mysql-example"
-  username = "example"
+  username    = "example"
   account_privilege = [
-  
-    {db_name = "db1",privilege = "rw"},
-    {db_name = "db2",privilege = "ro"},
-    
+
+    { db_name = "db1", privilege = "rw" },
+    { db_name = "db2", privilege = "ro" },
+
   ]
 }
 ```

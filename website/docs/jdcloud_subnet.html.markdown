@@ -13,10 +13,10 @@ Provides a JDCloud subnet
 ### Example Usage 
 
 ```hcl
-resource "jdcloud_subnet" "subnet-exmaple"{
-	vpc_id = "vpc-example"
-	cidr_block = "10.0.128.0/24"
-	subnet_name = "example"
+resource "jdcloud_subnet" "subnet-exmaple" {
+  vpc_id      = "vpc-example"
+  cidr_block  = "10.0.128.0/24"
+  subnet_name = "example"
 }
 ```
 

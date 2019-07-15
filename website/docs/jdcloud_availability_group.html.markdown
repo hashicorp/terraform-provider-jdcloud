@@ -15,10 +15,10 @@ Provides a JDCloud Availability Group
 ```hcl
 resource "jdcloud_availability_group" "ag_01" {
   availability_group_name = "example_ag_name"
-  az = ["cn-north-1a","cn-north-1b"]
-  instance_template_id = "example_template_id"
-  description  = "This is an example description"
-  ag_type = "docker"
+  az                      = ["cn-north-1a", "cn-north-1b"]
+  instance_template_id    = "example_template_id"
+  description             = "This is an example description"
+  ag_type                 = "docker"
 }
 ```
 
